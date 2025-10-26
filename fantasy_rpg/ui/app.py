@@ -11,7 +11,14 @@ except ImportError:
     print("Error: Textual library not found!")
     exit(1)
 
-from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
+try:
+    from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
+    from .action_handler import ActionHandler
+    from .action_logger import get_action_logger
+except ImportError:
+    from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
+    from action_handler import ActionHandler
+    from action_logger import get_action_logger
 
 
 class FantasyRPGApp(App):
@@ -180,6 +187,9 @@ class FantasyRPGApp(App):
         self.character_panel = None
         self.game_log_panel = None
         self.poi_panel = None
+        self.player_state = None
+        self.time_system = None
+        self.action_handler = None
     
     def on_mount(self) -> None:
         """Initialize the app"""
@@ -188,7 +198,14 @@ class FantasyRPGApp(App):
         self.game_log_panel = main_screen.game_log_panel
         self.poi_panel = main_screen.poi_panel
         self.character = self.character_panel.character
+        
         self.push_screen(main_screen)
+        
+        # Initialize action handler
+        self.action_handler = ActionHandler(self)
+        
+        # Initialize survival system after screen is mounted
+        self.call_after_refresh(self._initialize_survival_system)
     
     def process_command(self, command: str):
         """Process a typed command"""
@@ -196,15 +213,15 @@ class FantasyRPGApp(App):
         cmd = parts[0] if parts else ""
         
         if cmd == "help":
-            self.show_help()
+            self.action_handler.handle_help()
         elif cmd in ["n", "north"]:
-            self.travel_direction("north")
+            self.action_handler.handle_movement("north")
         elif cmd in ["s", "south"]:
-            self.travel_direction("south")
+            self.action_handler.handle_movement("south")
         elif cmd in ["e", "east"]:
-            self.travel_direction("east")
+            self.action_handler.handle_movement("east")
         elif cmd in ["w", "west"]:
-            self.travel_direction("west")
+            self.action_handler.handle_movement("west")
         elif cmd in ["heal", "h"]:
             self.log_command("heal")
             self.heal_character(10)
@@ -215,17 +232,23 @@ class FantasyRPGApp(App):
             self.log_command("gain experience")
             self.add_experience(100)
         elif cmd in ["inventory", "i"]:
-            self.log_command("inventory")
-            self.push_screen(InventoryScreen(self.character))
+            self.action_handler.handle_inventory()
         elif cmd in ["character", "c", "sheet"]:
-            self.log_command("character")
-            self.push_screen(CharacterScreen(self.character))
+            self.action_handler.handle_character()
         elif cmd in ["map", "m"]:
-            self.show_map()
+            self.action_handler.handle_map()
         elif cmd in ["rest", "r"]:
-            self.rest_character()
+            self.action_handler.handle_rest()
         elif cmd in ["look", "l", "examine"]:
-            self.look_around()
+            self.action_handler.handle_look()
+        elif cmd in ["eat"]:
+            self.action_handler.handle_eat()
+        elif cmd in ["drink"]:
+            self.action_handler.handle_drink()
+        elif cmd in ["sleep"]:
+            self.action_handler.handle_sleep()
+        elif cmd in ["survival", "status"]:
+            self.action_handler.handle_survival_status()
         elif cmd in ["save"]:
             self.save_log()
         elif cmd in ["clear"]:
@@ -254,6 +277,12 @@ class FantasyRPGApp(App):
         self.log_message("  inventory, i - View inventory and equipment")
         self.log_message("  character, c - View character sheet")
         self.log_message("  map, m - View map and nearby locations")
+        self.log_message("")
+        self.log_message("Survival:")
+        self.log_message("  eat - Eat food to reduce hunger")
+        self.log_message("  drink - Drink water to reduce thirst")
+        self.log_message("  sleep - Sleep for 8 hours")
+        self.log_message("  survival, status - View survival status")
         self.log_message("")
         self.log_message("System:")
         self.log_message("  heal - Heal 10 HP (debug)")
@@ -319,31 +348,12 @@ class FantasyRPGApp(App):
                 self.log_message("")  # Add separator
                 self.character_panel.refresh_display()
     
-    def rest_character(self):
-        """Rest and recover health"""
-        self.log_command("rest")
-        self.log_message("You rest for a while...")
-        self.heal_character(5)
-        self.log_message("You feel refreshed.")
+    # rest_character is now handled by ActionHandler
     
-    # World actions
-    def travel_direction(self, direction: str):
-        """Travel in a specific direction"""
-        if self.poi_panel and self.poi_panel.can_travel_to(direction):
-            destination_hex = self.poi_panel.get_destination_hex(direction)
-            destination_info = self.poi_panel.get_location_by_hex(destination_hex)
-            
-            self.update_location(
-                destination_hex, 
-                destination_info["name"],
-                "320 ft"  # Default elevation
-            )
-        else:
-            self.log_message(f"Cannot travel {direction} from here.")
-            self.log_message("")
+    # travel_direction is now handled by ActionHandler
     
     def update_location(self, hex_id: str, location: str, elevation: str = None):
-        """Update character location"""
+        """Update character location (UI state only - logging handled by ActionHandler)"""
         if self.character_panel:
             self.character_panel.update_world_data(
                 hex_id=hex_id, 
@@ -354,57 +364,15 @@ class FantasyRPGApp(App):
         # Update POI panel with new location
         if self.poi_panel:
             self.poi_panel.update_location(hex_id, location)
-        
-        self.log_command(f"move to {location}")
-        self.log_message(f"[>] You travel to {location} (Hex {hex_id})")
-        if elevation:
-            self.log_message(f"Elevation: {elevation}")
-        self.log_message("Time passes: 1 hour")
-        
-        # Show nearby locations
-        if self.poi_panel:
-            nearby = self.poi_panel.get_nearby_locations()
-            if nearby:
-                self.log_message("You can see:")
-                for loc in nearby:
-                    symbol = self.poi_panel._get_location_symbol(loc["type"])
-                    self.log_message(f"  {symbol} {loc['name']} to the {loc['direction']}")
-        
-        self.log_message("")  # Add separator
-        
-        # Advance turn counter
-        if self.game_log_panel:
-            self.game_log_panel.advance_turn()
     
-    def look_around(self):
-        """Look around current location"""
-        self.log_command("look")
-        if self.poi_panel:
-            current_info = self.poi_panel.get_current_location_info()
-            self.log_message(f"You look around {current_info['name']}:")
-            self.log_message(current_info['description'])
-            self.log_message("")
+    # look_around is now handled by ActionHandler
     
-    def show_map(self):
-        """Show map and nearby locations"""
-        self.log_command("map")
-        self.log_message("Consulting map...")
-        if self.poi_panel:
-            current_info = self.poi_panel.get_current_location_info()
-            nearby = self.poi_panel.get_nearby_locations()
-            self.log_message(f"Current: {current_info['name']} ({self.poi_panel.current_hex})")
-            self.log_message("Nearby locations:")
-            for loc in nearby:
-                symbol = self.poi_panel._get_location_symbol(loc["type"])
-                self.log_message(f"  {symbol} {loc['name']} ({loc['direction']})")
-        self.log_message("")
+    # show_map is now handled by ActionHandler
     
     def update_weather(self, weather: str):
-        """Update weather conditions"""
+        """Update weather conditions (UI only - logging handled by ActionLogger)"""
         if self.character_panel:
             self.character_panel.update_world_data(weather=weather)
-            self.log_system_message(f"[~] Weather changed: {weather}")
-            self.log_message("")  # Add separator
     
     # System actions
     def save_log(self):
@@ -422,31 +390,111 @@ class FantasyRPGApp(App):
             self.log_system_message("Game log cleared")
             self.log_message("")
     
-    # Logging methods
+    # Simple logging methods (for debug commands only)
     def log_message(self, message: str, message_type: str = "normal"):
-        """Add a message to the game log"""
+        """Add a message to the game log (for debug commands only)"""
         if self.game_log_panel:
             self.game_log_panel.add_message(message, message_type)
     
     def log_command(self, command: str):
-        """Log a player command"""
+        """Log a player command (for debug commands only)"""
         if self.game_log_panel:
             self.game_log_panel.add_command(command)
     
     def log_system_message(self, message: str):
-        """Log a system message"""
+        """Log a system message (for system initialization only)"""
         if self.game_log_panel:
             self.game_log_panel.add_system_message(message)
     
     def log_combat_message(self, message: str):
-        """Log a combat message"""
+        """Log a combat message (for debug commands only)"""
         if self.game_log_panel:
             self.game_log_panel.add_combat_message(message)
     
     def log_level_up_message(self, message: str):
-        """Log a level up message with special formatting"""
+        """Log a level up message (for debug commands only)"""
         if self.game_log_panel:
             self.game_log_panel.add_level_up_message(message)
+    
+    def _initialize_survival_system(self):
+        """Initialize survival system after UI is mounted"""
+        try:
+            try:
+                from ..game.player_state import PlayerState
+                from ..game.time_system import TimeSystem
+                from ..world.weather_core import generate_weather_state
+            except ImportError:
+                from fantasy_rpg.game.player_state import PlayerState
+                from fantasy_rpg.game.time_system import TimeSystem
+                from fantasy_rpg.world.weather_core import generate_weather_state
+            
+            # Create player state and time system
+            self.player_state = PlayerState()
+            self.player_state.character = self.character
+            
+            # Generate initial weather
+            initial_weather = generate_weather_state(65.0, "spring", "temperate")
+            self.player_state.update_weather(initial_weather)
+            
+            # Create time system
+            self.time_system = TimeSystem(self.player_state)
+            
+            # Add callbacks for UI updates
+            self.time_system.add_time_callback(self._on_time_advance)
+            self.time_system.add_weather_callback(self._on_weather_change)
+            
+            # Link player state to character and game log for UI display
+            self.character.player_state = self.player_state
+            self.game_log_panel.player_state = self.player_state
+            
+            # Update initial weather display
+            weather_desc = f"{initial_weather.get_description().split(chr(10))[0]}"  # First line only
+            self.character_panel.update_world_data(weather=weather_desc)
+            
+                # Update title bar with initial time
+            current_screen = self.screen
+            if hasattr(current_screen, 'update_title_bar'):
+                current_screen.update_title_bar(self.player_state)
+            
+            # Initialize action logger with player state for weather tracking
+            action_logger = get_action_logger()
+            action_logger.set_game_log(self.game_log_panel)
+            action_logger.last_weather = initial_weather
+            
+            self.log_system_message("Welcome to your adventure!\n")
+            
+        except ImportError as e:
+            self.log_system_message(f"Could not initialize survival system: {e}")
+        except Exception as e:
+            self.log_system_message(f"Error initializing survival system: {e}")
+    
+    # Survival system callbacks
+    def _on_time_advance(self, old_time: str, new_time: str, hours_passed: float):
+        """Callback for when time advances"""
+        if hours_passed > 0:
+            # Update character panel
+            if self.character_panel:
+                self.character_panel.refresh_display()
+            
+            # Update title bar
+            current_screen = self.screen
+            if hasattr(current_screen, 'update_title_bar'):
+                current_screen.update_title_bar(self.player_state)
+            
+            # Check for weather changes (handled by ActionLogger)
+            action_logger = get_action_logger()
+            action_logger._log_weather_changes(self.player_state)
+    
+    def _on_weather_change(self, old_weather, new_weather):
+        """Callback for when weather changes"""
+        if new_weather:
+            weather_desc = new_weather.get_description().split('\n')[0]  # First line only
+            self.update_weather(weather_desc)
+            # Weather change logging is now handled by ActionLogger
+    
+    # _format_duration is now handled by the time system
+    
+    # Survival-related commands are now handled by ActionHandler
 
 
 def run_ui():

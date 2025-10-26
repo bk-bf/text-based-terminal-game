@@ -185,7 +185,7 @@ def test_biome_assignment():
     
     # Group biomes by temperature ranges
     temp_ranges = {
-        "Frigid (<0°C)": [],
+        "Freezing (<0°C)": [],
         "Cold (0-10°C)": [],
         "Cool (10-20°C)": [],
         "Warm (20-30°C)": [],
@@ -197,7 +197,7 @@ def test_biome_assignment():
         temp_c = fahrenheit_to_celsius(climate_zone.base_temperature)
         
         if temp_c < 0:
-            temp_ranges["Frigid (<0°C)"].append(biome_type)
+            temp_ranges["Freezing (<0°C)"].append(biome_type)
         elif temp_c < 10:
             temp_ranges["Cold (0-10°C)"].append(biome_type)
         elif temp_c < 20:

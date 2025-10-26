@@ -47,7 +47,10 @@ class CharacterPanel(Static):
     def _create_sample_character(self):
         """Create a sample character for demonstration"""
         try:
-            from ..core.character_creation import create_character_quick
+            try:
+                from ..core.character_creation import create_character_quick
+            except ImportError:
+                from fantasy_rpg.core.character_creation import create_character_quick
             character, _, _ = create_character_quick("Aldric", "Human", "Fighter")
             # Modify some stats for demo
             character.hp = 32
@@ -135,8 +138,12 @@ class CharacterPanel(Static):
     
     def refresh_display(self):
         """Refresh the character panel display"""
-        info_widget = self.query_one("#character-info")
-        info_widget.update(self._render_character_info())
+        try:
+            info_widget = self.query_one("#character-info")
+            info_widget.update(self._render_character_info())
+        except:
+            # Widget not mounted yet, ignore
+            pass
     
     def _render_character_info(self) -> str:
         """Render character information as text"""
@@ -168,6 +175,39 @@ INT: {char.intelligence} ({char.ability_modifier('intelligence'):+d})
 WIS: {char.wisdom} ({char.ability_modifier('wisdom'):+d})
 CHA: {char.charisma} ({char.ability_modifier('charisma'):+d})"""
         
+        # Add survival status if available
+        survival_text = ""
+        if hasattr(char, 'player_state') and char.player_state:
+            player_state = char.player_state
+            bars = player_state.get_survival_bars()
+            
+            # Get sophisticated status descriptions
+            hunger_desc = self._get_hunger_description(player_state.survival.get_hunger_level())
+            thirst_desc = self._get_thirst_description(player_state.survival.get_thirst_level())
+            fatigue_desc = self._get_fatigue_description(player_state.survival.get_fatigue_level())
+            warmth_desc = self._get_warmth_description(player_state.survival.get_temperature_status())
+            wetness_desc = self._get_wetness_description(player_state.survival.get_wetness_level())
+            
+            survival_text = f"""
+----------------------------
+survival:
+Hunger: {hunger_desc} 
+Thirst: {thirst_desc} 
+Fatigue: {fatigue_desc}
+Warmth: {warmth_desc} 
+Dryness: {wetness_desc}
+----------------------------
+condition:"""
+            
+            if player_state.status_effects:
+                for effect in player_state.status_effects[:3]:  # Show first 3 effects
+                    survival_text += f"\n• {effect}"
+            else:
+                survival_text += "\nHealthy"
+        
+        # Get realistic environment description
+        environment_text = self._get_environment_description(char)
+        
         return f"""{char.name}
 Lv {char.level} {char.race} {char.character_class}
 
@@ -176,12 +216,14 @@ AC: {char.armor_class}
 {xp_info}
 {encumbrance_info}
 
+----------------------------
 abilities:
-{abilities_text}
+{abilities_text}{survival_text}
 
+----------------------------
 environment:
-{world["weather"]}
-
+{environment_text}
+----------------------------
 location:
 Hex {world["hex"]} - {world["location"]}
 Elevation: {world["elevation"]}"""
@@ -199,6 +241,235 @@ Elevation: {world["elevation"]}"""
         empty = max(0, width - filled)
         
         return "█" * filled + "▓" * empty
+    
+    def _get_hunger_description(self, level) -> str:
+        """Get sophisticated hunger description"""
+        descriptions = {
+            "EXCELLENT": "Satiated",
+            "GOOD": "Well-fed", 
+            "NORMAL": "Content",
+            "POOR": "Peckish",
+            "BAD": "Famished",
+            "CRITICAL": "Starving"
+        }
+        return descriptions.get(level.name, "Content")
+    
+    def _get_thirst_description(self, level) -> str:
+        """Get sophisticated thirst description"""
+        descriptions = {
+            "EXCELLENT": "Hydrated",
+            "GOOD": "Refreshed",
+            "NORMAL": "Quenched", 
+            "POOR": "Parched",
+            "BAD": "Dehydrated",
+            "CRITICAL": "Desiccated"
+        }
+        return descriptions.get(level.name, "Quenched")
+    
+    def _get_fatigue_description(self, level) -> str:
+        """Get sophisticated fatigue description"""
+        descriptions = {
+            "EXCELLENT": "Invigorated",
+            "GOOD": "Energetic",
+            "NORMAL": "Rested",
+            "POOR": "Weary", 
+            "BAD": "Exhausted",
+            "CRITICAL": "Depleted"
+        }
+        return descriptions.get(level.name, "Rested")
+    
+    def _get_warmth_description(self, status) -> str:
+        """Get sophisticated warmth description"""
+        descriptions = {
+            "FREEZING": "Freezing",
+            "VERY_COLD": "Chilled", 
+            "COLD": "Cool",
+            "COOL": "Fresh",
+            "COMFORTABLE": "Pleasant",
+            "WARM": "Cozy",
+            "HOT": "Heated",
+            "VERY_HOT": "Sweltering", 
+            "OVERHEATING": "Scorching"
+        }
+        return descriptions.get(status.name, "Pleasant")
+    
+    def _get_wetness_description(self, level) -> str:
+        """Get sophisticated wetness description"""
+        descriptions = {
+            "DRY": "Dry",
+            "DAMP": "Moist",
+            "WET": "Damp", 
+            "SOAKED": "Sodden",
+            "DRENCHED": "Soaked"
+        }
+        return descriptions.get(level.name, "Dry")
+    
+    def _get_environment_description(self, char) -> str:
+        """Get realistic environment description without modern measurements"""
+        if hasattr(char, 'player_state') and char.player_state and char.player_state.current_weather:
+            weather = char.player_state.current_weather
+            
+            # Temperature description based on character sensation
+            temp_desc = self._get_ambient_temperature_description(weather.feels_like)
+            
+            # Sky conditions (cloud cover only)
+            if weather.cloud_cover > 90:
+                sky_desc = "Overcast"
+            elif weather.cloud_cover > 60:
+                sky_desc = "Cloudy"
+            elif weather.cloud_cover > 30:
+                sky_desc = "Partly cloudy"
+            elif weather.cloud_cover < 10:
+                sky_desc = "Clear"
+            else:
+                sky_desc = "Fair"
+            
+            # Weather conditions (precipitation, sun, storms)
+            weather_conditions = []
+            
+            # Check for precipitation first
+            if weather.precipitation > 0:
+                if weather.precipitation_type == "rain":
+                    if weather.precipitation > 70:
+                        weather_conditions.append("Heavy rain")
+                    elif weather.precipitation > 40:
+                        weather_conditions.append("Steady rain")
+                    else:
+                        weather_conditions.append("Light rain")
+                elif weather.precipitation_type == "snow":
+                    if weather.precipitation > 70:
+                        weather_conditions.append("Heavy snowfall")
+                    elif weather.precipitation > 40:
+                        weather_conditions.append("Steady snow")
+                    else:
+                        weather_conditions.append("Light snow")
+                elif weather.precipitation_type == "sleet":
+                    weather_conditions.append("Sleet")
+                elif weather.precipitation_type == "hail":
+                    weather_conditions.append("Hailstorm")
+            else:
+                # No precipitation - check for sunny conditions
+                if weather.cloud_cover < 30:
+                    weather_conditions.append("Sunny")
+                elif weather.cloud_cover < 60:
+                    weather_conditions.append("Partly sunny")
+                else:
+                    weather_conditions.append("Dry")
+            
+            # Storm conditions (can occur with or without precipitation)
+            if weather.is_storm:
+                if not any("rain" in cond.lower() or "snow" in cond.lower() for cond in weather_conditions):
+                    weather_conditions.append("Dry storm")
+            
+            # Visibility conditions
+            if weather.visibility < 500:
+                weather_conditions.append("Poor visibility")
+            elif weather.visibility < 1000:
+                weather_conditions.append("Hazy")
+            
+            weather_desc = ", ".join(weather_conditions) if weather_conditions else "Fair"
+            
+            # Humidity (estimated from precipitation and cloud cover)
+            humidity = self._estimate_humidity(weather)
+            
+            return f"""Temperature: {temp_desc}
+Wind: {self._get_wind_description(weather.wind_speed)}
+Sky: {sky_desc}
+Weather: {weather_desc}
+Humidity: {humidity}"""
+        else:
+            return """Temperature: Mild
+Wind: Light breeze
+Sky: Clear
+Weather: Sunny
+Humidity: Moderate"""
+    
+    def _get_ambient_temperature_description(self, temp_f: float) -> str:
+        """Get ambient temperature description without numbers"""
+        if temp_f < 20:
+            return "Bitter cold"
+        elif temp_f < 32:
+            return "Freezing"
+        elif temp_f < 45:
+            return "Cold"
+        elif temp_f < 55:
+            return "Cool"
+        elif temp_f < 70:
+            return "Mild"
+        elif temp_f < 80:
+            return "Warm"
+        elif temp_f < 90:
+            return "Hot"
+        elif temp_f < 100:
+            return "Very hot"
+        else:
+            return "Scorching"
+    
+    def _get_wind_description(self, wind_speed: float) -> str:
+        """Get wind condition description"""
+        if wind_speed < 1:
+            return "Still air"
+        elif wind_speed < 4:
+            return "Light air"
+        elif wind_speed < 8:
+            return "Light breeze"
+        elif wind_speed < 13:
+            return "Gentle breeze"
+        elif wind_speed < 19:
+            return "Moderate breeze"
+        elif wind_speed < 25:
+            return "Fresh breeze"
+        elif wind_speed < 32:
+            return "Strong breeze"
+        elif wind_speed < 39:
+            return "Near gale"
+        elif wind_speed < 47:
+            return "Gale"
+        elif wind_speed < 55:
+            return "Strong gale"
+        elif wind_speed < 64:
+            return "Storm"
+        else:
+            return "Hurricane"
+    
+    def _estimate_humidity(self, weather) -> str:
+        """Estimate humidity from weather conditions"""
+        humidity_score = 0
+        
+        # Base humidity from precipitation
+        if weather.precipitation > 50:
+            humidity_score += 3
+        elif weather.precipitation > 20:
+            humidity_score += 2
+        elif weather.precipitation > 0:
+            humidity_score += 1
+        
+        # Cloud cover affects humidity
+        if weather.cloud_cover > 80:
+            humidity_score += 2
+        elif weather.cloud_cover > 50:
+            humidity_score += 1
+        
+        # Temperature affects perceived humidity
+        if weather.temperature > 80:
+            humidity_score += 1
+        elif weather.temperature < 40:
+            humidity_score -= 1
+        
+        # Wind reduces perceived humidity
+        if weather.wind_speed > 20:
+            humidity_score -= 1
+        
+        if humidity_score >= 5:
+            return "Oppressive"
+        elif humidity_score >= 3:
+            return "Humid"
+        elif humidity_score >= 1:
+            return "Moderate"
+        elif humidity_score >= -1:
+            return "Dry"
+        else:
+            return "Arid"
 
 
 class GameLogPanel(ScrollableContainer):
@@ -208,8 +479,7 @@ class GameLogPanel(ScrollableContainer):
         super().__init__()
         self.messages = []
         self.max_messages = 1000  # Keep last 1000 messages
-        self.turn_counter = 1847
-        self.day_counter = 5
+        self.player_state = None  # Will be set by app
         
         # Add some initial messages
         self._add_initial_messages()
@@ -220,37 +490,13 @@ class GameLogPanel(ScrollableContainer):
     def _add_initial_messages(self):
         """Add some initial demo messages"""
         initial_messages = [
-            "=== Fantasy RPG Game Log ===",
+            "You find yourself in a forest clearing.",
+            "Ancient oak trees tower above you, their branches swaying gently in the breeze.",
+            "Sunlight filters through the canopy, casting dappled shadows on the forest floor.",
             "",
-            "Welcome to the world of adventure!",
-            "Your journey begins in the ancient forest...",
-            "",
-            "> move north",
-            "You travel through the dense forest.",
-            "Time passes: 30 minutes",
-            "",
-            "[Perception Check: 16] Success!",
-            "You notice fresh wolf tracks in the mud.",
-            "The tracks lead deeper into the forest.",
-            "",
-            "> examine tracks",
-            "The wolf tracks are large and recent.",
-            "You estimate they were made within the last hour.",
-            "There appear to be at least 3 different wolves.",
-            "",
-            "[Survival Check: 14] Success!",
-            "You can follow these tracks if you choose.",
-            "",
-            "> look around",
-            "You are in a dense forest clearing.",
-            "Ancient oak trees tower above you.",
-            "Sunlight filters through the canopy.",
-            "You hear birds chirping in the distance.",
-            "",
-            "Available exits: North, South, East, West",
-            "",
-            "--- Use arrow keys or mouse to scroll ---",
-            "--- Type 'help' for available commands ---"
+            "Type 'help' for available commands.",
+            "Type 'look' to examine your surroundings.",
+            "Type 'survival' to check your condition."
         ]
         
         for message in initial_messages:
@@ -258,10 +504,11 @@ class GameLogPanel(ScrollableContainer):
     
     def add_message(self, message: str, message_type: str = "normal"):
         """Add a new message to the log"""
-        # Add timestamp for certain message types
-        if message_type in ["system", "combat", "level_up"]:
-            timestamp = f"[Turn {self.turn_counter}] "
-            formatted_message = timestamp + message
+        # Format message based on type
+        if message_type == "combat":
+            formatted_message = f"[!] {message}"
+        elif message_type == "level_up":
+            formatted_message = f"[^] {message}"
         else:
             formatted_message = message
         
@@ -282,7 +529,7 @@ class GameLogPanel(ScrollableContainer):
         self.add_message(f"> {command}", "command")
     
     def add_system_message(self, message: str):
-        """Add a system message with timestamp"""
+        """Add a system message"""
         self.add_message(message, "system")
     
     def add_combat_message(self, message: str):
@@ -304,21 +551,30 @@ class GameLogPanel(ScrollableContainer):
     
     def refresh_log(self):
         """Refresh the log display"""
-        log_widget = self.query_one("#game-log")
-        log_widget.update(self._render_log())
+        try:
+            log_widget = self.query_one("#game-log")
+            log_widget.update(self._render_log())
+        except:
+            # Widget not mounted yet, ignore
+            pass
     
     def _render_log(self) -> str:
         """Render game log messages"""
         if not self.messages:
             return "No messages yet..."
         
-        header = f"Turn {self.turn_counter}, Day {self.day_counter}\n\n"
+        # Get current time from player state if available
+        if self.player_state:
+            time_str = self._get_natural_time_description()
+            header = f"{time_str}\n\n"
+        else:
+            header = f"The adventure begins...\n\n"
         
         # Join all messages
         content = "\n".join(self.messages)
         
-        # Add scroll indicator at the bottom
-        footer = "\n\n--- End of Log ---"
+        # Add subtle scroll indicator at the bottom
+        footer = "\n\n~"
         
         return header + content + footer
     
@@ -331,21 +587,23 @@ class GameLogPanel(ScrollableContainer):
         return self.messages[-count:] if self.messages else []
     
     def advance_turn(self):
-        """Advance the turn counter"""
-        self.turn_counter += 1
-        if self.turn_counter % 100 == 0:  # New day every 100 turns
-            self.day_counter += 1
-            self.add_system_message(f"A new day dawns... Day {self.day_counter}")
+        """Advance the turn counter (legacy method, no longer used)"""
+        # This method is kept for compatibility but no longer tracks turns
+        pass
     
     def save_log_to_file(self, filename: str = "game_log.txt"):
         """Save the current log to a file"""
         try:
             with open(filename, 'w') as f:
-                f.write(f"Fantasy RPG Game Log - Turn {self.turn_counter}, Day {self.day_counter}\n")
+                if self.player_state:
+                    time_desc = self._get_natural_time_description()
+                    f.write(f"Fantasy RPG Adventure Log - {time_desc}\n")
+                else:
+                    f.write("Fantasy RPG Adventure Log\n")
                 f.write("=" * 50 + "\n\n")
                 for message in self.messages:
                     f.write(message + "\n")
-            self.add_system_message(f"Game log saved to {filename}")
+            self.add_system_message(f"Adventure log saved to {filename}")
         except Exception as e:
             self.add_system_message(f"Failed to save log: {str(e)}")
     
@@ -356,6 +614,63 @@ class GameLogPanel(ScrollableContainer):
             if search_term.lower() in message.lower():
                 matching_messages.append((i, message))
         return matching_messages
+    
+    def _get_natural_time_description(self) -> str:
+        """Get natural language time description without precise measurements"""
+        if not self.player_state:
+            return "The adventure begins..."
+        
+        # Get approximate time of day based on game hour
+        hour = int(self.player_state.game_hour)  # Convert to int to avoid float precision issues
+        day = self.player_state.game_day
+        
+        # Time of day descriptions
+        if 5 <= hour < 7:
+            time_desc = "Early dawn"
+        elif 7 <= hour < 9:
+            time_desc = "Morning"
+        elif 9 <= hour < 12:
+            time_desc = "Late morning"
+        elif 12 <= hour < 14:
+            time_desc = "Midday"
+        elif 14 <= hour < 17:
+            time_desc = "Afternoon"
+        elif 17 <= hour < 19:
+            time_desc = "Late afternoon"
+        elif 19 <= hour < 21:
+            time_desc = "Evening"
+        elif 21 <= hour < 23:
+            time_desc = "Late evening"
+        elif 23 <= hour or hour < 2:
+            time_desc = "Deep night"
+        elif 2 <= hour < 5:
+            time_desc = "Before dawn"
+        else:
+            time_desc = "Night"
+        
+        # Day descriptions
+        if day == 1:
+            day_desc = "the first day"
+        elif day == 2:
+            day_desc = "the second day"
+        elif day == 3:
+            day_desc = "the third day"
+        elif day <= 7:
+            day_desc = f"day {day}"
+        elif day <= 14:
+            day_desc = f"the {day}th day of your journey"
+        else:
+            weeks = day // 7
+            remaining_days = day % 7
+            if weeks == 1:
+                if remaining_days == 0:
+                    day_desc = "after a week of travel"
+                else:
+                    day_desc = f"over a week into your journey"
+            else:
+                day_desc = f"after {weeks} weeks of adventure"
+        
+        return f"{time_desc} of {day_desc}"
 
 
 class POIPanel(Static):

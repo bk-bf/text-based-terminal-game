@@ -116,7 +116,7 @@ def test_lapse_rate_effects():
         "Temperate mountain foothills",
         "Cool temperate mountains",
         "Cold subarctic peaks",
-        "Frigid arctic summits"
+        "Freezing arctic summits"
     ]
     
     for elevation, description in zip(test_elevations, descriptions):

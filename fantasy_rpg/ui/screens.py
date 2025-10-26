@@ -15,7 +15,10 @@ except ImportError:
     print("Error: Textual library not found!")
     exit(1)
 
-from .panels import CharacterPanel, GameLogPanel, POIPanel
+try:
+    from .panels import CharacterPanel, GameLogPanel, POIPanel
+except ImportError:
+    from panels import CharacterPanel, GameLogPanel, POIPanel
 
 
 class CharacterScreen(ModalScreen):
@@ -399,7 +402,8 @@ class MainGameScreen(Screen):
         """Create the three-panel layout"""
         with Vertical():
             # Title bar
-            yield Static("Fantasy RPG - Turn 1847, Day 5 | Type 'help' for commands", id="title-bar", markup=False)
+            self.title_bar = Static("Fantasy RPG | Type 'help' for commands", id="title-bar", markup=False)
+            yield self.title_bar
             
             # Main three-panel layout
             with Horizontal():
@@ -414,6 +418,64 @@ class MainGameScreen(Screen):
         """Handle key presses"""
         if event.key == "escape":
             self.app.push_screen(QuitConfirmationScreen())
+    
+    def update_title_bar(self, player_state=None):
+        """Update the title bar with current game state"""
+        if player_state and hasattr(player_state, 'get_time_string'):
+            time_desc = self._get_natural_time_description(player_state)
+            title_text = f"Fantasy RPG - {time_desc} | Type 'help' for commands"
+        else:
+            title_text = "Fantasy RPG | Type 'help' for commands"
+        
+        if hasattr(self, 'title_bar'):
+            self.title_bar.update(title_text)
+    
+    def _get_natural_time_description(self, player_state) -> str:
+        """Get natural language time description for title bar"""
+        # Get approximate time of day based on game hour
+        hour = int(player_state.game_hour)  # Convert to int to avoid float precision issues
+        day = player_state.game_day
+        
+        # Time of day descriptions
+        if 5 <= hour < 7:
+            time_desc = "Early dawn"
+        elif 7 <= hour < 9:
+            time_desc = "Morning"
+        elif 9 <= hour < 12:
+            time_desc = "Late morning"
+        elif 12 <= hour < 14:
+            time_desc = "Midday"
+        elif 14 <= hour < 17:
+            time_desc = "Afternoon"
+        elif 17 <= hour < 19:
+            time_desc = "Late afternoon"
+        elif 19 <= hour < 21:
+            time_desc = "Evening"
+        elif 21 <= hour < 23:
+            time_desc = "Late evening"
+        elif 23 <= hour or hour < 2:
+            time_desc = "Deep night"
+        elif 2 <= hour < 5:
+            time_desc = "Before dawn"
+        else:
+            time_desc = "Night"
+        
+        # Shorter day descriptions for title bar
+        if day == 1:
+            day_desc = "Day 1"
+        elif day <= 7:
+            day_desc = f"Day {day}"
+        else:
+            weeks = day // 7
+            remaining_days = day % 7
+            if weeks == 1 and remaining_days == 0:
+                day_desc = "Week 1"
+            elif weeks == 1:
+                day_desc = f"Week 1, Day {remaining_days}"
+            else:
+                day_desc = f"Week {weeks}"
+        
+        return f"{time_desc}, {day_desc}"
     
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle command input submission"""
