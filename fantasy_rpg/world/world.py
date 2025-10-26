@@ -8,8 +8,10 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple, Optional, Any
 try:
     from .terrain_generation import TerrainGenerator
+    from .climate import ClimateSystem, ClimateZone
 except ImportError:
     from terrain_generation import TerrainGenerator
+    from climate import ClimateSystem, ClimateZone
 
 
 @dataclass
@@ -67,7 +69,7 @@ class World:
     seed: int
     size: Tuple[int, int]  # (width, height) in hexes
     heightmap: Optional[Dict[Tuple[int, int], float]] = None
-    climate: Optional[Dict[Tuple[int, int], str]] = None
+    climate_zones: Optional[Dict[Tuple[int, int], ClimateZone]] = None
     biomes: Optional[Dict[Tuple[int, int], str]] = None
     landmarks: Optional[Dict[Tuple[int, int], Dict[str, Any]]] = None
     factions: Optional[List[Dict[str, Any]]] = None
@@ -76,8 +78,8 @@ class World:
         """Initialize empty data structures if not provided."""
         if self.heightmap is None:
             self.heightmap = {}
-        if self.climate is None:
-            self.climate = {}
+        if self.climate_zones is None:
+            self.climate_zones = {}
         if self.biomes is None:
             self.biomes = {}
         if self.landmarks is None:
@@ -88,10 +90,13 @@ class World:
     def get_hex_data(self, coords: Tuple[int, int]) -> Dict[str, Any]:
         """Get all data for a specific hex coordinate."""
         x, y = coords
+        climate_zone = self.climate_zones.get(coords)
         return {
             'coords': coords,
             'elevation': self.heightmap.get(coords, 0.0),
-            'climate': self.climate.get(coords, 'temperate'),
+            'climate_zone': climate_zone,
+            'climate_type': climate_zone.zone_type if climate_zone else 'temperate',
+            'base_temperature': climate_zone.base_temperature if climate_zone else 50.0,
             'biome': self.biomes.get(coords, 'plains'),
             'landmark': self.landmarks.get(coords, None)
         }
@@ -112,7 +117,7 @@ def generate_world_with_terrain(seed: int, size: Tuple[int, int]) -> World:
         size: World dimensions (width, height) in hexes
     
     Returns:
-        World object with generated heightmap, biomes, and terrain data
+        World object with generated heightmap, climate zones, biomes, and terrain data
     """
     print(f"Generating world with seed {seed}, size {size}")
     
@@ -121,12 +126,19 @@ def generate_world_with_terrain(seed: int, size: Tuple[int, int]) -> World:
     width, height = size
     
     # Generate continental heightmap for realistic landmasses
+    print("Generating terrain...")
     heightmap = terrain_gen.generate_continental_heightmap(width, height)
+    
+    # Generate climate zones based on latitude and elevation
+    print("Generating climate zones...")
+    climate_system = ClimateSystem(height)
+    climate_zones = climate_system.generate_climate_zones(size, heightmap)
     
     # Generate terrain types from elevation
     terrain_types = terrain_gen.generate_terrain_types(heightmap)
     
     # Convert terrain types to biomes (simple mapping for now)
+    # TODO: This will be enhanced to use climate + terrain for realistic biomes
     biomes = {}
     for coords, terrain_type in terrain_types.items():
         if terrain_type == "water":
@@ -149,6 +161,7 @@ def generate_world_with_terrain(seed: int, size: Tuple[int, int]) -> World:
         seed=seed,
         size=size,
         heightmap=heightmap,
+        climate_zones=climate_zones,
         biomes=biomes
     )
     
@@ -175,6 +188,17 @@ def test_world_generation():
     print(f"  Max: {max(elevations):.3f}")
     print(f"  Avg: {sum(elevations)/len(elevations):.3f}")
     
+    # Show climate zone distribution
+    climate_counts = {}
+    for climate_zone in world.climate_zones.values():
+        zone_type = climate_zone.zone_type
+        climate_counts[zone_type] = climate_counts.get(zone_type, 0) + 1
+    
+    print(f"\nClimate zone distribution:")
+    for zone_type, count in sorted(climate_counts.items()):
+        percentage = (count / len(world.climate_zones)) * 100
+        print(f"  {zone_type}: {count} hexes ({percentage:.1f}%)")
+    
     # Show biome distribution
     biome_counts = {}
     for biome in world.biomes.values():
@@ -191,8 +215,28 @@ def test_world_generation():
     for coords in test_coords:
         if world.is_valid_coordinate(coords):
             hex_data = world.get_hex_data(coords)
+            temp_c = (hex_data['base_temperature'] - 32) * 5/9
             print(f"  {coords}: elevation={hex_data['elevation']:.3f}, "
+                  f"climate={hex_data['climate_type']}, "
+                  f"temp={hex_data['base_temperature']:.0f}°F ({temp_c:.0f}°C), "
                   f"biome={hex_data['biome']}")
+    
+    # Test temperature variation across latitudes
+    print(f"\nTemperature gradient test (center column):")
+    width, height = world.size
+    center_x = width // 2
+    for y in [0, height//4, height//2, 3*height//4, height-1]:
+        coords = (center_x, y)
+        if world.is_valid_coordinate(coords):
+            hex_data = world.get_hex_data(coords)
+            climate_zone = hex_data['climate_zone']
+            summer_temp = sum(climate_zone.temp_range_summer) / 2
+            winter_temp = sum(climate_zone.temp_range_winter) / 2
+            summer_temp_c = (summer_temp - 32) * 5/9
+            winter_temp_c = (winter_temp - 32) * 5/9
+            print(f"  Y={y:2d}: {hex_data['climate_type']:>10s} - "
+                  f"Summer: {summer_temp:3.0f}°F ({summer_temp_c:3.0f}°C), "
+                  f"Winter: {winter_temp:3.0f}°F ({winter_temp_c:3.0f}°C)")
     
     print("\nWorld generation integration test complete!")
     return world

@@ -23,11 +23,11 @@ This spec implements a comprehensive geographic and environmental simulation sys
 - **Checkpoint:** Realistic geography with logical water systems
 
 ### **1.1.2: Climate & Biome System (Afternoon)**
-- [ ] Implement latitude-based temperature gradients
-- [ ] Add elevation-based temperature modification (lapse rate)
-- [ ] Simulate rainfall patterns (prevailing winds, rain shadows)
-- [ ] Create biome assignment from temperature + rainfall matrix
-- [ ] Generate 6-8 biomes with distinct environmental properties
+- [x] Implement latitude-based temperature gradients
+- [x] Add elevation-based temperature modification (lapse rate)
+- [x] Simulate rainfall patterns (prevailing winds, rain shadows)
+- [x] Create biome assignment from temperature + rainfall matrix
+- [x] Generate 6-8 biomes with distinct environmental properties
 - [ ] Assign resource distribution and natural hazards per biome
 - **Checkpoint:** Biomes distributed realistically with gameplay impact
 
@@ -36,19 +36,19 @@ This spec implements a comprehensive geographic and environmental simulation sys
 ## Milestone 1.2: Weather & Climate Systems (Day 2)
 
 ### **1.2.1: Weather Simulation Engine (Morning)**
-- [ ] Implement WeatherState dataclass with complete weather data
-- [ ] Create seasonal weather pattern generation
-- [ ] Build weather transition system (realistic weather changes)
-- [ ] Implement storm systems and extreme weather events
-- [ ] Add magical weather disruption system
+- [x] Implement WeatherState dataclass with complete weather data
+- [x] Create seasonal weather pattern generation
+- [x] Build weather transition system (realistic weather changes)
+- [x] Implement storm systems and extreme weather events
+- [x] Add magical weather disruption system
 - **Checkpoint:** Dynamic weather system generating realistic patterns
 
 ### **1.2.2: Weather Prediction & Forecasting (Afternoon)**
 - [ ] Implement 7-day weather forecasting system
 - [ ] Create player weather prediction mechanics (Survival skill checks)
-- [ ] Build weather impact calculation (travel speed, visibility, hazards)
-- [ ] Add seasonal weather pattern variations
-- [ ] Implement weather-based travel modifiers
+- [x] Build weather impact calculation (travel speed, visibility, hazards)
+- [x] Add seasonal weather pattern variations
+- [x] Implement weather-based travel modifiers
 - **Checkpoint:** Complete weather system with player prediction mechanics
 
 ---

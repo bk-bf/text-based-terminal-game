@@ -77,6 +77,12 @@ This implementation plan breaks down the Fantasy RPG MVP into 3 major tasks, eac
 
 ---
 
+════════════════════════════════════════
+👉 SET UP CI/CD HERE (30 minutes)
+════════════════════════════════════════
+
+---
+
 ## Task 2: Combat & Exploration Systems
 
 **Estimated Time:** 3-4 weeks  
