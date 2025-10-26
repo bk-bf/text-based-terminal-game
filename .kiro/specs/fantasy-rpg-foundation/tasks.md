@@ -18,14 +18,14 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [x] Install dependencies (textual>=0.40.0, rich>=13.0.0) 
     (verified with ./venv/bin/pip list | grep -E "(textual|rich)")
 
-- [ ] Configure git repository with .gitignore
-- [ ] Create main.py entry point
+- [x] Configure git repository with .gitignore
+- [x] Create main.py entry point
 - **Checkpoint:** `python main.py` runs without errors
 
 ### **Milestone 1.1.2: Base Data Structures (Day 2)**
-- [ ] Implement World dataclass with type hints
-- [ ] Implement Hex dataclass with coordinates and biome
-- [ ] Implement Character base class with D&D 5e stats
+- [x] Implement World dataclass with type hints
+- [x] Implement Hex dataclass with coordinates and biome
+- [x] Implement Character base class with D&D 5e stats
 - [ ] Implement Item base class with weight and properties
 - [ ] Create utility classes (Dice, Coordinates)
 - **Checkpoint:** All dataclasses instantiate correctly
