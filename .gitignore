@@ -201,6 +201,7 @@ saves/
 *.sav
 game_data/
 user_data/
+game_log.txt
 
 # IDE files
 .vscode/

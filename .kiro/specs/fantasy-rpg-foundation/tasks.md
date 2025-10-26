@@ -95,12 +95,12 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [x] **UI:** Create Textual app with three-panel layout
 - [x] **UI:** Implement Character panel (25% width) with real-time stats
 - [x] **UI:** Implement Game Log panel (50% width) with scrolling
-- [ ] **UI:** Implement POI panel (25% width) with nearby locations
+- [x] **UI:** Implement POI panel (25% width) with nearby locations
 - [ ] **UI:** Style panels with borders and colors
 - **Checkpoint:** Three-panel layout displays correctly
 
 ### **Milestone 1.4.2: Modal Screens (Day 13)**
-- [ ] **UI:** Create InventoryScreen modal with equipment display
+- [x] **UI:** Create InventoryScreen modal with equipment display
 - [ ] **UI:** Implement CharacterScreen modal with full stats
 - [ ] **UI:** Add keyboard bindings (I=inventory, C=character, ESC=close)
 - [ ] **UI:** Ensure modals don't affect game log
