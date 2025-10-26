@@ -3,19 +3,24 @@
         "chain_mail": {
             "name": "Chain Mail",
             "type": "armor",
-            "ac_bonus": 6,
+            "ac_bonus": 16,
+            "armor_type": "heavy",
             "weight": 55,
-            "cost": 75,
+            "value": 75,
+            "equippable": true,
+            "slot": "body",
             "description": "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows."
         },
         "longsword": {
             "name": "Longsword",
             "type": "weapon",
-            "damage": "1d8",
+            "damage_dice": "1d8",
             "damage_type": "slashing",
             "weight": 3,
-            "cost": 15,
-            "properties": [
+            "value": 15,
+            "equippable": true,
+            "slot": "hand",
+            "special_properties": [
                 "versatile"
             ],
             "description": "A versatile weapon that can be used with one or two hands."
@@ -25,8 +30,455 @@
             "type": "shield",
             "ac_bonus": 2,
             "weight": 6,
-            "cost": 10,
+            "value": 10,
+            "equippable": true,
+            "slot": "off_hand",
             "description": "A shield is made from wood or metal and is carried in one hand."
+        },
+        "leather_armor": {
+            "name": "Leather Armor",
+            "type": "armor",
+            "ac_bonus": 11,
+            "armor_type": "light",
+            "weight": 10,
+            "value": 10,
+            "equippable": true,
+            "slot": "body",
+            "description": "The breastplate and shoulder protectors of this armor are made of leather that has been stiffened by being boiled in oil."
+        },
+        "shortsword": {
+            "name": "Shortsword",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "weight": 2,
+            "value": 10,
+            "equippable": true,
+            "slot": "hand",
+            "special_properties": [
+                "finesse",
+                "light"
+            ],
+            "description": "A light, finesse weapon perfect for quick strikes."
+        },
+        "thieves_tools": {
+            "name": "Thieves' Tools",
+            "type": "tool",
+            "weight": 1,
+            "value": 25,
+            "equippable": false,
+            "description": "This set of tools includes a small file, a set of lock picks, a small mirror mounted on a metal handle, a set of narrow-bladed scissors, and a pair of pliers."
+        },
+        "scale_mail": {
+            "name": "Scale Mail",
+            "type": "armor",
+            "ac_bonus": 14,
+            "armor_type": "medium",
+            "weight": 45,
+            "value": 50,
+            "equippable": true,
+            "slot": "body",
+            "description": "This armor consists of a coat and leggings (and perhaps a separate skirt) of leather covered with overlapping pieces of metal."
+        },
+        "mace": {
+            "name": "Mace",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "weight": 4,
+            "value": 5,
+            "equippable": true,
+            "slot": "hand",
+            "description": "A simple weapon with a heavy head on a handle, effective against armor."
+        },
+        "holy_symbol": {
+            "name": "Holy Symbol",
+            "type": "tool",
+            "weight": 1,
+            "value": 5,
+            "equippable": false,
+            "description": "A holy symbol is a representation of a god or pantheon. A cleric or paladin can use a holy symbol as a spellcasting focus."
+        },
+        "quarterstaff": {
+            "name": "Quarterstaff",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "weight": 4,
+            "value": 2,
+            "equippable": true,
+            "slot": "hand",
+            "special_properties": [
+                "versatile"
+            ],
+            "description": "A quarterstaff is a simple weapon that can be used with one or two hands."
+        },
+        "dagger": {
+            "name": "Dagger",
+            "type": "weapon",
+            "damage_dice": "1d4",
+            "damage_type": "piercing",
+            "weight": 1,
+            "value": 2,
+            "equippable": true,
+            "slot": "hand",
+            "special_properties": [
+                "finesse",
+                "light",
+                "thrown"
+            ],
+            "description": "A simple, versatile weapon that can be thrown or used in melee."
+        },
+        "spellbook": {
+            "name": "Spellbook",
+            "type": "tool",
+            "weight": 3,
+            "value": 50,
+            "equippable": false,
+            "description": "Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells."
+        },
+        "component_pouch": {
+            "name": "Component Pouch",
+            "type": "tool",
+            "weight": 2,
+            "value": 25,
+            "equippable": false,
+            "description": "A component pouch is a small, watertight leather belt pouch that has compartments to hold all the material components and other special items you need to cast your spells."
+        },
+        "leather_boots": {
+            "name": "Leather Boots",
+            "type": "armor",
+            "ac_bonus": 0,
+            "weight": 2,
+            "value": 5,
+            "equippable": true,
+            "slot": "feet",
+            "description": "Sturdy leather boots that protect your feet."
+        },
+        "leather_gloves": {
+            "name": "Leather Gloves",
+            "type": "armor",
+            "ac_bonus": 0,
+            "weight": 1,
+            "value": 3,
+            "equippable": true,
+            "slot": "hands",
+            "description": "Flexible leather gloves that provide grip and protection."
+        },
+        "iron_helmet": {
+            "name": "Iron Helmet",
+            "type": "armor",
+            "ac_bonus": 1,
+            "weight": 3,
+            "value": 15,
+            "equippable": true,
+            "slot": "head",
+            "description": "A sturdy iron helmet that protects your head."
+        },
+        "silver_ring": {
+            "name": "Silver Ring",
+            "type": "accessory",
+            "ac_bonus": 0,
+            "weight": 0.1,
+            "value": 25,
+            "equippable": true,
+            "slot": "ring",
+            "description": "A simple silver ring."
+        },
+        "gold_amulet": {
+            "name": "Gold Amulet",
+            "type": "accessory",
+            "ac_bonus": 0,
+            "weight": 0.5,
+            "value": 100,
+            "equippable": true,
+            "slot": "amulet",
+            "description": "A beautiful gold amulet worn around the neck."
+        },
+        "ring_of_protection": {
+            "name": "Ring of Protection",
+            "type": "accessory",
+            "ac_bonus": 1,
+            "weight": 0.1,
+            "value": 500,
+            "equippable": true,
+            "slot": "ring",
+            "magical": true,
+            "enchantment_bonus": 1,
+            "special_properties": [
+                "protection"
+            ],
+            "description": "A magical ring that provides +1 AC and +1 to saving throws."
+        },
+        "gauntlets_of_ogre_power": {
+            "name": "Gauntlets of Ogre Power",
+            "type": "accessory",
+            "ac_bonus": 0,
+            "weight": 2,
+            "value": 8000,
+            "equippable": true,
+            "slot": "hands",
+            "magical": true,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "strength_19"
+            ],
+            "description": "These gauntlets set your Strength score to 19 while worn."
+        },
+        "headband_of_intellect": {
+            "name": "Headband of Intellect",
+            "type": "accessory",
+            "ac_bonus": 0,
+            "weight": 1,
+            "value": 8000,
+            "equippable": true,
+            "slot": "head",
+            "magical": true,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "intelligence_19"
+            ],
+            "description": "This headband sets your Intelligence score to 19 while worn."
+        },
+        "amulet_of_health": {
+            "name": "Amulet of Health",
+            "type": "accessory",
+            "ac_bonus": 0,
+            "weight": 1,
+            "value": 8000,
+            "equippable": true,
+            "slot": "amulet",
+            "magical": true,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "constitution_19"
+            ],
+            "description": "This amulet sets your Constitution score to 19 while worn."
+        },
+        "magic_sword_plus_1": {
+            "name": "Magic Sword +1",
+            "type": "weapon",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "weight": 3,
+            "value": 1000,
+            "equippable": true,
+            "slot": "hand",
+            "magical": true,
+            "enchantment_bonus": 1,
+            "special_properties": [
+                "versatile"
+            ],
+            "description": "A magical longsword with a +1 enhancement bonus to attack and damage rolls."
+        },
+        "magic_armor_plus_1": {
+            "name": "Magic Leather Armor +1",
+            "type": "armor",
+            "ac_bonus": 11,
+            "armor_type": "light",
+            "weight": 10,
+            "value": 1500,
+            "equippable": true,
+            "slot": "body",
+            "magical": true,
+            "enchantment_bonus": 1,
+            "special_properties": [],
+            "description": "Magical leather armor with a +1 enhancement bonus to AC."
+        },
+        "greatsword": {
+            "name": "Greatsword",
+            "type": "weapon",
+            "damage_dice": "2d6",
+            "damage_type": "slashing",
+            "weight": 6,
+            "value": 50,
+            "equippable": true,
+            "slot": "hand",
+            "magical": false,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "two-handed",
+                "heavy"
+            ],
+            "description": "A massive two-handed sword that deals devastating damage."
+        },
+        "greataxe": {
+            "name": "Greataxe",
+            "type": "weapon",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "weight": 7,
+            "value": 30,
+            "equippable": true,
+            "slot": "hand",
+            "magical": false,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "two-handed",
+                "heavy"
+            ],
+            "description": "A large, two-handed axe favored by barbarians."
+        },
+        "longbow": {
+            "name": "Longbow",
+            "type": "weapon",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "weight": 2,
+            "value": 50,
+            "equippable": true,
+            "slot": "hand",
+            "magical": false,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "two-handed",
+                "ranged"
+            ],
+            "description": "A tall bow that requires both hands to use effectively."
+        },
+        "heavy_crossbow": {
+            "name": "Heavy Crossbow",
+            "type": "weapon",
+            "damage_dice": "1d10",
+            "damage_type": "piercing",
+            "weight": 18,
+            "value": 50,
+            "equippable": true,
+            "slot": "hand",
+            "magical": false,
+            "enchantment_bonus": 0,
+            "special_properties": [
+                "two-handed",
+                "ranged",
+                "loading"
+            ],
+            "description": "A powerful crossbow that requires both hands to operate."
+        },
+        "healing_potion": {
+            "name": "Potion of Healing",
+            "type": "consumable",
+            "weight": 0.5,
+            "value": 50,
+            "equippable": false,
+            "description": "A magical red liquid that restores 2d4+2 hit points when consumed."
+        },
+        "mana_potion": {
+            "name": "Potion of Mana",
+            "type": "consumable",
+            "weight": 0.5,
+            "value": 75,
+            "equippable": false,
+            "description": "A shimmering blue potion that restores spell slots when consumed."
+        },
+        "antidote": {
+            "name": "Antidote",
+            "type": "consumable",
+            "weight": 0.25,
+            "value": 25,
+            "equippable": false,
+            "description": "A bitter green liquid that neutralizes poison when consumed."
+        },
+        "rations": {
+            "name": "Trail Rations",
+            "type": "consumable",
+            "weight": 2.0,
+            "value": 2,
+            "equippable": false,
+            "description": "Dried food that provides sustenance for one day."
+        },
+        "arrows": {
+            "name": "Arrows",
+            "type": "ammunition",
+            "weight": 0.05,
+            "value": 1,
+            "equippable": false,
+            "description": "Standard arrows for bows. Sold in bundles of 20."
+        },
+        "crossbow_bolts": {
+            "name": "Crossbow Bolts",
+            "type": "ammunition",
+            "weight": 0.075,
+            "value": 1,
+            "equippable": false,
+            "description": "Standard bolts for crossbows. Sold in bundles of 20."
+        },
+        "torch": {
+            "name": "Torch",
+            "type": "tool",
+            "weight": 1.0,
+            "value": 1,
+            "equippable": false,
+            "description": "A wooden torch that provides light for 1 hour when lit."
+        },
+        "rope": {
+            "name": "Hemp Rope (50 feet)",
+            "type": "tool",
+            "weight": 10.0,
+            "value": 2,
+            "equippable": false,
+            "description": "50 feet of sturdy hemp rope."
+        },
+        "spell_components": {
+            "name": "Spell Components",
+            "type": "component",
+            "weight": 0.1,
+            "value": 5,
+            "equippable": false,
+            "description": "Various magical components used for spellcasting."
+        },
+        "backpack": {
+            "name": "Backpack",
+            "type": "container",
+            "weight": 5.0,
+            "value": 2,
+            "equippable": true,
+            "slot": "back",
+            "capacity_bonus": 30.0,
+            "description": "A sturdy leather backpack that increases carrying capacity by 30 lbs."
+        },
+        "large_backpack": {
+            "name": "Large Backpack",
+            "type": "container",
+            "weight": 8.0,
+            "value": 10,
+            "equippable": true,
+            "slot": "back",
+            "capacity_bonus": 50.0,
+            "description": "A large, reinforced backpack that increases carrying capacity by 50 lbs."
+        },
+        "satchel": {
+            "name": "Satchel",
+            "type": "container",
+            "weight": 2.0,
+            "value": 1,
+            "equippable": true,
+            "slot": "waist",
+            "capacity_bonus": 10.0,
+            "description": "A small leather satchel that increases carrying capacity by 10 lbs."
+        },
+        "belt_pouch": {
+            "name": "Belt Pouch",
+            "type": "container",
+            "weight": 1.0,
+            "value": 1,
+            "equippable": true,
+            "slot": "waist",
+            "capacity_bonus": 5.0,
+            "description": "A small belt pouch that increases carrying capacity by 5 lbs."
+        },
+        "bag_of_holding": {
+            "name": "Bag of Holding",
+            "type": "container",
+            "weight": 15.0,
+            "value": 4000,
+            "equippable": true,
+            "slot": "back",
+            "magical": true,
+            "capacity_bonus": 500.0,
+            "special_properties": [
+                "extradimensional"
+            ],
+            "description": "A magical bag that creates an extradimensional space, increasing carrying capacity by 500 lbs."
         }
     }
 }

@@ -2,37 +2,69 @@
 """
 Fantasy RPG - Main Entry Point
 
-Entry point for the Fantasy RPG game. Initializes the game and starts the main loop.
+Demonstrates the character creation flow and basic game functionality.
 """
 
+from fantasy_rpg.character_creation import CharacterCreationFlow, create_character_quick
+
+
 def main():
-    """Main entry point for the Fantasy RPG game."""
-    print("Fantasy RPG - Starting...")
-    print("Initializing game systems...")
+    """Main game entry point"""
+    print("Welcome to Fantasy RPG!")
+    print("=" * 40)
+    print()
     
-    # For now, just verify the entry point works
-    # Future tasks will add character creation, UI, and game loop
-    print("Game systems initialized successfully!")
-    print("Entry point working - ready for next implementation phase")
-    print("Use Ctrl+C to exit")
-    
-    try:
-        # Simple input loop to keep the program running
-        while True:
-            user_input = input("\n> ").strip().lower()
-            if user_input in ['quit', 'exit', 'q']:
-                print("Thanks for playing Fantasy RPG!")
+    while True:
+        print("What would you like to do?")
+        print("1. Create character interactively")
+        print("2. Quick character creation demo")
+        print("3. Exit")
+        print()
+        
+        choice = input("Enter your choice (1-3): ").strip()
+        
+        if choice == "1":
+            # Interactive character creation
+            print("\nStarting interactive character creation...")
+            flow = CharacterCreationFlow()
+            character, race, char_class = flow.create_character_interactive()
+            
+            print(f"\nYour {character.race} {character.character_class} '{character.name}' is ready for adventure!")
+            
+            # Ask if they want to create another character
+            again = input("\nWould you like to create another character? (y/n): ").strip().lower()
+            if again not in ['y', 'yes']:
                 break
-            elif user_input == 'help':
-                print("Available commands: help, quit")
-            else:
-                print(f"Unknown command: {user_input}")
-                print("Type 'help' for available commands or 'quit' to exit")
-    except KeyboardInterrupt:
-        print("\nThanks for playing Fantasy RPG!")
-    except Exception as e:
-        print(f"Error: {e}")
-        print("Game encountered an error. Please restart.")
+                
+        elif choice == "2":
+            # Quick demo
+            print("\nQuick Character Creation Demo:")
+            print("Creating some example characters...")
+            print()
+            
+            examples = [
+                ("Aragorn", "Human", "Fighter"),
+                ("Legolas", "Elf", "Rogue"),
+                ("Gimli", "Dwarf", "Cleric"),
+                ("Gandalf", "Human", "Wizard")
+            ]
+            
+            for name, race, char_class in examples:
+                print(f"--- {name} ---")
+                character, race_obj, class_obj = create_character_quick(name, race, char_class)
+                print()
+            
+            input("Press Enter to continue...")
+            
+        elif choice == "3":
+            print("Thanks for playing Fantasy RPG!")
+            break
+            
+        else:
+            print("Invalid choice. Please enter 1, 2, or 3.")
+        
+        print()
+
 
 if __name__ == "__main__":
     main()

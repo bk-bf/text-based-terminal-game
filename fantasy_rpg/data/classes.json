@@ -35,6 +35,120 @@
                     "quantity": 1
                 }
             ]
+        },
+        "rogue": {
+            "name": "Rogue",
+            "hit_die": 8,
+            "primary_ability": "dexterity",
+            "saving_throw_proficiencies": [
+                "dexterity",
+                "intelligence"
+            ],
+            "skill_proficiencies": {
+                "choose": 4,
+                "from": [
+                    "Acrobatics",
+                    "Athletics",
+                    "Deception",
+                    "Insight",
+                    "Intimidation",
+                    "Investigation",
+                    "Perception",
+                    "Performance",
+                    "Persuasion",
+                    "Sleight of Hand",
+                    "Stealth"
+                ]
+            },
+            "starting_equipment": [
+                {
+                    "item": "leather_armor",
+                    "quantity": 1
+                },
+                {
+                    "item": "shortsword",
+                    "quantity": 2
+                },
+                {
+                    "item": "thieves_tools",
+                    "quantity": 1
+                }
+            ]
+        },
+        "cleric": {
+            "name": "Cleric",
+            "hit_die": 8,
+            "primary_ability": "wisdom",
+            "saving_throw_proficiencies": [
+                "wisdom",
+                "charisma"
+            ],
+            "skill_proficiencies": {
+                "choose": 2,
+                "from": [
+                    "History",
+                    "Insight",
+                    "Medicine",
+                    "Persuasion",
+                    "Religion"
+                ]
+            },
+            "starting_equipment": [
+                {
+                    "item": "scale_mail",
+                    "quantity": 1
+                },
+                {
+                    "item": "shield",
+                    "quantity": 1
+                },
+                {
+                    "item": "mace",
+                    "quantity": 1
+                },
+                {
+                    "item": "holy_symbol",
+                    "quantity": 1
+                }
+            ]
+        },
+        "wizard": {
+            "name": "Wizard",
+            "hit_die": 6,
+            "primary_ability": "intelligence",
+            "saving_throw_proficiencies": [
+                "intelligence",
+                "wisdom"
+            ],
+            "skill_proficiencies": {
+                "choose": 2,
+                "from": [
+                    "Arcana",
+                    "History",
+                    "Insight",
+                    "Investigation",
+                    "Medicine",
+                    "Religion"
+                ]
+            },
+            "starting_equipment": [
+                {
+                    "item": "quarterstaff",
+                    "quantity": 1
+                },
+                {
+                    "item": "dagger",
+                    "quantity": 1
+                },
+                {
+                    "item": "spellbook",
+                    "quantity": 1
+                },
+                {
+                    "item": "component_pouch",
+                    "quantity": 1
+                }
+            ]
         }
     }
 }

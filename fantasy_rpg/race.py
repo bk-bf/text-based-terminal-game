@@ -62,8 +62,18 @@ class Race:
 class RaceLoader:
     """Loads race data from JSON files"""
     
-    def __init__(self, data_dir: str = "fantasy_rpg/data"):
-        self.data_dir = Path(data_dir)
+    def __init__(self, data_dir: str = None):
+        if data_dir is None:
+            # Try to find the data directory relative to this file
+            current_dir = Path(__file__).parent
+            if (current_dir / "data").exists():
+                self.data_dir = current_dir / "data"
+            elif (current_dir.parent / "fantasy_rpg" / "data").exists():
+                self.data_dir = current_dir.parent / "fantasy_rpg" / "data"
+            else:
+                self.data_dir = Path("fantasy_rpg/data")
+        else:
+            self.data_dir = Path(data_dir)
         self._races_cache: Optional[Dict[str, Race]] = None
     
     def load_races(self) -> Dict[str, Race]:
@@ -139,9 +149,7 @@ def create_character_with_race(name: str, race_name: str, character_class: str =
     race.apply_bonuses_to_character(character)
     
     # Recalculate derived stats after racial bonuses
-    character.max_hp = 8 + character.ability_modifier('constitution')
-    character.hp = character.max_hp
-    character.armor_class = character.calculate_ac()
+    character.recalculate_derived_stats()
     
     # Display racial traits
     if race.traits:
@@ -187,8 +195,19 @@ def test_race_system():
     
     # Verify racial bonuses were applied
     print(f"\nVerifying racial bonuses:")
+    # Get the base stats that were allocated (before racial bonuses)
+    # For Fighter: STR=15, CON=14, DEX=13, INT=12, WIS=10, CHA=8
+    base_stats = {
+        'strength': 15,    # Primary ability for Fighter
+        'constitution': 14, # Important for HP
+        'dexterity': 13,   # Important for AC
+        'intelligence': 12,
+        'wisdom': 10,
+        'charisma': 8
+    }
+    
     for ability, bonus in race.ability_bonuses.items():
-        expected_base = 15 if ability == 'strength' else (14 if ability == 'dexterity' else (13 if ability == 'constitution' else (12 if ability == 'intelligence' else (10 if ability == 'wisdom' else 8))))
+        expected_base = base_stats[ability]
         expected_final = expected_base + bonus
         actual_value = getattr(character, ability)
         print(f"  {ability.upper()}: {expected_base} + {bonus} = {expected_final} (actual: {actual_value})")

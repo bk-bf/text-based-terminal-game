@@ -44,27 +44,27 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 
 ### **Milestone 1.2.1: Character Creation (Days 4-5)**
 - [x] Implement Race class with ability bonuses and traits
-- [ ] Implement CharacterClass with hit dice and proficiencies
-- [ ] Create character creation flow (race → class → stats)
-- [ ] Implement standard array stat allocation (15,14,13,12,10,8)
-- [ ] Load race/class data from JSON files
-- [ ] Generate starting equipment based on class
+- [x] Implement CharacterClass with hit dice and proficiencies
+- [x] Create character creation flow (race → class → stats)
+- [x] Implement standard array stat allocation (15,14,13,12,10,8)
+- [x] Load race/class data from JSON files
+- [x] Generate starting equipment based on class
 - **Checkpoint:** Can create valid D&D character
 
 ### **Milestone 1.2.2: Character Stats & Mechanics (Days 6-7)**
-- [ ] Implement ability score modifiers ((score-10)//2)
-- [ ] Implement skill system with proficiency bonuses
-- [ ] Calculate derived stats (AC, HP, proficiency bonus)
-- [ ] Implement saving throw calculations
-- [ ] Add skill check resolution (d20 + modifier + proficiency)
+- [x] Implement ability score modifiers ((score-10)//2)
+- [x] Implement skill system with proficiency bonuses
+- [x] Calculate derived stats (AC, HP, proficiency bonus)
+- [x] Implement saving throw calculations
+- [x] Add skill check resolution (d20 + modifier + proficiency)
 - **Checkpoint:** All D&D calculations match rulebook
 
 ### **Milestone 1.2.3: Character Progression (Day 8)**
-- [ ] Implement XP tracking and level thresholds
-- [ ] Implement leveling system (levels 1-5)
-- [ ] Calculate HP increase on level up (hit die + CON mod)
-- [ ] Scale proficiency bonus by level (+2 at 1st, +3 at 5th)
-- [ ] Add basic feat support framework
+- [x] Implement XP tracking and level thresholds
+- [x] Implement leveling system (levels 1-5)
+- [x] Calculate HP increase on level up (hit die + CON mod)
+- [x] Scale proficiency bonus by level (+2 at 1st, +3 at 5th)
+- [x] Add basic feat support framework
 - **Checkpoint:** Character can level from 1 to 5 correctly
 
 ---
@@ -72,18 +72,18 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 ## Milestone 1.3: Inventory & Equipment System (Days 9-11)
 
 ### **Milestone 1.3.1: Equipment Slots (Days 9-10)**
-- [ ] Implement Equipment class with 9 slots (head, body, hands, feet, main_hand, off_hand, ring_1, ring_2, amulet)
-- [ ] Implement equip/unequip logic with validation
-- [ ] Calculate AC from equipped armor and shields
-- [ ] Apply stat bonuses from magical items
-- [ ] Handle two-handed weapon restrictions
+- [x] Implement Equipment class with 9 slots (head, body, hands, feet, main_hand, off_hand, ring_1, ring_2, amulet)
+- [x] Implement equip/unequip logic with validation
+- [x] Calculate AC from equipped armor and shields
+- [x] Apply stat bonuses from magical items
+- [x] Handle two-handed weapon restrictions
 - **Checkpoint:** Can equip items and see AC changes
 
 ### **Milestone 1.3.2: Inventory Management (Day 11)**
-- [ ] Implement Inventory class with weight tracking
-- [ ] Enforce encumbrance limits based on Strength
-- [ ] Implement item stacking for consumables
-- [ ] Add container items (backpack increases capacity)
+- [x] Implement Inventory class with weight tracking
+- [x] Enforce encumbrance limits based on Strength
+- [x] Implement item stacking for consumables
+- [x] Add container items (backpack increases capacity)
 - [ ] Create item durability system
 - **Checkpoint:** Inventory respects weight limits and stacking
 
@@ -92,9 +92,9 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 ## Milestone 1.4: Basic UI Implementation (Days 12-14)
 
 ### **Milestone 1.4.1: Main Layout (Day 12)**
-- [ ] **UI:** Create Textual app with three-panel layout
-- [ ] **UI:** Implement Character panel (25% width) with real-time stats
-- [ ] **UI:** Implement Game Log panel (50% width) with scrolling
+- [x] **UI:** Create Textual app with three-panel layout
+- [x] **UI:** Implement Character panel (25% width) with real-time stats
+- [x] **UI:** Implement Game Log panel (50% width) with scrolling
 - [ ] **UI:** Implement POI panel (25% width) with nearby locations
 - [ ] **UI:** Style panels with borders and colors
 - **Checkpoint:** Three-panel layout displays correctly

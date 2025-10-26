@@ -108,6 +108,40 @@ class Dice:
         return self.roll(sides, count, modifier)
 
 
+def roll_d20(advantage: bool = False, disadvantage: bool = False) -> int:
+    """
+    Roll a d20 with optional advantage or disadvantage.
+    
+    Args:
+        advantage: Roll twice, take higher result
+        disadvantage: Roll twice, take lower result
+    
+    Returns:
+        The d20 roll result
+    """
+    if advantage and disadvantage:
+        # Advantage and disadvantage cancel out
+        advantage = False
+        disadvantage = False
+    
+    if advantage:
+        roll1 = random.randint(1, 20)
+        roll2 = random.randint(1, 20)
+        result = max(roll1, roll2)
+        print(f"d20 with advantage: {roll1}, {roll2} -> {result}")
+        return result
+    elif disadvantage:
+        roll1 = random.randint(1, 20)
+        roll2 = random.randint(1, 20)
+        result = min(roll1, roll2)
+        print(f"d20 with disadvantage: {roll1}, {roll2} -> {result}")
+        return result
+    else:
+        result = random.randint(1, 20)
+        print(f"d20: {result}")
+        return result
+
+
 @dataclass
 class Coordinates:
     """
