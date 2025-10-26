@@ -218,7 +218,7 @@ def test_skill_system():
     
     # Import character creation
     try:
-        from fantasy_rpg.character import create_character
+        from .character import create_character
     except ImportError:
         from character import create_character
     

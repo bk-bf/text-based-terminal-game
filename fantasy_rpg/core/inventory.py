@@ -141,6 +141,10 @@ class Inventory:
         """Initialize inventory"""
         pass
     
+    def __len__(self) -> int:
+        """Return the number of item stacks in inventory"""
+        return len(self.items)
+    
     def get_total_weight(self) -> float:
         """Calculate total weight of all items in inventory"""
         return sum(item.get_total_weight() for item in self.items)
@@ -458,7 +462,11 @@ class InventoryManager:
     def __init__(self, item_loader=None):
         """Initialize with optional ItemLoader"""
         if item_loader is None:
-            from equipment import ItemLoader
+            try:
+                from .equipment import ItemLoader
+            except ImportError:
+                # Handle direct execution (python inventory.py)
+                from equipment import ItemLoader
             self.item_loader = ItemLoader()
         else:
             self.item_loader = item_loader

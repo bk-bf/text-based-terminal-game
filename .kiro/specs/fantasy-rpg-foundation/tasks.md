@@ -4,7 +4,7 @@
 
 This spec implements the foundation layer for the Fantasy RPG system, establishing core infrastructure for character management, world generation, and terminal-based UI. All subsequent systems depend on this foundation.
 
-**Estimated Time:** 3-4 weeks (17 days)  
+**Estimated Time:** 2-3 weeks (16 days)  
 **Dependencies:** None (foundation layer)  
 **Deliverable:** Playable character creation → world exploration → basic location discovery loop with persistent saves
 
@@ -117,37 +117,9 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 
 ---
 
-## Milestone 1.5: World Generation Framework (Days 15-17)
+## Milestone 1.5: Save System (Days 15-16)
 
-### **Milestone 1.5.1: Macro World Generation (Day 15)**
-- [ ] Implement heightmap generation using Perlin noise
-- [ ] Calculate climate zones based on latitude
-- [ ] Assign biomes using height + climate lookup tables
-- [ ] Place 3 major landmarks (cities, ruins, dungeons)
-- [ ] Create 2 civilizations with basic history
-- **Checkpoint:** 100x100 world generates in <30 seconds
-
-### **Milestone 1.5.2: Biome System (Day 16)**
-- [ ] Create 3 biome JSON files (temperate_forest.json, plains.json, mountains.json)
-- [ ] Implement biome data loader with caching
-- [ ] Define terrain types and movement costs per biome
-- [ ] Define natural features per biome (rivers, caves, etc.)
-- [ ] Create location spawn probability tables
-- **Checkpoint:** Biomes load correctly and affect terrain
-
-### **Milestone 1.5.3: Hex Generation (Day 17)**
-- [ ] Implement on-demand hex generation when player enters
-- [ ] Use seeded RNG for deterministic results (same seed = same world)
-- [ ] Generate terrain features based on biome and elevation
-- [ ] Connect to neighboring hexes for continuity
-- [ ] Test: verify same seed produces identical world
-- **Checkpoint:** Hex generation is deterministic and fast (<100ms)
-
----
-
-## Milestone 1.6: Save System (Days 18-19)
-
-### **Milestone 1.6.1: Database Schema (Day 18)**
+### **Milestone 1.5.1: Database Schema (Day 15)**
 - [ ] Design SQLite schema for game saves (5 tables minimum)
 - [ ] Implement database connection and migration system
 - [ ] Create save slot management (multiple saves)
@@ -155,7 +127,7 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [ ] Implement backup save system
 - **Checkpoint:** Database creates and migrates correctly
 
-### **Milestone 1.6.2: Save/Load Implementation (Day 19)**
+### **Milestone 1.5.2: Save/Load Implementation (Day 16)**
 - [ ] Implement save_game() with complete state serialization
 - [ ] Implement load_game() with state restoration
 - [ ] Save player character, inventory, and position
@@ -169,20 +141,17 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 
 ### Technical Risks
 
-**Risk: World generation takes >30 seconds**
-- **Mitigation:** Profile early (Week 2), optimize algorithm if needed
-- **Fallback:** Reduce world size to 50x50 for MVP
-- **Detection:** Performance test in Task 1.5
+**Risk: Save file corruption or data loss**
+- **Mitigation:** Implement backup saves, integrity checks
+- **Fallback:** Manual save export/import
+- **Detection:** Stress testing in Week 2
 
 **Risk: UI feels sluggish or unresponsive**
 - **Mitigation:** Test on minimum terminal size (80x24), optimize rendering
 - **Fallback:** Simplify UI layout, reduce real-time updates
 - **Detection:** Manual testing on different terminals
 
-**Risk: Save file corruption or data loss**
-- **Mitigation:** Implement backup saves, integrity checks
-- **Fallback:** Manual save export/import
-- **Detection:** Stress testing in Week 3
+
 
 ### Scope Risks
 
@@ -201,7 +170,7 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 **Priority 1 (Keep):**
 - Character creation with 4 races, 4 classes
 - Basic inventory and equipment
-- World generation and hex exploration
+- UI system with modals and command parsing
 - Save/load system
 
 **Priority 2 (Keep if possible):**
@@ -225,27 +194,22 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [ ] Inventory weight calculations and encumbrance
 - [ ] Save/load serialization (round-trip data integrity)
 - [ ] Dice rolling functions (seeded RNG consistency)
-- [ ] World generation determinism (same seed = same result)
 
 ### **Integration Tests:**
 - [ ] Character creation → stat display → save
 - [ ] Equip item → recalculate AC → save → load → verify AC
-- [ ] World generation → hex generation → verify consistency
 - [ ] UI modal flow: open inventory → equip item → close → verify changes
 
 ### **Manual Testing:**
 - [ ] Create 10 different character builds (all race/class combinations)
-- [ ] Generate 3 worlds with different seeds, verify uniqueness
 - [ ] Verify save/load across multiple sessions
 - [ ] Test UI on different terminal sizes (80x24 minimum)
-- [ ] Performance test: world generation under 30 seconds
 
 ### **Testing Exit Criteria:**
 - All unit tests passing with >60% coverage
-- Can create character, explore 5 hexes, save, quit, reload, continue
+- Can create character, manage inventory, save, quit, reload, continue
 - No memory leaks after 30-minute session
 - UI responsive on 80x24 terminal
-- World generation completes in <30 seconds
 
 ---
 
@@ -256,19 +220,17 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [ ] Equipment system with AC calculation functional
 - [ ] Inventory with weight tracking operational
 - [ ] Three-panel UI with modal screens working
-- [ ] World generation creates 100x100 hex world
-- [ ] Save/load preserves all character and world state
+- [ ] Save/load preserves all character and inventory state
 - [ ] All tests passing with >60% coverage
 
 ### **Quality Benchmarks:**
 - [ ] Character creation completes in <5 seconds
-- [ ] World generation completes in <30 seconds
 - [ ] UI commands respond in <100ms
 - [ ] Save/load operations complete in <2 seconds
 - [ ] Memory usage stable during extended play
 
 ### **Deliverable Verification:**
-- [ ] Can create character → explore world → save → reload → continue
+- [ ] Can create character → manage equipment → save → reload → continue
 - [ ] All D&D mechanics calculate correctly per rulebook
 - [ ] UI is clear and navigable with keyboard only
 - [ ] Code is documented with type hints throughout

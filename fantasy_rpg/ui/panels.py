@@ -47,13 +47,18 @@ class CharacterPanel(Static):
     def _create_sample_character(self):
         """Create a sample character for demonstration"""
         try:
-            from fantasy_rpg.character_creation import create_character_quick
+            from ..core.character_creation import create_character_quick
             character, _, _ = create_character_quick("Aldric", "Human", "Fighter")
             # Modify some stats for demo
             character.hp = 32
             character.max_hp = 45
             character.level = 3
             character.experience_points = 900
+            
+            # Ensure inventory is properly initialized
+            if not hasattr(character, 'inventory') or character.inventory is None:
+                character.initialize_inventory()
+            
             return character
         except ImportError:
             # Fallback to mock data if character system not available
@@ -83,8 +88,30 @@ class CharacterPanel(Static):
                 
                 def get_encumbrance_level(self):
                     return "Light"
+                
+                def initialize_inventory(self):
+                    pass
+                
+                def get_inventory_weight(self):
+                    return 0.0
+                
+                def get_carrying_capacity(self):
+                    return 150.0
+                
+                def get_total_equipment_weight(self):
+                    return 0.0
+                
+                def get_total_equipment_value(self):
+                    return 0
+                
+                def get_equipped_item(self, slot):
+                    return None
             
-            return MockCharacter()
+            mock_char = MockCharacter()
+            # Add empty inventory for UI compatibility
+            mock_char.inventory = None
+            mock_char._legacy_inventory = []
+            return mock_char
     
     def compose(self) -> ComposeResult:
         yield Static(self._render_character_info(), id="character-info", markup=False)

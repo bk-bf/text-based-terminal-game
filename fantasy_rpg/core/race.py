@@ -128,7 +128,7 @@ class RaceLoader:
 def create_character_with_race(name: str, race_name: str, character_class: str = "Fighter"):
     """Create a character and apply racial bonuses"""
     try:
-        from fantasy_rpg.character import create_character
+        from .character import create_character
     except ImportError:
         # Handle running from within the fantasy_rpg directory
         from character import create_character

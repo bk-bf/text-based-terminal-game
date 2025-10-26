@@ -5,7 +5,7 @@ Fantasy RPG - Main Entry Point
 Demonstrates the character creation flow and basic game functionality.
 """
 
-from fantasy_rpg.character_creation import CharacterCreationFlow, create_character_quick
+from ..core.character_creation import CharacterCreationFlow, create_character_quick
 
 
 def main():

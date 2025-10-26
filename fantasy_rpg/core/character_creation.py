@@ -14,10 +14,10 @@ import os
 # Add the parent directory to the path so we can import fantasy_rpg modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fantasy_rpg.character import Character
-from fantasy_rpg.race import RaceLoader, Race
-from fantasy_rpg.character_class import ClassLoader, CharacterClass
-from fantasy_rpg.item import ItemLoader, Item
+from .character import Character
+from .race import RaceLoader, Race
+from .character_class import ClassLoader, CharacterClass
+from .item import ItemLoader, Item
 
 
 class CharacterCreationFlow:
@@ -477,12 +477,17 @@ def create_character_quick(name: str, race_name: str = "Human", class_name: str 
     
     # Generate starting equipment
     creation_flow = CharacterCreationFlow()
-    character.inventory = creation_flow.generate_starting_equipment(character, char_class)
+    starting_equipment = creation_flow.generate_starting_equipment(character, char_class)
+    
+    # Initialize proper inventory system and convert old format
+    character.initialize_inventory()
+    character._legacy_inventory = starting_equipment
+    character.migrate_legacy_inventory()
     
     print(f"Created {character.name}: Level {character.level} {character.race} {character.character_class}")
     print(f"  HP: {character.hp}/{character.max_hp}, AC: {character.armor_class}")
     print(f"  Primary Ability ({char_class.primary_ability.capitalize()}): {getattr(character, char_class.primary_ability)}")
-    print(f"  Starting Equipment: {len(character.inventory)} items")
+    print(f"  Starting Equipment: {len(character.inventory.items)} items")
     
     return character, race, char_class
 

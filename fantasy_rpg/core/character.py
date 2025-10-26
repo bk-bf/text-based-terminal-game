@@ -6,7 +6,7 @@ Character creation and management functionality.
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
-from inventory import Inventory, InventoryItem, InventoryManager
+from .inventory import Inventory, InventoryItem, InventoryManager
 
 # D&D 5e Experience Point Thresholds for levels 1-20
 # Generated using the official D&D 5e XP progression formula
@@ -277,17 +277,17 @@ class Character:
         """Make a skill check using the skill system"""
         # Import here to avoid circular imports
         try:
-            from fantasy_rpg.skills import SkillSystem
+            from .skills import SkillSystem
         except ImportError:
-            from skills import SkillSystem
+            from fantasy_rpg.core.skills import SkillSystem
         return SkillSystem.make_skill_check(self, skill_name, dc, advantage, disadvantage)
     
     def get_skill_modifier(self, skill_name: str) -> int:
         """Get the total modifier for a skill"""
         try:
-            from fantasy_rpg.skills import SkillSystem
+            from .skills import SkillSystem
         except ImportError:
-            from skills import SkillSystem
+            from fantasy_rpg.core.skills import SkillSystem
         return SkillSystem.calculate_skill_modifier(self, skill_name)
     
     def calculate_saving_throw_modifier(self, ability: str, character_class=None) -> int:
@@ -303,9 +303,9 @@ class Character:
     def make_saving_throw(self, ability: str, dc: int = 15, character_class=None, advantage: bool = False, disadvantage: bool = False) -> dict:
         """Make a saving throw"""
         try:
-            from fantasy_rpg.utils import roll_d20
+            from ..utils.utils import roll_d20
         except ImportError:
-            from utils import roll_d20
+            from fantasy_rpg.utils.utils import roll_d20
         
         # Calculate modifier
         modifier = self.calculate_saving_throw_modifier(ability, character_class)
@@ -351,9 +351,9 @@ class Character:
         """Add proficiency in a skill"""
         if self.skill_proficiencies is None:
             try:
-                from fantasy_rpg.skills import SkillProficiencies
+                from .skills import SkillProficiencies
             except ImportError:
-                from skills import SkillProficiencies
+                from .skills import SkillProficiencies
             self.skill_proficiencies = SkillProficiencies()
         self.skill_proficiencies.add_proficiency(skill_name)
     
@@ -361,9 +361,9 @@ class Character:
         """Add expertise in a skill (double proficiency)"""
         if self.skill_proficiencies is None:
             try:
-                from fantasy_rpg.skills import SkillProficiencies
+                from .skills import SkillProficiencies
             except ImportError:
-                from skills import SkillProficiencies
+                from .skills import SkillProficiencies
             self.skill_proficiencies = SkillProficiencies()
         self.skill_proficiencies.add_expertise(skill_name)
     
@@ -395,9 +395,9 @@ class Character:
         """Equip an item to a specific slot with character-specific validation"""
         if not self.equipment:
             try:
-                from fantasy_rpg.equipment import Equipment
+                from .equipment import Equipment
             except ImportError:
-                from equipment import Equipment
+                from .equipment import Equipment
             self.equipment = Equipment()
         
         success, message = self.equipment.equip_item(item, slot, self)
@@ -737,11 +737,11 @@ def create_character(name: str, race: str = "Human", character_class: str = "Fig
     
     # Try to load class data for proper HP calculation
     try:
-        from fantasy_rpg.character_class import ClassLoader
-        from fantasy_rpg.equipment import Equipment
+        from .character_class import ClassLoader
+        from .equipment import Equipment
     except ImportError:
-        from character_class import ClassLoader
-        from equipment import Equipment
+        from fantasy_rpg.core.character_class import ClassLoader
+        from fantasy_rpg.core.equipment import Equipment
     
     class_loader = ClassLoader()
     char_class = class_loader.get_class(character_class.lower())

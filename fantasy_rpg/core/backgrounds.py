@@ -160,7 +160,7 @@ def create_character_with_background(name: str, race_name: str = "Human",
                                    background_name: str = "Soldier"):
     """Create a character with race, class, and background applied"""
     try:
-        from fantasy_rpg.character_class import create_character_with_class
+        from .character_class import create_character_with_class
     except ImportError:
         from character_class import create_character_with_class
     

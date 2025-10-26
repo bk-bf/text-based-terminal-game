@@ -6,37 +6,74 @@
 This implementation plan breaks down the Fantasy RPG MVP into 3 major tasks, each representing a complete vertical slice of functionality. Each task will be implemented as a separate spec category to maintain focus and avoid complexity.
 
 **Note:** This is an overview document. Individual tasks should be implemented in their own spec categories:
-- `fantasy-rpg-foundation` for Task 1
+- `fantasy-rpg-foundation` for Task 1 ✅ COMPLETE
+- `fantasy-rpg-worldgen` for Task 1.5 (Geographic & Environmental Simulation)
+- `fantasy-rpg-history` for Task 1.6 (Historical & Social Simulation)
 - `fantasy-rpg-combat` for Task 2  
 - `fantasy-rpg-social` for Task 3
 
 ## Task 1: Foundation & Core Systems
 
-**Estimated Time:** 3-4 weeks  
+**Estimated Time:** 1-2 days (COMPLETED)  
 **Spec Category:** `fantasy-rpg-foundation`
 
-- ( ) ### 1.1 Project Infrastructure & Character System
-  - ( ) Set up project structure, dependencies, and testing framework
-  - ( ) Implement complete D&D 5e character creation and progression system
-  - ( ) Build inventory and equipment management with weight tracking
-  - ( ) **UI:** Create basic terminal UI with three-panel layout using Textual
-  - ( ) **UI:** Implement character creation screens and character sheet modal
-  - ( ) **UI:** Build inventory modal with equipment slots and weight display
+- (x) ### 1.1 Project Infrastructure & Character System
+  - (x) Set up project structure, dependencies, and testing framework
+  - (x) Implement complete D&D 5e character creation and progression system
+  - (x) Build inventory and equipment management with weight tracking
+  - (x) **UI:** Create basic terminal UI with three-panel layout using Textual
+  - (x) **UI:** Implement character creation screens and character sheet modal
+  - (x) **UI:** Build inventory modal with equipment slots and weight display
   - ( ) Implement save/load system with SQLite database
 - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 4.1, 4.2, 7.1, 7.2, 7.3, 11.1, 11.2_
 
-- ( ) ### 1.2 World Generation Framework
-  - ( ) Implement two-phase world generation (macro + on-demand hex generation)
-  - ( ) Create biome system with 3 biomes (forest, plains, mountains)
-  - ( ) Build location template system for procedural dungeon/settlement generation
-  - ( ) Implement seeded RNG for deterministic world generation
-  - ( ) Create JSON content loading system for static game data
-  - ( ) **UI:** Build command parser with natural language support and abbreviations
-  - ( ) **UI:** Implement status panel showing character stats, location, and time
-  - ( ) **UI:** Create game log panel with scrolling and color-coded messages
-- _Requirements: 2.1, 2.2, 2.3, 4.3, 4.4, 9.1, 9.2, 11.3, 11.4, 11.5_
+- (x) ### 1.2 UI & Command System Polish
+  - (x) Create JSON content loading system for static game data
+  - (x) **UI:** Build command parser with natural language support and abbreviations
+  - (x) **UI:** Implement status panel showing character stats, location, and time
+  - (x) **UI:** Create game log panel with scrolling and color-coded messages
+  - ( ) **UI:** Add save/load system integration
+- _Requirements: 4.3, 4.4, 11.3, 11.4, 11.5_
 
-**Deliverable:** Playable character creation → world exploration → basic location discovery loop with persistent saves.
+**Deliverable:** ✅ COMPLETE - Full character system with comprehensive UI
+
+---
+
+## Task 1.5: Geographic & Environmental Simulation
+
+**Estimated Time:** 3-4 days  
+**Spec Category:** `fantasy-rpg-worldgen`
+
+- ( ) ### 1.5 CDDA-Style Environmental Simulation
+  - ( ) Generate realistic geography with terrain, climate, and biome systems
+  - ( ) Implement dynamic weather system with forecasting and seasonal changes
+  - ( ) Create comprehensive survival mechanics (hunger, thirst, temperature, exposure)
+  - ( ) Build travel assessment system with environmental risk evaluation
+  - ( ) Implement resource management with seasonal availability variations
+  - ( ) Add environmental hazards and natural disaster simulation
+  - ( ) Create player environmental interaction commands (weather prediction, camping, foraging)
+- _Requirements: 2.1, 2.2, 8.1, 8.2, 8.3, 8.4, 8.5_
+
+**Deliverable:** Complete environmental simulation making travel meaningful and challenging
+
+---
+
+## Task 1.6: Historical & Social Simulation
+
+**Estimated Time:** 4-5 days  
+**Spec Category:** `fantasy-rpg-history`
+
+- ( ) ### 1.6 Deep Historical & Social Systems
+  - ( ) Generate 5-8 distinct civilizations with unique cultural identities
+  - ( ) Simulate 100-200 years of focused history creating RPG content
+  - ( ) Generate 500-1000 historical figures with genealogical connections
+  - ( ) Create 100-200 current NPCs with historically-derived motivations
+  - ( ) Build quest generation system emerging from historical conflicts
+  - ( ) Implement historical research system for player investigation
+  - ( ) Create social interaction engine with authentic cultural context
+- _Requirements: 2.3, 2.4, 2.5, 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5_
+
+**Deliverable:** Rich social world with historically-motivated NPCs and emergent quests
 
 ---
 
@@ -148,14 +185,23 @@ This implementation plan breaks down the Fantasy RPG MVP into 3 major tasks, eac
 ## Implementation Notes
 
 **Task Dependencies:**
-- Task 2 requires Task 1 foundation (character system, world generation)
-- Task 3 requires Task 2 exploration (locations for NPCs, combat for quests)
+- Task 1.5 requires Task 1 foundation (character system, UI) ✅ READY
+- Task 1.6 requires Task 1.5 environmental system (geographic data for civilization placement)
+- Task 2 requires Task 1.5 + 1.6 (environmental challenges + NPCs/locations for exploration)
+- Task 3 requires Task 2 exploration (combat mechanics for quest completion)
 - Each task builds incrementally on previous work
 
 **Spec Organization:**
-- Each task gets its own spec directory: `/specs/fantasy-rpg-foundation/`, `/specs/fantasy-rpg-combat/`, `/specs/fantasy-rpg-social/`
+- Each task gets its own spec directory: `/specs/fantasy-rpg-foundation/` ✅, `/specs/fantasy-rpg-worldgen/`, `/specs/fantasy-rpg-history/`, `/specs/fantasy-rpg-combat/`, `/specs/fantasy-rpg-social/`
 - Each spec includes detailed requirements, design, and granular task breakdown
 - Cross-references to main Fantasy RPG requirements maintained
+
+**Architectural Design:**
+- **Environmental System:** CDDA-level environmental simulation with survival mechanics, weather systems, and meaningful travel decisions
+- **Historical System:** Deep historical simulation creating authentic NPC motivations and emergent quest opportunities
+- **Split Architecture:** Separate environmental and social systems with different update cycles (environmental updates constantly, historical is static until player interactions)
+- **Rationale:** Full simulation depth creates emergent complexity - environmental challenges make travel meaningful, historical depth makes social interactions authentic
+- **Timeline:** Adjusted for demonstrated development pace and split into focused, manageable specs
 
 **Testing Strategy:**
 - Unit tests for each major system as it's built
@@ -164,6 +210,11 @@ This implementation plan breaks down the Fantasy RPG MVP into 3 major tasks, eac
 - Performance benchmarking throughout development
 
 **Time Estimates:**
+- **Foundation:** 1-2 days ✅ COMPLETE
+- **Environmental Simulation:** 3-4 days
+- **Historical Simulation:** 4-5 days  
+- **Combat & Exploration:** 3-4 weeks
+- **Social Systems:** 2-3 weeks
 - **Total Development Time:** 8-10 weeks for MVP
 - **Buffer for Polish:** Additional 1-2 weeks recommended
 - **Final MVP Delivery:** 10-12 weeks from start

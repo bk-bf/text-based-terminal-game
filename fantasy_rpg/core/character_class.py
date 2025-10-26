@@ -166,7 +166,7 @@ def apply_class_to_character(character, character_class: CharacterClass):
     # Initialize skill proficiencies if not already present
     if character.skill_proficiencies is None:
         try:
-            from fantasy_rpg.skills import SkillProficiencies
+            from .skills import SkillProficiencies
         except ImportError:
             from skills import SkillProficiencies
         character.skill_proficiencies = SkillProficiencies()
@@ -221,7 +221,7 @@ def _get_default_class_skills(character_class: CharacterClass) -> List[str]:
 def create_character_with_class(name: str, race_name: str = "Human", class_name: str = "Fighter"):
     """Create a character with race and class applied"""
     try:
-        from fantasy_rpg.race import create_character_with_race
+        from .race import create_character_with_race
     except ImportError:
         # Handle running from within the fantasy_rpg directory
         from race import create_character_with_race

@@ -279,7 +279,7 @@ class InventoryScreen(ModalScreen):
                 # Use new inventory system
                 items = self.character.inventory.items
                 if items:
-                    for item_id, inventory_item in items.items():
+                    for inventory_item in items:
                         inventory_text += f"{inventory_item.name} x{inventory_item.quantity}\n"
                         if inventory_item.weight > 0:
                             total_weight = inventory_item.weight * inventory_item.quantity
