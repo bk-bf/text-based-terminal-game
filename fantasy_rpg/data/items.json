@@ -1,0 +1,32 @@
+{
+    "items": {
+        "chain_mail": {
+            "name": "Chain Mail",
+            "type": "armor",
+            "ac_bonus": 6,
+            "weight": 55,
+            "cost": 75,
+            "description": "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows."
+        },
+        "longsword": {
+            "name": "Longsword",
+            "type": "weapon",
+            "damage": "1d8",
+            "damage_type": "slashing",
+            "weight": 3,
+            "cost": 15,
+            "properties": [
+                "versatile"
+            ],
+            "description": "A versatile weapon that can be used with one or two hands."
+        },
+        "shield": {
+            "name": "Shield",
+            "type": "shield",
+            "ac_bonus": 2,
+            "weight": 6,
+            "cost": 10,
+            "description": "A shield is made from wood or metal and is carried in one hand."
+        }
+    }
+}

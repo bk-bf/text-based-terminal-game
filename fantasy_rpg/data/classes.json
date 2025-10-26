@@ -1,0 +1,40 @@
+{
+    "classes": {
+        "fighter": {
+            "name": "Fighter",
+            "hit_die": 10,
+            "primary_ability": "strength",
+            "saving_throw_proficiencies": [
+                "strength",
+                "constitution"
+            ],
+            "skill_proficiencies": {
+                "choose": 2,
+                "from": [
+                    "Acrobatics",
+                    "Animal Handling",
+                    "Athletics",
+                    "History",
+                    "Insight",
+                    "Intimidation",
+                    "Perception",
+                    "Survival"
+                ]
+            },
+            "starting_equipment": [
+                {
+                    "item": "chain_mail",
+                    "quantity": 1
+                },
+                {
+                    "item": "longsword",
+                    "quantity": 1
+                },
+                {
+                    "item": "shield",
+                    "quantity": 1
+                }
+            ]
+        }
+    }
+}

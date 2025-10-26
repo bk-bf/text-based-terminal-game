@@ -1,0 +1,26 @@
+{
+    "races": {
+        "human": {
+            "name": "Human",
+            "ability_bonuses": {
+                "strength": 1,
+                "dexterity": 1,
+                "constitution": 1,
+                "intelligence": 1,
+                "wisdom": 1,
+                "charisma": 1
+            },
+            "size": "Medium",
+            "speed": 30,
+            "languages": [
+                "Common"
+            ],
+            "traits": [
+                {
+                    "name": "Extra Skill",
+                    "description": "Gain proficiency in one additional skill"
+                }
+            ]
+        }
+    }
+}
