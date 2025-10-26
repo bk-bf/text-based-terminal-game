@@ -26,8 +26,8 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 - [x] Implement World dataclass with type hints
 - [x] Implement Hex dataclass with coordinates and biome
 - [x] Implement Character base class with D&D 5e stats
-- [ ] Implement Item base class with weight and properties
-- [ ] Create utility classes (Dice, Coordinates)
+- [x] Implement Item base class with weight and properties
+- [x] Create utility classes (Dice, Coordinates)
 - **Checkpoint:** All dataclasses instantiate correctly
 
 ### **Milestone 1.1.3: Testing Framework (Day 3)**
@@ -43,7 +43,7 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 ## Milestone 1.2: Character System & D&D Mechanics (Days 4-8)
 
 ### **Milestone 1.2.1: Character Creation (Days 4-5)**
-- [ ] Implement Race class with ability bonuses and traits
+- [x] Implement Race class with ability bonuses and traits
 - [ ] Implement CharacterClass with hit dice and proficiencies
 - [ ] Create character creation flow (race → class → stats)
 - [ ] Implement standard array stat allocation (15,14,13,12,10,8)
