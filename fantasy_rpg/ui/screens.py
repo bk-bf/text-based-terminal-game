@@ -18,6 +18,189 @@ except ImportError:
 from .panels import CharacterPanel, GameLogPanel, POIPanel
 
 
+class CharacterScreen(ModalScreen):
+    """Modal screen to display full character stats and information"""
+    
+    def __init__(self, character=None):
+        super().__init__()
+        self.character = character
+    
+    def compose(self) -> ComposeResult:
+        with Vertical(id="character-dialog"):
+            yield Static("Character Sheet", id="character-title", markup=False)
+            yield Static("", id="character-spacer")
+            
+            with Horizontal():
+                # Left column - Basic info and abilities
+                with Vertical(id="character-left-column"):
+                    yield Static(self._render_basic_info(), id="character-basic", markup=False)
+                
+                # Right column - Combat stats and progression
+                with Vertical(id="character-right-column"):
+                    yield Static(self._render_combat_stats(), id="character-combat", markup=False)
+            
+            yield Static("", id="character-spacer2")
+            yield Static(self._render_skills_and_features(), id="character-features", markup=False)
+            yield Static("", id="character-spacer3")
+            yield Static("Press ESC to close", id="character-instruction", markup=False)
+    
+    def _render_basic_info(self) -> str:
+        """Render basic character information and ability scores"""
+        if not self.character:
+            return "basic information:\n\nNo character data available"
+        
+        char = self.character
+        
+        # Basic character info
+        basic_text = f"""basic information:
+
+Name: {char.name}
+Race: {char.race}
+Class: {char.character_class}
+Level: {char.level}
+Background: {getattr(char, 'background', 'Unknown')}
+
+ability scores:
+"""
+        
+        # Ability scores with modifiers
+        abilities = [
+            ('Strength', 'strength'),
+            ('Dexterity', 'dexterity'), 
+            ('Constitution', 'constitution'),
+            ('Intelligence', 'intelligence'),
+            ('Wisdom', 'wisdom'),
+            ('Charisma', 'charisma')
+        ]
+        
+        for ability_name, ability_attr in abilities:
+            score = getattr(char, ability_attr, 10)
+            modifier = char.ability_modifier(ability_attr)
+            basic_text += f"{ability_name:12}: {score:2d} ({modifier:+d})\n"
+        
+        return basic_text
+    
+    def _render_combat_stats(self) -> str:
+        """Render combat statistics and defenses"""
+        if not self.character:
+            return "combat statistics:\n\nNo character data available"
+        
+        char = self.character
+        
+        combat_text = f"""combat statistics:
+
+Hit Points: {char.hp}/{char.max_hp}
+Armor Class: {char.armor_class}
+Proficiency Bonus: +{getattr(char, 'proficiency_bonus', 2)}
+
+saving throws:
+"""
+        
+        # Saving throws
+        saving_throws = [
+            ('Strength', 'strength'),
+            ('Dexterity', 'dexterity'),
+            ('Constitution', 'constitution'), 
+            ('Intelligence', 'intelligence'),
+            ('Wisdom', 'wisdom'),
+            ('Charisma', 'charisma')
+        ]
+        
+        for save_name, save_attr in saving_throws:
+            try:
+                modifier = char.calculate_saving_throw_modifier(save_attr)
+                combat_text += f"{save_name:12}: {modifier:+d}\n"
+            except:
+                modifier = char.ability_modifier(save_attr)
+                combat_text += f"{save_name:12}: {modifier:+d}\n"
+        
+        # Experience and progression
+        try:
+            xp_info = char.get_xp_progress_info()
+            combat_text += f"\nexperience & progression:\n"
+            combat_text += f"Current XP: {xp_info['current_xp']}\n"
+            if not xp_info['max_level_reached']:
+                combat_text += f"Next Level: {xp_info['xp_to_next_level']} XP needed\n"
+                combat_text += f"Progress: {xp_info['progress_percentage']:.1f}%\n"
+            else:
+                combat_text += f"Maximum level reached!\n"
+        except:
+            combat_text += f"\nexperience & progression:\n"
+            combat_text += f"Current XP: {getattr(char, 'experience_points', 0)}\n"
+        
+        return combat_text
+    
+    def _render_skills_and_features(self) -> str:
+        """Render skills, proficiencies, and special features"""
+        if not self.character:
+            return "skills & features:\n\nNo character data available"
+        
+        char = self.character
+        features_text = "skills & features:\n\n"
+        
+        # Skills (if skill system is available)
+        try:
+            if hasattr(char, 'skill_proficiencies') and char.skill_proficiencies:
+                features_text += "skill proficiencies:\n"
+                # This would need the actual skill system implementation
+                features_text += "  (Skill system integration needed)\n"
+            else:
+                features_text += "skill proficiencies:\n"
+                features_text += "  None currently defined\n"
+        except:
+            features_text += "skill proficiencies:\n"
+            features_text += "  None currently defined\n"
+        
+        # Feats
+        try:
+            feats = char.get_feats()
+            if feats:
+                features_text += f"\nfeats:\n"
+                for feat in feats:
+                    features_text += f"  • {feat}\n"
+            else:
+                features_text += f"\nfeats:\n"
+                features_text += f"  None acquired\n"
+        except:
+            features_text += f"\nfeats:\n"
+            features_text += f"  None acquired\n"
+        
+        # Equipment summary
+        try:
+            equipment_weight = char.get_total_equipment_weight()
+            equipment_value = char.get_total_equipment_value()
+            features_text += f"\nequipment summary:\n"
+            features_text += f"  Total Weight: {equipment_weight:.1f} lbs\n"
+            features_text += f"  Total Value: {equipment_value} gp\n"
+        except:
+            features_text += f"\nequipment summary:\n"
+            features_text += f"  No equipment data available\n"
+        
+        # Encumbrance
+        try:
+            encumbrance = char.get_encumbrance_level()
+            carrying_capacity = char.get_carrying_capacity()
+            total_weight = char.get_total_carrying_weight()
+            features_text += f"\nencumbrance:\n"
+            features_text += f"  Carrying: {total_weight:.1f}/{carrying_capacity:.1f} lbs\n"
+            features_text += f"  Status: {encumbrance}\n"
+            
+            # Show penalties if any
+            penalties = char.get_encumbrance_penalties()
+            if penalties['movement_speed_modifier'] < 1.0 or penalties['disadvantage_on_ability_checks']:
+                features_text += f"  Penalties: {penalties['description']}\n"
+        except:
+            features_text += f"\nencumbrance:\n"
+            features_text += f"  Status: Light\n"
+        
+        return features_text
+    
+    def on_key(self, event: events.Key) -> None:
+        """Handle key presses in character screen"""
+        if event.key == "escape":
+            self.dismiss()
+
+
 class InventoryScreen(ModalScreen):
     """Modal screen to display character inventory and equipment"""
     
@@ -210,7 +393,7 @@ class MainGameScreen(Screen):
         self.character_panel = CharacterPanel()
         self.game_log_panel = GameLogPanel()
         self.poi_panel = POIPanel()
-        self.command_input = Input(placeholder="Enter command (help for list)", id="command-input")
+        self.command_input = Input(placeholder="> Enter command (help for list)", id="command-input")
     
     def compose(self) -> ComposeResult:
         """Create the three-panel layout"""

@@ -11,7 +11,7 @@ except ImportError:
     print("Error: Textual library not found!")
     exit(1)
 
-from .screens import MainGameScreen, InventoryScreen, QuitConfirmationScreen
+from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
 
 
 class FantasyRPGApp(App):
@@ -133,6 +133,45 @@ class FantasyRPGApp(App):
         color: $text-muted;
         margin-top: 1;
     }
+    
+    /* Character screen styles */
+    CharacterScreen {
+        align: center middle;
+    }
+    
+    #character-dialog {
+        background: $surface;
+        border: solid $primary;
+        width: 90;
+        height: 35;
+        padding: 1;
+    }
+    
+    #character-title {
+        text-align: center;
+        margin-bottom: 1;
+    }
+    
+    #character-left-column {
+        width: 50%;
+        padding: 0 1;
+    }
+    
+    #character-right-column {
+        width: 50%;
+        padding: 0 1;
+    }
+    
+    #character-features {
+        padding: 0 1;
+        margin-top: 1;
+    }
+    
+    #character-instruction {
+        text-align: center;
+        color: $text-muted;
+        margin-top: 1;
+    }
     """
     
     def __init__(self):
@@ -178,6 +217,9 @@ class FantasyRPGApp(App):
         elif cmd in ["inventory", "i"]:
             self.log_command("inventory")
             self.push_screen(InventoryScreen(self.character))
+        elif cmd in ["character", "c", "sheet"]:
+            self.log_command("character")
+            self.push_screen(CharacterScreen(self.character))
         elif cmd in ["map", "m"]:
             self.show_map()
         elif cmd in ["rest", "r"]:
@@ -210,6 +252,7 @@ class FantasyRPGApp(App):
         self.log_message("  look, l - Examine current location")
         self.log_message("  rest, r - Rest and recover health")
         self.log_message("  inventory, i - View inventory and equipment")
+        self.log_message("  character, c - View character sheet")
         self.log_message("  map, m - View map and nearby locations")
         self.log_message("")
         self.log_message("System:")
@@ -412,9 +455,9 @@ def run_ui():
     app.run()
 
 
-def test_inventory_screen():
-    """Test the inventory screen modal with equipment display"""
-    print("Testing Refactored UI with Inventory Screen...")
+def test_character_screen():
+    """Test the character screen modal with full stats display"""
+    print("Testing Character Screen Modal...")
     print("Movement controls:")
     print("  n - Move North")
     print("  e - Move East") 
@@ -425,6 +468,7 @@ def test_inventory_screen():
     print("  Arrow Keys - Scroll game log up/down")
     print()
     print("Main commands:")
+    print("  c, character - Open character sheet modal")
     print("  i, inventory - Open inventory modal")
     print("  m - View map and nearby locations")
     print("  r - Rest and heal 5 HP")
@@ -437,12 +481,14 @@ def test_inventory_screen():
     print("  help - Show all commands")
     print("  quit, exit, esc - Quit with confirmation")
     print()
-    print("Refactored Architecture:")
-    print("  • ui/panels.py - Visual display components")
-    print("  • ui/screens.py - Modal screens and main screen")
-    print("  • ui/app.py - Main application and input handling")
-    print("  • Clean separation of concerns")
-    print("  • Modular, maintainable code structure")
+    print("Modal Features:")
+    print("  • Full character sheet with all stats")
+    print("  • Ability scores with modifiers")
+    print("  • Combat stats and saving throws")
+    print("  • Experience progression tracking")
+    print("  • Skills, feats, and special features")
+    print("  • Equipment and encumbrance summary")
+    print("  • Clean two-column layout")
     print()
     
     app = FantasyRPGApp()
@@ -450,4 +496,4 @@ def test_inventory_screen():
 
 
 if __name__ == "__main__":
-    test_inventory_screen()
+    test_character_screen()

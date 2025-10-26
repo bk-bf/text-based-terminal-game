@@ -101,18 +101,18 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 
 ### **Milestone 1.4.2: Modal Screens (Day 13)**
 - [x] **UI:** Create InventoryScreen modal with equipment display
-- [ ] **UI:** Implement CharacterScreen modal with full stats
-- [ ] **UI:** Add keyboard bindings (I=inventory, C=character, ESC=close)
-- [ ] **UI:** Ensure modals don't affect game log
-- [ ] **UI:** Test modal navigation and closing
+- [x] **UI:** Implement CharacterScreen modal with full stats
+- [x] **UI:** Add keyboard bindings (I=inventory, C=character, ESC=close)
+- [x] **UI:** Ensure modals don't affect game log
+- [x] **UI:** Test modal navigation and closing
 - **Checkpoint:** Can open/close inventory and character screens
 
 ### **Milestone 1.4.3: Command System (Day 14)**
 - [ ] **UI:** Implement command parser with natural language support
 - [ ] **UI:** Add command history (up/down arrows)
-- [ ] **UI:** Implement basic commands: look, help, quit
-- [ ] **UI:** Add abbreviated command support ("i" for inventory)
-- [ ] **UI:** Display command feedback in game log
+- [x] **UI:** Implement basic commands: look, help, quit
+- [x] **UI:** Add abbreviated command support ("i" for inventory)
+- [x] **UI:** Display command feedback in game log
 - **Checkpoint:** Commands work and appear in log
 
 ---
