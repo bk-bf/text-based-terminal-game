@@ -1,4 +1,4 @@
-# Condition Centralization Rule
+# Condition System Rules
 
 ## Core Principle: Complete Self-Containment
 

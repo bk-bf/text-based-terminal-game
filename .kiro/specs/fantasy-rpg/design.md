@@ -1,322 +1,382 @@
-# Fantasy RPG - Technical Design Document
+# Fantasy RPG - Master Design Document
 
-## Overview
+**Version:** 3.0  
+**Date:** October 27, 2024  
+**Purpose:** Architectural blueprint for Ultimate Fantasy Sim integration
 
-The Fantasy RPG system is a **text-based terminal application** that implements a layered architecture with clear separation of concerns, following Domain-Driven Design principles. The system runs entirely in the terminal using Python 3.11+ with Textual for the text-based UI framework, SQLite for persistent storage, and JSON for static content definition. 
+---
 
-**Key Design Principles:**
-- **Text-Only Interface**: No graphics, images, or sound - all interaction through terminal text
-- **Terminal-Native**: Designed for 80x24 minimum terminal size with keyboard-only input
-- **Rich Text Formatting**: Uses colors, borders, and text styling for visual hierarchy
-- **Modal Overlays**: Complex interactions use text-based modal screens over the main interface
+## Executive Summary
 
-## Architecture
+Ultimate Fantasy Sim is a hardcore permadeath text-based survival RPG with a **two-layer world structure**: deadly overworld hex travel and detailed location-based exploration. The core challenge is **survival through resource management** with the ultimate choice between seeking civilization's safety or mastering wilderness independence.
 
-### System Architecture Layers
+**Current Status:** Strong backend systems exist but are disconnected. **Priority: Integration, not more features.**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ PRESENTATION LAYER                                          │
-│ (Textual UI - Screens, Panels, Modal Overlays)             │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────────┐
-│ APPLICATION LAYER                                           │
-│ (Game Loop, Command Parser, State Manager)                 │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────────┐
-│ DOMAIN LAYER                                                │
-│ (Game Logic - Combat, Travel, NPCs, Quests)                │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────────┐
-│ INFRASTRUCTURE LAYER                                        │
-│ (World Gen, Database, Content Loaders)                     │
-└─────────────────────────────────────────────────────────────┘
-```
+**Architecture Goal:** Create a **GameEngine coordinator layer** that orchestrates all existing systems into a cohesive gameplay experience.
 
-### Directory Structure
+---
+
+## Architecture Overview
+
+### Current Problem: Disconnected Systems
 
 ```
-fantasy_rpg/
-├── main.py                    # Entry point
-├── requirements.txt           # Dependencies
-├── src/
-│   ├── ui/                   # Presentation Layer (Text-based UI)
-│   │   ├── app.py           # Main Textual terminal app
-│   │   ├── screens/         # Text-based modal screens
-│   │   ├── panels/          # Terminal UI panels
-│   │   └── styles.tcss      # Terminal styling (colors, borders)
-│   ├── game/                # Application Layer
-│   │   ├── state.py         # Game state manager
-│   │   ├── commands.py      # Command parser
-│   │   └── loop.py          # Main game loop
-│   ├── core/                # Domain Layer
-│   │   ├── character/       # Character system
-│   │   ├── combat/          # Combat system
-│   │   ├── world/           # World system
-│   │   ├── entities/        # NPCs and factions
-│   │   └── items/           # Item system
-│   ├── generation/          # Infrastructure Layer
-│   │   ├── world_gen.py     # World generation
-│   │   ├── location_gen.py  # Location generation
-│   │   └── npc_gen.py       # NPC generation
-│   ├── data/                # Data access layer
-│   │   ├── database.py      # SQLite interface
-│   │   └── content_loader.py # JSON content loader
-│   └── utils/               # Utilities
-├── data/                    # Static content (JSON)
-│   ├── biomes/
-│   ├── creatures/
-│   ├── items/
-│   └── classes/
-└── saves/                   # Save files (SQLite)
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   UI System     │    │  Backend Systems │    │  Action System  │
+│                 │    │                  │    │                 │
+│ • Panels        │    │ • World Gen      │    │ • Input Parser  │
+│ • Modals        │    │ • Character      │    │ • Commands      │
+│ • Logging       │    │ • Survival       │    │ • Responses     │
+│                 │    │ • Weather        │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                        │                        │
+        └────────────────────────┼────────────────────────┘
+                                 │
+                        ❌ NO COORDINATION
 ```
 
-## Components and Interfaces
+### Solution: GameEngine Coordinator
 
-### World Generation System
-
-The world generation uses a two-phase approach for optimal performance:
-
-**Phase 1: Macro Generation (Startup)**
-- Generate heightmap using Perlin noise
-- Calculate climate zones based on latitude
-- Assign biomes using height + climate lookup tables
-- Place major landmarks (cities, ruins, dungeons)
-- Initialize faction territories and relationships
-- Create civilization history and lore
-
-**Phase 2: Local Generation (On-Demand)**
-- Generate specific hex details when player enters
-- Use seeded RNG for deterministic results
-- Context-aware generation based on neighboring hexes
-- Populate with appropriate creatures and resources
-
-```python
-class WorldGenerator:
-    def generate_world(self, seed: int, size: tuple[int, int]) -> World:
-        """Generate world framework in <30 seconds"""
-        world = World(seed=seed, size=size)
-        world.heightmap = self._generate_heightmap(size)
-        world.climate = self._generate_climate(size)
-        world.biomes = self._assign_biomes(world.heightmap, world.climate)
-        world.landmarks = self._place_landmarks(world.biomes)
-        world.factions = self._initialize_factions()
-        return world
-
-class HexGenerator:
-    def generate_hex(self, world: World, coords: tuple[int, int]) -> Hex:
-        """Generate specific hex when player enters"""
-        hex_seed = hash((world.seed, coords))
-        rng = Random(hex_seed)
-        biome = world.biomes[coords]
-        location = self._roll_location(biome, rng) if coords not in world.landmarks else world.landmarks[coords]
-        return Hex(coords=coords, biome=biome, location=location)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        GameEngine                               │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │ GameState   │  │ Integration │  │ Coordination│            │
+│  │             │  │             │  │             │            │
+│  │ • Character │  │ • Movement  │  │ • Time      │            │
+│  │ • Position  │  │ • Survival  │  │ • Weather   │            │
+│  │ • World     │  │ • Location  │  │ • Events    │            │
+│  │ • Time      │  │ • Actions   │  │ • State     │            │
+│  └─────────────┘  └─────────────┘  └─────────────┘            │
+└─────────────────────────────────────────────────────────────────┘
+        │                        │                        │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   UI System     │    │  Backend Systems │    │  Action System  │
+│                 │    │                  │    │                 │
+│ • Panels        │    │ • World Gen      │    │ • Input Parser  │
+│ • Modals        │    │ • Character      │    │ • Commands      │
+│ • Logging       │    │ • Survival       │    │ • Responses     │
+│                 │    │ • Weather        │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### Combat System
+---
 
-The combat system implements D&D 5e mechanics with distance-based positioning:
+## Two-Layer World Structure
 
-**Combat Flow:**
-1. Roll initiative for all combatants
-2. Sort by initiative (highest first)
-3. Each turn: reset action economy, process effects, get player input or execute AI
-4. Resolve actions using D&D 5e rules
-5. Check for combat end conditions
+### Layer 1: Overworld Hex Map (Deadly Travel)
 
-**Distance System:**
-- ENGAGED (0-5 ft): Melee range
-- NEARBY (10-15 ft): 1 action to close
-- SHORT (20-40 ft): Ranged weapons effective
-- MEDIUM (50-100 ft): Long-range weapons
-- LONG (100+ ft): Distant
+**Purpose:** Strategic movement, resource planning, environmental survival
 
-```python
-class CombatEngine:
-    def execute_attack(self, action: AttackAction) -> AttackResult:
-        """D&D 5e attack resolution"""
-        attack_roll = self._roll_d20() + action.actor.attack_bonus(action.weapon)
-        
-        if attack_roll == 20:
-            is_crit = True
-        elif attack_roll == 1 or attack_roll < action.target.armor_class:
-            return AttackResult(hit=False)
-        
-        damage = action.weapon.roll_damage(crit=is_crit)
-        damage += action.actor.damage_bonus(action.weapon)
-        action.target.take_damage(damage)
-        
-        return AttackResult(hit=True, damage=damage, crit=is_crit)
-```
+**Characteristics:**
+- Large hex grid (20x20 minimum, expandable to 500x500+)
+- Each hex = 3-5 square miles of terrain
+- Travel time: 1-4 hours per hex depending on terrain/weather
+- **Deadly exposure:** Continuous hunger/thirst/temperature effects
+- **No direct survival actions:** Cannot forage/camp while traveling
+- **Environmental hazards:** Hypothermia, heat stroke, exhaustion
 
-### Character System
+**Player Actions:**
+- Move north/south/east/west to adjacent hexes
+- View inventory and character status
+- **Enter locations** within current hex
+- **No survival actions** - must enter locations to survive
 
-Characters use D&D 5e rules with full stat tracking:
+### Layer 2: Location-Based Exploration (Detailed Interaction)
+
+**Purpose:** Resource gathering, survival preparation, detailed exploration
+
+**Characteristics:**
+- 5-20 locations per hex (50+ for settlements)
+- **Persistent generation:** Same locations on re-entry
+- Connected areas within each location
+- **Context-specific interactions** with discovered objects
+- **Skill-based discovery:** Hidden content revealed by perception checks
+
+**Player Actions:**
+- Navigate between connected areas
+- **Examine objects** discovered through perception
+- **Interact with specific objects** using contextual commands
+- **Forage, camp, search** - all survival actions happen here
+- **Combat and NPC interaction**
+
+---
+
+## Core Gameplay Loop
+
+### Phase 1: Immediate Survival (First Hour)
+1. **Spawn in wilderness hex** with minimal supplies
+2. **Enter location** to escape overworld exposure
+3. **Discover objects** through automatic perception checks
+4. **Interact with objects** to gather resources (berries, water, shelter)
+5. **Assess situation:** Can I survive here or must I seek civilization?
+
+### Phase 2: The Critical Choice
+**Path A: Seek Civilization**
+- Gather supplies for multi-hex journey
+- Risk deadly overworld travel
+- Success = access to inns, merchants, quests
+- Failure = death from exposure
+
+**Path B: Wilderness Survival**
+- Master local resources and threats
+- Build knowledge of safe locations
+- Much harder but complete independence
+- Success depends on skill and seasonal factors
+
+### Phase 3: Established Gameplay
+**Civilization Path:** Inn rental, trading, quest completion, safe storage
+**Wilderness Path:** Seasonal survival, resource mastery, exploration
+
+---
+
+## System Integration Requirements
+
+### GameEngine Responsibilities
+
+1. **World State Management**
+   - Initialize world generation on new game
+   - Track player position (hex coordinates)
+   - Manage current location and area within location
+   - Coordinate time passage across all systems
+
+2. **Action Coordination**
+   - Route movement commands to world system
+   - Route survival commands to appropriate systems
+   - Route location commands to location generator
+   - Ensure all actions update relevant systems
+
+3. **State Synchronization**
+   - Update UI panels when state changes
+   - Apply environmental effects during travel
+   - Manage resource consumption over time
+   - Coordinate weather and seasonal changes
+
+4. **Persistence Management**
+   - Save/load complete game state
+   - Maintain location persistence
+   - Track world changes over time
+
+### UI Integration Points
+
+**Character Panel (Left):**
+- Character stats (HP, AC only numbers shown)
+- **Natural language survival status** (Hungry/Starving, not percentages)
+- Equipment summary
+- Current conditions and effects
+
+**Game Log (Center):**
+- **Single source of truth** for all messages
+- Natural language descriptions
+- Action results and environmental feedback
+- **No duplicate logging**
+
+**Context Panel (Right):**
+- Current hex/location information
+- Available actions based on current context
+- Environmental conditions in natural language
+- Time and season information
+
+---
+
+## Natural Language Philosophy
+
+### Strict Requirements
+
+**Never Show:**
+- Numerical hunger/thirst values (no "65/100 hunger")
+- Precise temperatures ("32°F" → "freezing cold")
+- Exact distances ("3.2 miles" → "a few miles")
+- Percentage indicators for any survival needs
+- Precise time increments ("+15 minutes" → "some time passes")
+
+**Always Show:**
+- Descriptive states (Well-fed, Hungry, Starving)
+- Natural weather descriptions (Heavy rain with strong winds)
+- Relative time (Late afternoon, spring)
+- Immersive environmental descriptions
+
+### Information Hierarchy
+
+**Obvious Information:** Always visible
+- Large terrain features, weather conditions, obvious objects
+
+**Clear Information:** Visible with basic attention
+- Normal objects, standard resources, clear paths
+
+**Hidden Information:** Requires skill checks
+- Concealed items, secret passages, valuable resources
+
+**Very Hidden Information:** Requires expertise
+- Ancient treasures, magical secrets, master-level content
+
+---
+
+## Development Priorities
+
+### Week 1: Core Integration (CRITICAL)
+
+**Day 1: GameEngine Foundation**
+- Create `fantasy_rpg/game/game_engine.py`
+- Implement GameState dataclass
+- Create world initialization pipeline
+- Test world generation through GameEngine
+
+**Day 2: UI Integration**
+- Connect GameEngine to `fantasy_rpg/ui/app.py`
+- Implement character creation → game start flow
+- Test basic game initialization
+
+**Day 3: Movement System**
+- Add movement commands to action handler
+- Connect movement to world coordinator
+- Implement environmental effects during travel
+- Test hex-to-hex movement
+
+**Day 4: Centralized Logging**
+- Create `fantasy_rpg/game/game_logger.py`
+- Eliminate all duplicate logging
+- Ensure single source of truth for messages
+- Test message flow
+
+**Day 5: Location Integration**
+- Connect location generation to GameEngine
+- Implement enter/exit location mechanics
+- Test location persistence
+
+**Day 6: Survival Commands**
+- Restore foraging through object interaction
+- Implement shelter detection and camping
+- Connect to existing survival systems
+- Test resource gathering
+
+**Day 7: Polish & Testing**
+- Fix remaining integration issues
+- Test complete gameplay loop
+- Verify natural language output
+- Performance optimization
+
+### Week 2: Gameplay Completion
+
+**Days 8-10: Object Interaction System**
+- Implement context-specific commands
+- Add skill-based discovery mechanics
+- Create object interaction parser
+- Test hidden content revelation
+
+**Days 11-12: Settlement Foundation**
+- Generate settlements at appropriate scale
+- Implement inn system with room rental
+- Add basic merchant trading
+- Create safe rest mechanics
+
+**Days 13-14: Survival Loop**
+- Implement deadly overworld exposure
+- Add resource consumption during travel
+- Create permadeath mechanics
+- Test complete survival challenge
+
+---
+
+## Success Criteria
+
+### Minimum Viable Game (End of Week 1)
+
+**Player can:**
+1. ✅ Create character and start new game
+2. ✅ Move between hexes with environmental effects
+3. ✅ Enter locations within hexes
+4. ✅ Discover objects through perception
+5. ✅ Interact with objects to gather resources
+6. ✅ Manage survival needs (hunger, thirst, temperature)
+7. ✅ Experience natural language feedback
+8. ✅ Save and load game state
+
+### Complete Game Vision (End of Week 2)
+
+**Player can:**
+1. ✅ Experience deadly overworld travel
+2. ✅ Choose between civilization and wilderness survival
+3. ✅ Discover hidden content through skill checks
+4. ✅ Access settlement services (inns, merchants)
+5. ✅ Experience permadeath with world persistence
+6. ✅ Explore locations at proper scale
+7. ✅ Interact with persistent, evolving world
+8. ✅ Master complex survival mechanics
+
+---
+
+## Technical Architecture
+
+### Core Classes
 
 ```python
 @dataclass
-class Character:
-    # Core D&D stats
-    strength: int
-    dexterity: int
-    constitution: int
-    intelligence: int
-    wisdom: int
-    charisma: int
-    
-    # Derived stats
-    hp: int
-    max_hp: int
-    armor_class: int
-    proficiency_bonus: int
-    
-    # Equipment and inventory
-    equipment: Equipment
-    inventory: Inventory
-    
-    def ability_modifier(self, ability: str) -> int:
-        """Calculate ability modifier"""
-        score = getattr(self, ability)
-        return (score - 10) // 2
-    
-    def skill_check(self, skill: str) -> int:
-        """Roll skill check with proficiency"""
-        base_ability = SKILL_ABILITIES[skill]
-        mod = self.ability_modifier(base_ability)
-        if self.skills.get(skill, 0) > 0:
-            mod += self.proficiency_bonus
-        return roll_d20() + mod
+class GameState:
+    character: Character
+    player_state: PlayerState
+    world_coordinator: WorldCoordinator
+    location_generator: LocationGenerator
+    time_system: TimeSystem
+    current_hex: tuple[int, int]
+    current_location: Optional[Location] = None
+    current_area: Optional[Area] = None
+    mode: str = "travel"  # "travel", "exploration", "combat"
+
+class GameEngine:
+    def __init__(self)
+    def new_game(self, character: Character) -> GameState
+    def move_player(self, direction: str) -> tuple[bool, str]
+    def enter_location(self, location_index: int) -> tuple[bool, str]
+    def exit_location(self) -> tuple[bool, str]
+    def interact_with_object(self, object_name: str, action: str) -> tuple[bool, str]
+    def get_status(self) -> dict
+    def save_game(self, save_name: str)
+    def load_game(self, save_name: str)
 ```
 
-### NPC and Faction System
+### Integration Flow
 
-NPCs are generated from archetypes with personality traits and faction affiliations:
-
-```python
-class NPC:
-    def __init__(self, template: NPCArchetype):
-        self.name = generate_name(template.race)
-        self.archetype = template
-        self.personality = {
-            'primary': random.choice(template.primary_traits),
-            'secondary': random.choice(template.secondary_traits)
-        }
-        self.faction = None
-        self.relationship = 0  # -100 to +100
-    
-    def generate_dialogue(self, topic: str) -> str:
-        """Generate contextual dialogue based on relationship"""
-        template = self.archetype.dialogue_templates[topic]
-        if self.relationship < -20:
-            template = self._add_hostile_tone(template)
-        elif self.relationship > 20:
-            template = self._add_friendly_tone(template)
-        return template.format(player_name=PLAYER.name, npc_name=self.name)
-
-class Faction:
-    def daily_action(self, world: World):
-        """Faction takes action to pursue goals"""
-        goal = self._select_goal()
-        action = self._plan_action(goal, world)
-        result = action.execute(world)
-        self._apply_result(result, world)
+```
+User Input → ActionHandler → GameEngine → Backend Systems → GameEngine → UI Update
 ```
 
-## Data Models
+**No direct communication between UI and backend systems.** All coordination through GameEngine.
 
-### World Data Structure
+---
 
-```python
-@dataclass
-class World:
-    seed: int
-    size: tuple[int, int]
-    heightmap: np.ndarray
-    climate: np.ndarray
-    biomes: dict[tuple[int, int], str]
-    landmarks: dict[tuple[int, int], Landmark]
-    factions: list[Faction]
-    current_day: int = 0
+## Implementation Notes
 
-@dataclass
-class Hex:
-    coords: tuple[int, int]
-    biome: str
-    elevation: int
-    location: Optional[Location]
-    features: list[Feature]
-    explored: bool = False
+### Existing Systems to Leverage
 
-@dataclass
-class Location:
-    name: str
-    type: str
-    rooms: list[Room]
-    connections: dict[int, list[int]]
-    enemies: list[Monster]
-    loot: dict[int, list[Item]]
-```
+**Keep and Integrate:**
+- World generation (terrain, climate, biomes)
+- Character creation and progression
+- Survival mechanics (hunger, thirst, temperature)
+- Weather simulation
+- Location generation templates
+- Item and equipment systems
 
-### Database Schema
+**Modify for Integration:**
+- Action handler (delegate to GameEngine)
+- UI app (use GameEngine for state)
+- Logging system (centralize through GameLogger)
 
-**SQLite Tables:**
-- `game_metadata`: Save slot info, timestamps
-- `world_state`: World seed, day, faction states
-- `player_character`: Stats, inventory, position
-- `explored_hexes`: Generated hex data
-- `npc_instances`: NPC states and relationships
-- `quest_progress`: Active and completed quests
+**Remove/Simplify:**
+- Duplicate logging calls
+- Direct backend-to-UI communication
+- Scattered command processing
+- Inconsistent state management
 
-**JSON Content Files:**
-- `data/biomes/`: Terrain types, encounter tables
-- `data/creatures/`: Monster stats and behaviors
-- `data/items/`: Equipment and consumables
-- `data/classes/`: Character class definitions
-- `data/locations/`: Location templates
+### Key Design Principles
 
-## Error Handling
+1. **GameEngine is the single source of truth** for game state
+2. **All user actions flow through GameEngine** for coordination
+3. **UI only handles presentation** - no game logic
+4. **Natural language everywhere** except HP/AC numbers
+5. **Persistent world state** - locations and changes persist
+6. **Skill-based discovery** - hidden content rewards character builds
+7. **Deadly travel** - overworld movement has real consequences
 
-### Graceful Degradation
-- Invalid commands show helpful error messages
-- Corrupted save files trigger backup restoration
-- Missing content files use default templates
-- Network issues (future) fall back to offline mode
-
-### Recovery Mechanisms
-- Automatic backup saves every 10 minutes
-- Save file integrity checks on load
-- Content validation on startup
-- Memory leak detection in debug mode
-
-## Testing Strategy
-
-### Unit Tests
-- Character stat calculations and D&D mechanics
-- Combat resolution and damage calculations
-- Procedural generation reproducibility
-- Command parsing and validation
-- Save/load data integrity
-
-### Integration Tests
-- Complete combat encounters from start to finish
-- Hex exploration and location generation flow
-- NPC dialogue and faction reputation changes
-- Quest completion and reward distribution
-- Full character creation and progression
-
-### Performance Tests
-- World generation within 30-second limit
-- Command response time under 100ms
-- Memory usage during extended play sessions
-- Save file size optimization
-- Hex generation speed benchmarks
-
-### Playtesting Goals
-- 2-hour play session without crashes
-- Generate and explore 100+ hexes successfully
-- Complete at least one quest end-to-end
-- Test all combat scenarios and edge cases
-- Verify faction simulation over multiple game days
+This architecture transforms the existing disconnected systems into a cohesive, playable survival RPG that matches the Ultimate Fantasy Sim vision.

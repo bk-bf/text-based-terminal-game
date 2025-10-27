@@ -1,8 +1,13 @@
-# No Automation Policy
+# Development Workflow & Testing
 
-## Manual Control Philosophy
+## Manual Integration Philosophy
 
-Everything is done manually and explicitly. No automatic testing, building, launching, or deployment. You control every step.
+All integration work is done manually and explicitly. Test by playing the game, not through automated systems. You control every integration step.
+
+## Manual Verification
+- Test by actually playing the game, not unit tests
+- After each integration: create character → play for 10 minutes → verify it works
+- Integration checklist: Can I test it through gameplay? Does it improve the experience?
 
 ## What NOT to Implement
 
@@ -30,26 +35,47 @@ Everything is done manually and explicitly. No automatic testing, building, laun
 - No automatic configuration discovery
 - No complex initialization chains
 
+### ❌ No Terminal Command Execution
+- Do not use `executeBash` tool for running scripts or tests
+- Do not use `controlBashProcess` for starting processes
+- Do not run any terminal commands automatically
+
 ## What TO Do Instead
 
-### ✅ Manual Testing
+### ✅ Manual Integration Testing
 ```python
-# Simple manual test functions
-def test_character_stats():
-    char = create_character("Bob", "Human", "Fighter")
-    print(f"Created: {char}")
+# Test integration by playing the game
+def test_gameengine_integration():
+    game_engine = GameEngine()
+    character = create_character("Bob", "Human", "Fighter")
+    game_state = game_engine.new_game(character)
     
-    # Manually verify each stat
-    assert char['strength'] >= 8, "Strength too low"
-    assert char['hp'] > 0, "HP must be positive"
-    print("✓ Character stats look good")
+    # Test movement integration
+    success, message = game_engine.move_player("north")
+    print(f"Movement: {success}, {message}")
+    
+    # Test survival integration
+    status = game_engine.get_status()
+    print(f"Hunger: {status['player_state'].get_hunger_description()}")
+    print("✓ Integration working - play the game to verify")
 
-# Run tests manually when you want
+# Run when you integrate a new system
 if __name__ == "__main__":
-    test_character_stats()
-    test_equipment_system()
-    test_world_generation()
+    test_gameengine_integration()
 ```
+
+### ✅ Propose Commands Instead of Executing
+```
+Please run the following command:
+`python fantasy_rpg/inventory.py`
+
+Then paste the output here so I can verify the results.
+```
+
+### ✅ Wait for User Input
+- Always wait for the user to run the command and provide output
+- Do not proceed until you receive the actual command output
+- Use the provided output to make decisions and continue work
 
 ### ✅ Explicit Execution
 ```python
@@ -196,9 +222,28 @@ if __name__ == "__main__":
 4. **No Hidden Complexity**: No magic happening behind the scenes
 5. **Easy to Understand**: Anyone can read and run your code
 
+## Command Execution Policy
+
+### Workflow
+1. **Propose Command**: Clearly state what command to run and why
+2. **Wait for Output**: Do not continue until user provides actual output
+3. **Analyze Results**: Use the real output to make decisions
+4. **Next Steps**: Based on actual results, propose next actions
+
+### Allowed File Operations
+- `fsWrite` - Creating and writing files
+- `fsAppend` - Appending to files
+- `strReplace` - Modifying file contents
+- `readFile` - Reading file contents
+- `listDirectory` - Listing directory contents
+- `deleteFile` - Deleting files when necessary
+
 ## Remember
 
 - If you can't run it manually and see the results, don't build it
 - Every feature should be testable with a simple function call
 - Keep the barrier to testing as low as possible
 - Manual doesn't mean sloppy - be thorough in your manual testing
+- User maintains full control over their system
+- No unexpected processes are started
+- All command execution is transparent and intentional

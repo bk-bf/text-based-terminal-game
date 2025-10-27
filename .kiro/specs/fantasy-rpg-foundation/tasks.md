@@ -1,139 +1,142 @@
-# Fantasy RPG Foundation - Implementation Tasks
+# Fantasy RPG Foundation - Integration Tasks
 
 ## Overview
 
-This spec implements the foundation layer for the Fantasy RPG system, establishing core infrastructure for character management, world generation, and terminal-based UI. All subsequent systems depend on this foundation.
+**CRITICAL PIVOT:** Stop building new backend systems. Focus entirely on **integrating existing systems** through a GameEngine coordinator layer. All backend systems exist - they just need proper orchestration.
 
-**Estimated Time:** 2-3 weeks (16 days)  
-**Dependencies:** None (foundation layer)  
-**Deliverable:** Playable character creation → world exploration → basic location discovery loop with persistent saves
-
----
-
-## Milestone 1.1: Project Setup & Infrastructure (Days 1-3)
-
-### **Milestone 1.1.1: Project Structure (Day 1)**
-- [x] Create directory layout per design.md
-- [x] Set up Python virtual environment
-- [x] Install dependencies (textual>=0.40.0, rich>=13.0.0) 
-    (verified with ./venv/bin/pip list | grep -E "(textual|rich)")
-
-- [x] Configure git repository with .gitignore
-- [x] Create main.py entry point
-- **Checkpoint:** `python main.py` runs without errors
-
-### **Milestone 1.1.2: Base Data Structures (Day 2)**
-- [x] Implement World dataclass with type hints
-- [x] Implement Hex dataclass with coordinates and biome
-- [x] Implement Character base class with D&D 5e stats
-- [x] Implement Item base class with weight and properties
-- [x] Create utility classes (Dice, Coordinates)
-- **Checkpoint:** All dataclasses instantiate correctly
-
-### **Milestone 1.1.3: Testing Framework (Day 3)**
-- [ ] Install pytest and pytest-cov
-- [ ] Create test directory structure
-- [ ] Write first test (dice rolling with seeded RNG)
-- [ ] Set up test coverage tracking (target >60%)
-- [ ] Configure CI-friendly test runner
-- **Checkpoint:** `pytest` runs and reports coverage
+**Estimated Time:** 1 week (7 days)  
+**Dependencies:** Existing backend systems (character, world, survival, locations)  
+**Deliverable:** Playable game loop with character creation → hex travel → location exploration → survival mechanics
 
 ---
 
-## Milestone 1.2: Character System & D&D Mechanics (Days 4-8)
+## Week 1: Critical Integration (Days 1-7)
 
-### **Milestone 1.2.1: Character Creation (Days 4-5)**
-- [x] Implement Race class with ability bonuses and traits
-- [x] Implement CharacterClass with hit dice and proficiencies
-- [x] Create character creation flow (race → class → stats)
-- [x] Implement standard array stat allocation (15,14,13,12,10,8)
-- [x] Load race/class data from JSON files
-- [x] Generate starting equipment based on class
-- **Checkpoint:** Can create valid D&D character
+### **Day 1: GameEngine Foundation**
+**Goal:** Create the missing coordinator layer that ties all systems together
 
-### **Milestone 1.2.2: Character Stats & Mechanics (Days 6-7)**
-- [x] Implement ability score modifiers ((score-10)//2)
-- [x] Implement skill system with proficiency bonuses
-- [x] Calculate derived stats (AC, HP, proficiency bonus)
-- [x] Implement saving throw calculations
-- [x] Add skill check resolution (d20 + modifier + proficiency)
-- **Checkpoint:** All D&D calculations match rulebook
+**Morning Tasks:**
+- [ ] Create `fantasy_rpg/game/game_engine.py` with GameEngine class
+- [ ] Implement GameState dataclass to hold complete game state
+- [ ] Create world initialization pipeline through GameEngine
+- [ ] Test world generation through GameEngine coordinator
 
-### **Milestone 1.2.3: Character Progression (Day 8)**
-- [x] Implement XP tracking and level thresholds
-- [x] Implement leveling system (levels 1-5)
-- [x] Calculate HP increase on level up (hit die + CON mod)
-- [x] Scale proficiency bonus by level (+2 at 1st, +3 at 5th)
-- [x] Add basic feat support framework
-- **Checkpoint:** Character can level from 1 to 5 correctly
+**Afternoon Tasks:**
+- [ ] Implement basic movement methods in GameEngine
+- [ ] Add environmental effects application during travel
+- [ ] Create hex description generation with natural language
+- [ ] Test GameEngine initialization and basic functionality
 
----
+**Checkpoint:** GameEngine can initialize world and handle basic operations
+**Success Criteria:** `game_engine.new_game(character)` creates playable world state
 
-## Milestone 1.3: Inventory & Equipment System (Days 9-11)
+### **Day 2: UI Integration**
+**Goal:** Connect GameEngine to existing UI system
 
-### **Milestone 1.3.1: Equipment Slots (Days 9-10)**
-- [x] Implement Equipment class with 9 slots (head, body, hands, feet, main_hand, off_hand, ring_1, ring_2, amulet)
-- [x] Implement equip/unequip logic with validation
-- [x] Calculate AC from equipped armor and shields
-- [x] Apply stat bonuses from magical items
-- [x] Handle two-handed weapon restrictions
-- **Checkpoint:** Can equip items and see AC changes
+**Morning Tasks:**
+- [ ] Modify `fantasy_rpg/ui/app.py` to use GameEngine
+- [ ] Connect character creation completion to game initialization
+- [ ] Update UI panels to display GameEngine state
+- [ ] Test character creation → game start flow
 
-### **Milestone 1.3.2: Inventory Management (Day 11)**
-- [x] Implement Inventory class with weight tracking
-- [x] Enforce encumbrance limits based on Strength
-- [x] Implement item stacking for consumables
-- [x] Add container items (backpack increases capacity)
-- [ ] Create item durability system
-- **Checkpoint:** Inventory respects weight limits and stacking
+**Afternoon Tasks:**
+- [ ] Implement UI refresh methods when game state changes
+- [ ] Connect character panel to GameEngine character state
+- [ ] Update context panel to show current hex information
+- [ ] Test UI updates when game state changes
 
----
+**Checkpoint:** Character creation leads to initialized game world
+**Success Criteria:** Create character → see starting hex description in game log
 
-## Milestone 1.4: Basic UI Implementation (Days 12-14)
+### **Day 3: Movement System**
+**Goal:** Restore hex-to-hex movement through proper integration
 
-### **Milestone 1.4.1: Main Layout (Day 12)**
-- [x] **UI:** Create Textual app with three-panel layout
-- [x] **UI:** Implement Character panel (25% width) with real-time stats
-- [x] **UI:** Implement Game Log panel (50% width) with scrolling
-- [x] **UI:** Implement POI panel (25% width) with nearby locations
-- [ ] **UI:** Style panels with borders and colors
-- **Checkpoint:** Three-panel layout displays correctly
+**Morning Tasks:**
+- [ ] Add movement commands to action handler
+- [ ] Connect movement commands to GameEngine.move_player()
+- [ ] Implement proper error handling for invalid moves
+- [ ] Test basic north/south/east/west movement
 
-### **Milestone 1.4.2: Modal Screens (Day 13)**
-- [x] **UI:** Create InventoryScreen modal with equipment display
-- [x] **UI:** Implement CharacterScreen modal with full stats
-- [x] **UI:** Add keyboard bindings (I=inventory, C=character, ESC=close)
-- [x] **UI:** Ensure modals don't affect game log
-- [x] **UI:** Test modal navigation and closing
-- **Checkpoint:** Can open/close inventory and character screens
+**Afternoon Tasks:**
+- [ ] Add environmental effects during travel (hunger, thirst, temperature)
+- [ ] Implement time passage during movement
+- [ ] Add weather effects on travel
+- [ ] Test survival stat changes during movement
 
-### **Milestone 1.4.3: Command System (Day 14)**
-- [ ] **UI:** Implement command parser with natural language support
-- [ ] **UI:** Add command history (up/down arrows)
-- [x] **UI:** Implement basic commands: look, help, quit
-- [x] **UI:** Add abbreviated command support ("i" for inventory)
-- [x] **UI:** Display command feedback in game log
-- **Checkpoint:** Commands work and appear in log
+**Checkpoint:** Player can move between hexes with proper feedback
+**Success Criteria:** `north` command moves player and updates survival stats
 
----
+### **Day 4: Centralized Logging**
+**Goal:** Eliminate duplicate logging and create single source of truth
 
-## Milestone 1.5: Save System (Days 15-16)y
+**Morning Tasks:**
+- [ ] Create `fantasy_rpg/game/game_logger.py` with centralized logger
+- [ ] Replace all direct game log calls with centralized logger
+- [ ] Remove duplicate logging from action handlers and UI
+- [ ] Test message flow through single logger
 
-### **Milestone 1.5.1: Database Schema (Day 15)**
-- [ ] Design SQLite schema for game saves (5 tables minimum)
-- [ ] Implement database connection and migration system
-- [ ] Create save slot management (multiple saves)
-- [ ] Add save file integrity checks and validation
-- [ ] Implement backup save system
-- **Checkpoint:** Database creates and migrates correctly
+**Afternoon Tasks:**
+- [ ] Implement message queuing for initialization phase
+- [ ] Add message type handling (normal, combat, system)
+- [ ] Ensure natural language output for all messages
+- [ ] Test complete logging flow
 
-### **Milestone 1.5.2: Save/Load Implementation (Day 16)**
-- [ ] Implement save_game() with complete state serialization
-- [ ] Implement load_game() with state restoration
-- [ ] Save player character, inventory, and position
-- [ ] Save explored hexes and world state
-- [ ] Test save/load with mock data
-- **Checkpoint:** Can save, quit, reload, and continue game
+**Checkpoint:** All game messages flow through single logger
+**Success Criteria:** No duplicate messages, clean log output
+
+### **Day 5: Location Integration**
+**Goal:** Connect location generation system to GameEngine
+
+**Morning Tasks:**
+- [ ] Add location generation to GameEngine hex data
+- [ ] Implement enter_location() method in GameEngine
+- [ ] Create location persistence (same locations on re-entry)
+- [ ] Test location generation and entry
+
+**Afternoon Tasks:**
+- [ ] Implement exit_location() method to return to overworld
+- [ ] Add location area navigation within locations
+- [ ] Connect location descriptions to game log
+- [ ] Test complete location entry/exit flow
+
+**Checkpoint:** Player can enter and explore locations within hexes
+**Success Criteria:** `enter 1` command enters location, `exit` returns to overworld
+
+### **Day 6: Survival Commands**
+**Goal:** Restore foraging, shelter, and survival mechanics
+
+**Morning Tasks:**
+- [ ] Connect foraging system to GameEngine through object interaction
+- [ ] Implement context-specific object commands (examine, harvest, etc.)
+- [ ] Add skill checks for resource gathering
+- [ ] Test foraging mechanics with inventory updates
+
+**Afternoon Tasks:**
+- [ ] Connect shelter detection system to GameEngine
+- [ ] Implement camping mechanics with shelter quality
+- [ ] Add resource consumption over time
+- [ ] Test complete survival loop
+
+**Checkpoint:** Player can forage, find shelter, and manage survival needs
+**Success Criteria:** Can gather berries, find shelter, survive in wilderness
+
+### **Day 7: Polish & Testing**
+**Goal:** Fix remaining issues and ensure stable gameplay loop
+
+**Morning Tasks:**
+- [ ] Fix any remaining integration bugs
+- [ ] Test complete gameplay loop: create character → travel → explore → survive
+- [ ] Verify natural language output throughout
+- [ ] Performance optimization for smooth gameplay
+
+**Afternoon Tasks:**
+- [ ] Add save/load functionality for complete game state
+- [ ] Test save/load with world persistence
+- [ ] Polish UI feedback and error messages
+- [ ] Final integration testing
+
+**Checkpoint:** Complete playable game loop works smoothly
+**Success Criteria:** Can play for 30+ minutes without crashes or major issues
 
 ---
 

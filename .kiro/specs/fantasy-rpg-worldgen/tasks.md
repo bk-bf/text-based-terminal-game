@@ -1,115 +1,72 @@
-# Fantasy RPG - Geographic & Environmental Simulation
+# Fantasy RPG - World System Integration
 
 ## Overview
 
-This spec implements a comprehensive geographic and environmental simulation system for text-based RPG gameplay, focusing on realistic terrain, weather systems, and survival mechanics that make travel meaningful and challenging.
+**INTEGRATION FOCUS:** All world generation systems are already implemented. This spec focuses on **connecting existing world systems to the GameEngine** and ensuring they work together for the Ultimate Fantasy Sim gameplay experience.
 
-**Philosophy:** CDDA-level environmental depth adapted for text RPG. Every hex crossing should involve real risk assessment and resource management.
+**Philosophy:** Two-layer world structure - deadly overworld hex travel + detailed location exploration. Make existing systems work together seamlessly.
 
-**Estimated Time:** 3-4 days (based on demonstrated pace)  
-**Dependencies:** fantasy-rpg-foundation (character system, UI)  
-**Deliverable:** Complete environmental simulation with weather, terrain, and survival systems
-
----
-
-## Milestone 1.1: Geographic Foundation (Day 1)
-
-### **1.1.1: Terrain Generation (Morning)**
-- [x] Implement multi-octave Perlin/Simplex noise for realistic terrain
-- [x] Generate heightmap with continental plates simulation
-- [x] Calculate drainage patterns (water flow from high to low)
-- [x] Generate river systems following realistic drainage
-- [x] Place lakes in drainage basins and natural depressions
-- **Checkpoint:** Realistic geography with logical water systems
-
-### **1.1.2: Climate & Biome System (Afternoon)**
-- [x] Implement latitude-based temperature gradients
-- [x] Add elevation-based temperature modification (lapse rate)
-- [x] Simulate rainfall patterns (prevailing winds, rain shadows)
-- [x] Create biome assignment from temperature + rainfall matrix
-- [x] Generate 6-8 biomes with distinct environmental properties
-- [ ] Assign resource distribution and natural hazards per biome
-- **Checkpoint:** Biomes distributed realistically with gameplay impact
+**Estimated Time:** 2-3 days (integration work)  
+**Dependencies:** fantasy-rpg-foundation (GameEngine coordinator)  
+**Deliverable:** Integrated world system providing deadly overworld travel and rich location exploration
 
 ---
 
-## Milestone 1.2: Weather & Climate Systems (Day 2)
+## Integration Tasks (Days 1-3)
 
-### **1.2.1: Weather Simulation Engine (Morning)**
-- [x] Implement WeatherState dataclass with complete weather data
-- [x] Create seasonal weather pattern generation
-- [x] Build weather transition system (realistic weather changes)
-- [x] Implement storm systems and extreme weather events
-- [x] Add magical weather disruption system
-- **Checkpoint:** Dynamic weather system generating realistic patterns
+### **Day 1: World System Integration**
+**Goal:** Connect existing world generation to GameEngine
 
-### **1.2.2: Weather Prediction & Forecasting (Afternoon)**
-- [ ] Implement 7-day weather forecasting system
-- [ ] Create player weather prediction mechanics (Survival skill checks)
-- [x] Build weather impact calculation (travel speed, visibility, hazards)
-- [x] Add seasonal weather pattern variations
-- [x] Implement weather-based travel modifiers
-- **Checkpoint:** Complete weather system with player prediction mechanics
+**Morning Tasks:**
+- [x] **EXISTING SYSTEMS AUDIT:** Verify WorldCoordinator, climate, biomes, weather all work
+- [ ] **GameEngine Integration:** Connect world generation to GameEngine.new_game()
+- [ ] **World Initialization:** Ensure world generates automatically on character creation
+- [ ] **Hex Data Access:** Implement GameEngine.get_hex_data() for UI display
 
----
+**Afternoon Tasks:**
+- [ ] **Natural Language Output:** Convert precise weather data to natural descriptions
+- [ ] **Environmental Effects:** Connect weather/terrain to survival stat changes
+- [ ] **Biome Descriptions:** Generate immersive hex descriptions from biome data
+- [ ] **Testing:** Verify world generates and displays properly
 
-## Milestone 1.3: Survival & Environmental Systems (Day 3)
+**Checkpoint:** GameEngine creates world and provides natural language hex descriptions
+**Success Criteria:** Moving between hexes shows different biomes, weather, terrain
 
-### **1.3.1: Player Survival Mechanics (Morning)**
-- [x] Implement PlayerState with CDDA-style survival tracking
-- [x] Create hunger, thirst, and temperature regulation systems
-- [x] Build environmental exposure mechanics (wetness, wind chill)
-- [x] Implement survival condition system (hypothermia, dehydration, etc.)
-- [x] Add environmental damage and condition effect calculations
-- **Checkpoint:** Complete survival mechanics affecting player stats
+### **Day 2: Environmental Effects Integration**
+**Goal:** Make overworld travel deadly through environmental exposure
 
-### **1.3.2: Resource & Shelter Systems (Afternoon)**
-- [x] Implement item availability per location (food, water, firewood)
-- [ ] Create foraging mechanics with skill-based success
-- [ ] Build shelter system (natural shelter, camping, protection)
-- [ ] Add seasonal resource variation
-- [ ] Implement resource consumption during travel and rest
-- **Checkpoint:** Resource management system integrated with survival
+**Morning Tasks:**
+- [ ] **Travel Effects:** Apply hunger/thirst/temperature changes during hex movement
+- [ ] **Weather Impact:** Connect weather conditions to survival stat drain rates
+- [ ] **Terrain Difficulty:** Implement terrain-based travel time and exhaustion
+- [ ] **Temperature Exposure:** Apply hypothermia/heat stroke during travel
 
----
+**Afternoon Tasks:**
+- [ ] **Seasonal Effects:** Connect seasonal changes to resource availability
+- [ ] **Storm Systems:** Implement dangerous weather that affects travel
+- [ ] **Natural Hazards:** Add biome-specific dangers (avalanches, floods, etc.)
+- [ ] **Death Conditions:** Implement death from exposure, starvation, dehydration
 
-## Milestone 1.4: Travel & Navigation Systems (Day 4)
+**Checkpoint:** Overworld travel has real survival consequences
+**Success Criteria:** Player can die from exposure if unprepared for travel
 
-### **1.4.1: Travel Assessment Engine (Morning)**
-- [ ] Implement comprehensive travel assessment system
-- [ ] Create travel risk calculation (weather, terrain, party status)
-- [ ] Build travel time estimation with environmental modifiers
-- [ ] Add travel decision interface with detailed information display
-- [ ] Implement travel option system (proceed, camp, wait, predict weather)
-- **Checkpoint:** Complete travel assessment and decision system
+### **Day 3: Location-World Integration**
+**Goal:** Connect location generation to world system for proper resource distribution
 
-### **1.4.2: Environmental Interaction Commands (Afternoon)**
-- [ ] Create environmental query system (examine weather, assess terrain)
-- [ ] Implement camping mechanics with shelter quality assessment
-- [ ] Build foraging command system with skill checks
-- [ ] Add weather prediction command interface
-- [ ] Create environmental hazard warning system
-- **Checkpoint:** Full environmental interaction system for text RPG
+**Morning Tasks:**
+- [ ] **Biome-Based Locations:** Generate locations appropriate to hex biome
+- [ ] **Resource Distribution:** Ensure locations contain biome-appropriate resources
+- [ ] **Seasonal Variation:** Connect seasonal changes to location resource availability
+- [ ] **Weather Effects:** Apply current weather to location descriptions
 
----
+**Afternoon Tasks:**
+- [ ] **Location Persistence:** Ensure locations persist and evolve over time
+- [ ] **Environmental Consistency:** Match location weather/season to overworld
+- [ ] **Resource Depletion:** Implement resource consumption and regeneration
+- [ ] **Testing:** Verify complete world-location integration
 
-## Milestone 1.5: Integration & Optimization (Day 4-5)
-
-### **1.5.1: Real-Time Environmental Updates (Morning)**
-- [ ] Implement continuous environmental simulation during gameplay
-- [ ] Create seasonal transition system affecting terrain and resources
-- [ ] Build weather progression system with realistic changes
-- [ ] Add environmental hazard monitoring and warnings
-- [ ] Implement resource regeneration and seasonal availability
-- **Checkpoint:** Dynamic environmental changes during gameplay
-
-### **1.5.2: Performance & Save System (Afternoon)**
-- [ ] Optimize environmental data structures for memory efficiency
-- [ ] Implement spatial indexing for fast hex queries
-- [ ] Create efficient weather system updates
-- [ ] Design save/load system for environmental state
-- [ ] Add performance monitoring and optimization
-- **Checkpoint:** Environmental system runs efficiently with save/load
+**Checkpoint:** Locations reflect their hex environment and change over time
+**Success Criteria:** Forest hex locations have different resources than desert hex locations
 
 ---
 
