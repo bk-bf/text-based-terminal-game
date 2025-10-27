@@ -389,6 +389,52 @@ class ActionLogger:
         for warning in warnings:
             self.game_log_panel.add_message(f"[!] {warning}")
     
+    def log_damage_taken(self, damage_amount: int, damage_type: str, source: str, 
+                        old_hp: int, new_hp: int):
+        """Log damage taken from various sources"""
+        if not self.game_log_panel or damage_amount <= 0:
+            return
+        
+        # Format damage type for display
+        damage_type_display = {
+            "cold": "cold",
+            "heat": "heat", 
+            "starvation": "starvation",
+            "dehydration": "dehydration",
+            "generic": "damage"
+        }.get(damage_type, damage_type)
+        
+        # Format source for display
+        source_display = {
+            "Icy": "extreme cold",
+            "Heat Stroke": "extreme heat",
+            "Dying of Hunger": "starvation", 
+            "Dying of Thirst": "dehydration"
+        }.get(source, source.lower())
+        
+        # Log the damage with appropriate formatting
+        if new_hp <= 0:
+            self.game_log_panel.add_combat_message(f"💀 You take {damage_amount} {damage_type_display} damage from {source_display} and collapse! ({old_hp} → {new_hp} HP)")
+        elif damage_amount >= 3:
+            self.game_log_panel.add_combat_message(f"💥 You take {damage_amount} {damage_type_display} damage from {source_display}! ({old_hp} → {new_hp} HP)")
+        else:
+            self.game_log_panel.add_combat_message(f"⚡ You take {damage_amount} {damage_type_display} damage from {source_display}. ({old_hp} → {new_hp} HP)")
+    
+    def log_healing_received(self, heal_amount: int, source: str, old_hp: int, new_hp: int):
+        """Log healing received from various sources"""
+        if not self.game_log_panel or heal_amount <= 0:
+            return
+        
+        # Format source for display
+        source_display = {
+            "rest": "resting",
+            "sleep": "sleeping",
+            "food": "eating",
+            "potion": "a healing potion"
+        }.get(source, source)
+        
+        self.game_log_panel.add_message(f"💚 You recover {heal_amount} HP from {source_display}. ({old_hp} → {new_hp} HP)")
+    
     def _convert_elevation_to_natural(self, elevation_str: str) -> str:
         """Convert elevation to natural language description"""
         try:

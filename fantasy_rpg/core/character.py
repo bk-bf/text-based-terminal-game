@@ -90,10 +90,58 @@ class Character:
     # Feat support framework
     feats: List[str] = field(default_factory=list)
     
+    # Movement speed (in feet, D&D standard)
+    base_speed: int = 30  # Standard human speed
+    
     def ability_modifier(self, ability: str) -> int:
         """Calculate D&D ability modifier: (score - 10) // 2"""
-        score = getattr(self, ability)
-        return (score - 10) // 2
+        base_score = getattr(self, ability)
+        base_modifier = (base_score - 10) // 2
+        
+        # Apply condition effects if available
+        condition_modifier = self.get_condition_modifier(ability)
+        
+        return base_modifier + condition_modifier
+    
+    def get_condition_modifier(self, ability: str) -> int:
+        """Get condition-based modifier for an ability score"""
+        if not hasattr(self, 'player_state') or not self.player_state:
+            return 0
+        
+        try:
+            from ..game.conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            active_conditions = conditions_manager.evaluate_conditions(self.player_state)
+            total_effects = conditions_manager.calculate_total_effects(active_conditions)
+            
+            return total_effects.get("ability_modifiers", {}).get(ability, 0)
+        except (ImportError, Exception):
+            return 0
+    
+    def get_effective_speed(self) -> int:
+        """Calculate effective movement speed including condition penalties"""
+        base_speed = self.base_speed
+        
+        # Apply condition-based movement penalties
+        if not hasattr(self, 'player_state') or not self.player_state:
+            return base_speed
+        
+        try:
+            from ..game.conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            active_conditions = conditions_manager.evaluate_conditions(self.player_state)
+            total_effects = conditions_manager.calculate_total_effects(active_conditions)
+            
+            movement_penalty = total_effects.get("movement_penalty", 0.0)
+            
+            # Apply penalty as a fraction (0.5 = half speed, 0.75 = quarter speed lost)
+            effective_speed = int(base_speed * (1.0 - movement_penalty))
+            
+            # Minimum speed of 5 feet (can't go below crawling speed)
+            return max(5, effective_speed)
+            
+        except (ImportError, Exception):
+            return base_speed
     
     def calculate_ac(self) -> int:
         """Calculate armor class from dexterity and equipment"""

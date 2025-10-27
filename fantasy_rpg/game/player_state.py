@@ -103,19 +103,19 @@ class SurvivalNeeds:
             return SurvivalLevel.CRITICAL
     
     def get_fatigue_level(self) -> SurvivalLevel:
-        """Get fatigue status level"""
+        """Get fatigue status level - HIGH fatigue = well rested"""
         if self.fatigue >= 800:
-            return SurvivalLevel.EXCELLENT
+            return SurvivalLevel.EXCELLENT  # Well rested
         elif self.fatigue >= 650:
-            return SurvivalLevel.GOOD
+            return SurvivalLevel.GOOD       # Rested
         elif self.fatigue >= 350:
-            return SurvivalLevel.NORMAL
+            return SurvivalLevel.NORMAL     # Normal
         elif self.fatigue >= 200:
-            return SurvivalLevel.POOR
+            return SurvivalLevel.POOR       # Tired
         elif self.fatigue >= 50:
-            return SurvivalLevel.BAD
+            return SurvivalLevel.BAD        # Very tired
         else:
-            return SurvivalLevel.CRITICAL
+            return SurvivalLevel.CRITICAL   # Exhausted
     
     def get_temperature_status(self) -> TemperatureStatus:
         """Get temperature comfort status"""
@@ -221,9 +221,9 @@ class PlayerState:
         self._update_status_effects()
     
     def _update_hunger(self, hours: float, activity: str):
-        """Update hunger based on time and activity"""
-        # Base hunger rate (points per hour)
-        base_rate = 8
+        """Update hunger based on time and activity - MUCH slower for realism"""
+        # Base hunger rate (points per hour) - GREATLY reduced for balance
+        base_rate = 2  # Was 8, now 2 (4x slower)
         
         # Activity modifiers
         activity_modifiers = {
@@ -246,9 +246,9 @@ class PlayerState:
             self.survival.starvation_effects = max(0, self.survival.starvation_effects - int(hours))
     
     def _update_thirst(self, hours: float, activity: str):
-        """Update thirst based on time, activity, and environment"""
-        # Base thirst rate (points per hour)
-        base_rate = 12
+        """Update thirst based on time, activity, and environment - 3x faster than hunger"""
+        # Base thirst rate (points per hour) - 3x hunger rate for realism
+        base_rate = 6  # Was 12, now 6 (3x hunger rate of 2)
         
         # Activity modifiers
         activity_modifiers = {
@@ -285,26 +285,33 @@ class PlayerState:
     
     def _update_fatigue(self, hours: float, activity: str):
         """Update fatigue based on time and activity"""
-        # Base fatigue rate (points per hour)
-        base_rate = 15
-        
-        # Activity modifiers
-        activity_modifiers = {
-            "resting": -20,  # Negative = recovery
-            "normal": 1.0,
-            "active": 2.0,
-            "strenuous": 4.0
-        }
-        
-        rate = base_rate * activity_modifiers.get(activity, 1.0)
-        fatigue_change = int(rate * hours)
+        old_fatigue = self.survival.fatigue
         
         if activity == "resting":
-            # Resting recovers fatigue
-            self.survival.fatigue = min(1000, self.survival.fatigue - fatigue_change)
+            # Resting REDUCES fatigue (gets less tired)
+            recovery = int(30 * hours)  # 30 points per hour
+            self.survival.fatigue = max(0, self.survival.fatigue - recovery)
+            print(f"  Fatigue: RESTING for {hours:.1f}h, -{recovery} tiredness, {old_fatigue} → {self.survival.fatigue}")
+            
+        elif activity == "unconscious":
+            # Being unconscious also reduces fatigue (forced rest)
+            recovery = int(20 * hours)  # 20 points per hour (less than active rest)
+            self.survival.fatigue = max(0, self.survival.fatigue - recovery)
+            print(f"  Fatigue: UNCONSCIOUS for {hours:.1f}h, -{recovery} tiredness, {old_fatigue} → {self.survival.fatigue}")
+            
         else:
-            # Other activities increase fatigue
-            self.survival.fatigue = max(0, self.survival.fatigue - fatigue_change)
+            # Activity DECREASES fatigue (gets more tired) - HIGH fatigue = well rested
+            activity_rates = {
+                "normal": -10,     # -10 points per hour (mild tiredness)
+                "active": -20,     # -20 points per hour (moderate tiredness)
+                "strenuous": -40   # -40 points per hour (high tiredness)
+            }
+            
+            rate = activity_rates.get(activity, -10)
+            fatigue_change = int(rate * hours)
+            self.survival.fatigue = max(0, min(1000, self.survival.fatigue + fatigue_change))
+            change_desc = f"+{fatigue_change}" if fatigue_change > 0 else str(fatigue_change)
+            print(f"  Fatigue: {activity.upper()} for {hours:.1f}h, {change_desc} fatigue, {old_fatigue} → {self.survival.fatigue}")
     
     def _update_temperature_regulation(self, hours: float):
         """Update body temperature based on weather and clothing"""
@@ -459,20 +466,12 @@ class PlayerState:
     
     def rest(self, hours: float, quality: str = "normal"):
         """Rest to recover fatigue"""
-        quality_modifiers = {
-            "poor": 0.5,      # Sleeping on ground
-            "normal": 1.0,    # Basic bedroll
-            "good": 1.5,      # Comfortable bed
-            "excellent": 2.0  # Luxury accommodations
-        }
+        # Note: Fatigue recovery is handled by advance_time() with "resting" activity
+        # This method just tracks sleep and advances time
         
-        modifier = quality_modifiers.get(quality, 1.0)
-        recovery = int(150 * hours * modifier)  # Base recovery rate
-        
-        self.survival.fatigue = min(1000, self.survival.fatigue + recovery)
         self.last_sleep_hours = 0
         
-        # Advance time during rest
+        # Advance time during rest (this handles fatigue recovery)
         self.advance_time(hours, "resting")
     
     def get_survival_summary(self) -> str:

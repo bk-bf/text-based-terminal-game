@@ -87,6 +87,7 @@ class CharacterPanel(Static):
                     self.charisma = 10
                     self.race = "Human"
                     self.character_class = "Fighter"
+                    self.base_speed = 30
                 
                 def ability_modifier(self, ability):
                     score = getattr(self, ability)
@@ -115,6 +116,12 @@ class CharacterPanel(Static):
                 
                 def get_equipped_item(self, slot):
                     return None
+                
+                def get_condition_modifier(self, ability):
+                    return 0
+                
+                def get_effective_speed(self):
+                    return self.base_speed
             
             mock_char = MockCharacter()
             # Add empty inventory for UI compatibility
@@ -173,7 +180,14 @@ class CharacterPanel(Static):
         except:
             encumbrance_info = "Load: Light"
         
-        # Format ability scores with modifiers
+        # Get speed info
+        try:
+            speed = char.get_effective_speed()
+            speed_info = f"Speed: {speed}ft"
+        except:
+            speed_info = "Speed: 30ft"
+        
+        # Format ability scores with modifiers (now includes condition effects)
         abilities_text = f"""STR: {char.strength} ({char.ability_modifier('strength'):+d})
 DEX: {char.dexterity} ({char.ability_modifier('dexterity'):+d})
 CON: {char.constitution} ({char.ability_modifier('constitution'):+d})
@@ -212,13 +226,45 @@ Dryness: {wetness_colored}
 ----------------------------
 condition:"""
             
-            if player_state.status_effects:
-                # Remove duplicates and show first 3 unique effects
-                unique_effects = list(dict.fromkeys(player_state.status_effects))[:3]
-                for effect in unique_effects:
-                    survival_text += f"\n• {effect}"
-            else:
-                survival_text += "\nHealthy"
+            # Use conditions system to get active conditions
+            try:
+                # Try different import paths
+                try:
+                    from ..game.conditions import get_conditions_manager
+                except ImportError:
+                    from game.conditions import get_conditions_manager
+                
+                conditions_manager = get_conditions_manager()
+                active_conditions = conditions_manager.evaluate_conditions(player_state)
+                
+                if active_conditions:
+                    # Format conditions with severity colors
+                    formatted_conditions = []
+                    for condition in active_conditions[:3]:  # Show max 3 conditions
+                        # Use the conditions manager to format with colors
+                        color = conditions_manager.get_condition_severity_color(condition)
+                        formatted_conditions.append(f"[{color}]{condition}[/]")
+                    
+                    condition_list = ", ".join(formatted_conditions)
+                    survival_text += f"\n{condition_list}"
+                else:
+                    survival_text += "\n[#00FF00]Healthy[/]"
+                    
+            except (ImportError, Exception) as e:
+                # Fallback to old system if conditions system not available
+                print(f"Conditions system not available: {e}")
+                if hasattr(player_state, 'status_effects') and player_state.status_effects:
+                    # Remove duplicates and show first 3 unique effects
+                    unique_effects = list(dict.fromkeys(player_state.status_effects))[:3]
+                    formatted_conditions = [f"[{effect}]" for effect in unique_effects if effect and effect.strip()]
+                    
+                    if formatted_conditions:
+                        condition_list = ", ".join(formatted_conditions)
+                        survival_text += f"\n{condition_list}"
+                    else:
+                        survival_text += "\n[Healthy]"
+                else:
+                    survival_text += "\n[Healthy]"
         
         # Get realistic environment description
         environment_text = self._get_environment_description(char)
@@ -230,6 +276,7 @@ HP: {char.hp}/{char.max_hp} {hp_bar}
 AC: {char.armor_class}
 {xp_info}
 {encumbrance_info}
+{speed_info}
 
 ----------------------------
 abilities:

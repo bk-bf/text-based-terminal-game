@@ -1,0 +1,446 @@
+{
+    "conditions": {
+        "Hungry": {
+            "description": "Lack of food causes weakness and distraction",
+            "trigger": "hunger <= 200 and hunger > 50",
+            "hierarchy": "hunger",
+            "priority": 1,
+            "effects": {
+                "constitution_modifier": -1,
+                "skill_penalties": {
+                    "athletics": -1,
+                    "perception": -1
+                },
+                "saving_throw_penalties": {
+                    "constitution": -1
+                }
+            },
+            "severity": "moderate",
+            "category": "survival"
+        },
+        "Starving": {
+            "description": "Severe lack of food weakens the body",
+            "trigger": "hunger <= 50",
+            "hierarchy": "hunger",
+            "priority": 2,
+            "effects": {
+                "strength_modifier": -2,
+                "constitution_modifier": -2,
+                "max_hp_modifier": -0.25,
+                "skill_penalties": {
+                    "athletics": -3,
+                    "acrobatics": -2
+                },
+                "saving_throw_penalties": {
+                    "constitution": -2,
+                    "strength": -1
+                }
+            },
+            "severity": "critical",
+            "category": "survival"
+        },
+        "Dying of Hunger": {
+            "description": "Extreme starvation causes muscle wasting and organ failure",
+            "trigger": "hunger <= 10",
+            "hierarchy": "hunger",
+            "priority": 3,
+            "effects": {
+                "strength_modifier": -4,
+                "constitution_modifier": -4,
+                "dexterity_modifier": -2,
+                "max_hp_modifier": -0.5,
+                "skill_penalties": {
+                    "all": -3
+                },
+                "saving_throw_penalties": {
+                    "all": -3
+                },
+                "movement_penalty": 0.75,
+                "unconscious_risk": true,
+                "damage_over_time": {
+                    "type": "starvation",
+                    "amount": 1,
+                    "interval": "30_minutes"
+                },
+                "faint_chance": 0.25
+            },
+            "severity": "life_threatening",
+            "category": "survival"
+        },
+        "Thirsty": {
+            "description": "Thirst causes mild impairment",
+            "trigger": "thirst <= 200 and thirst > 50",
+            "hierarchy": "thirst",
+            "priority": 1,
+            "effects": {
+                "constitution_modifier": -1,
+                "skill_penalties": {
+                    "athletics": -1,
+                    "survival": -1
+                }
+            },
+            "severity": "moderate",
+            "category": "survival"
+        },
+        "Dehydrated": {
+            "description": "Severe thirst impairs physical and mental function",
+            "trigger": "thirst <= 50",
+            "hierarchy": "thirst",
+            "priority": 2,
+            "effects": {
+                "constitution_modifier": -3,
+                "wisdom_modifier": -1,
+                "skill_penalties": {
+                    "athletics": -2,
+                    "perception": -2,
+                    "survival": -2
+                },
+                "saving_throw_penalties": {
+                    "constitution": -3,
+                    "wisdom": -1
+                },
+                "movement_penalty": 0.5
+            },
+            "interactions": {
+                "with_overheating": {
+                    "condition_check": "has_condition:Overheating",
+                    "additional_effects": {
+                        "hyperthermia_risk_multiplier": 3.0,
+                        "constitution_modifier": -2,
+                        "unconscious_risk": true
+                    },
+                    "description": "Severe dehydration and overheating create deadly feedback loop"
+                }
+            },
+            "severity": "critical",
+            "category": "survival"
+        },
+        "Dying of Thirst": {
+            "description": "Extreme dehydration causes organ failure and death",
+            "trigger": "thirst <= 10",
+            "hierarchy": "thirst",
+            "priority": 3,
+            "effects": {
+                "constitution_modifier": -5,
+                "wisdom_modifier": -3,
+                "intelligence_modifier": -2,
+                "skill_penalties": {
+                    "all": -4
+                },
+                "saving_throw_penalties": {
+                    "all": -3
+                },
+                "movement_penalty": 0.8,
+                "unconscious_risk": true,
+                "damage_over_time": {
+                    "type": "dehydration",
+                    "amount": 1,
+                    "interval": "15_minutes"
+                },
+                "faint_chance": 0.3
+            },
+            "severity": "life_threatening",
+            "category": "survival"
+        },
+        "Tired": {
+            "description": "Mild fatigue causes minor performance issues",
+            "trigger": "fatigue >= 200 and fatigue < 350",
+            "hierarchy": "fatigue",
+            "priority": 0,
+            "effects": {
+                "skill_penalties": {
+                    "perception": -1
+                },
+                "movement_penalty": 0.1
+            },
+            "severity": "mild",
+            "category": "survival"
+        },
+        "Very Tired": {
+            "description": "Significant fatigue impairs performance",
+            "trigger": "fatigue >= 50 and fatigue < 200",
+            "hierarchy": "fatigue",
+            "priority": 1,
+            "effects": {
+                "dexterity_modifier": -1,
+                "wisdom_modifier": -1,
+                "skill_penalties": {
+                    "perception": -2,
+                    "athletics": -1,
+                    "acrobatics": -1
+                },
+                "attack_penalty": -1
+            },
+            "severity": "moderate",
+            "category": "survival"
+        },
+        "Exhausted": {
+            "description": "Extreme fatigue severely impairs all actions",
+            "trigger": "fatigue < 50",
+            "hierarchy": "fatigue",
+            "priority": 2,
+            "effects": {
+                "all_ability_modifiers": -2,
+                "skill_penalties": {
+                    "all": -3
+                },
+                "saving_throw_penalties": {
+                    "all": -2
+                },
+                "attack_penalty": -3,
+                "movement_penalty": 0.75,
+                "disadvantage_on": [
+                    "attack_rolls",
+                    "ability_checks",
+                    "saving_throws"
+                ],
+                "faint_chance": 0.15
+            },
+            "interactions": {
+                "with_starvation": {
+                    "condition_check": "has_condition:Starving",
+                    "additional_effects": {
+                        "constitution_modifier": -2,
+                        "movement_penalty": 0.5,
+                        "unconscious_risk": true
+                    },
+                    "description": "Extreme fatigue and starvation create life-threatening weakness"
+                }
+            },
+            "severity": "critical",
+            "category": "survival"
+        },
+        "Cold": {
+            "description": "Uncomfortably cold, affecting dexterity",
+            "trigger": "body_temperature <= 300 and body_temperature > 200",
+            "hierarchy": "temperature",
+            "priority": 1,
+            "exclusion_group": "temperature",
+            "effects": {
+                "dexterity_modifier": -1,
+                "skill_penalties": {
+                    "acrobatics": -1,
+                    "sleight_of_hand": -2
+                }
+            },
+            "severity": "mild",
+            "category": "temperature"
+        },
+        "Freezing": {
+            "description": "Dangerously cold, risking hypothermia",
+            "trigger": "body_temperature <= 200 or hypothermia_risk >= 80",
+            "hierarchy": "temperature",
+            "priority": 2,
+            "exclusion_group": "temperature",
+            "effects": {
+                "dexterity_modifier": -3,
+                "constitution_modifier": -2,
+                "skill_penalties": {
+                    "acrobatics": -3,
+                    "sleight_of_hand": -3,
+                    "athletics": -2
+                },
+                "saving_throw_penalties": {
+                    "dexterity": -2,
+                    "constitution": -2
+                },
+                "movement_penalty": 0.5
+            },
+            "severity": "critical",
+            "category": "temperature"
+        },
+        "Hot": {
+            "description": "Uncomfortably hot, causing fatigue",
+            "trigger": "body_temperature >= 700 and body_temperature < 800",
+            "hierarchy": "temperature",
+            "priority": 1,
+            "exclusion_group": "temperature",
+            "effects": {
+                "constitution_modifier": -1,
+                "skill_penalties": {
+                    "athletics": -1
+                }
+            },
+            "severity": "mild",
+            "category": "temperature"
+        },
+        "Overheating": {
+            "description": "Dangerously hot, risking heat stroke",
+            "trigger": "body_temperature >= 800 or hyperthermia_risk >= 80",
+            "hierarchy": "temperature",
+            "priority": 2,
+            "exclusion_group": "temperature",
+            "effects": {
+                "constitution_modifier": -3,
+                "wisdom_modifier": -2,
+                "skill_penalties": {
+                    "athletics": -3,
+                    "perception": -2,
+                    "survival": -2
+                },
+                "saving_throw_penalties": {
+                    "constitution": -3,
+                    "wisdom": -1
+                }
+            },
+            "severity": "critical",
+            "category": "temperature"
+        },
+        "Wet": {
+            "description": "Wet clothing and equipment cause discomfort",
+            "trigger": "wetness >= 200 and wetness < 350",
+            "hierarchy": "wetness",
+            "priority": 1,
+            "effects": {
+                "dexterity_modifier": -1,
+                "skill_penalties": {
+                    "stealth": -1,
+                    "acrobatics": -1
+                },
+                "cold_vulnerability": true
+            },
+            "interactions": {
+                "with_cold_conditions": {
+                    "condition_check": "has_condition_category:temperature AND condition_severity_at_least:mild",
+                    "additional_effects": {
+                        "constitution_modifier": -1,
+                        "hypothermia_risk_multiplier": 2.0
+                    },
+                    "description": "Wet clothing in cold weather dramatically increases heat loss"
+                }
+            },
+            "severity": "mild",
+            "category": "wetness"
+        },
+        "Soaked": {
+            "description": "Completely wet, equipment and movement impaired",
+            "trigger": "wetness >= 350",
+            "hierarchy": "wetness",
+            "priority": 2,
+            "effects": {
+                "dexterity_modifier": -2,
+                "constitution_modifier": -1,
+                "skill_penalties": {
+                    "acrobatics": -2,
+                    "stealth": -3,
+                    "athletics": -1
+                },
+                "equipment_penalties": {
+                    "armor_ac_penalty": -1,
+                    "weapon_attack_penalty": -1
+                },
+                "movement_penalty": 0.25,
+                "cold_vulnerability": true,
+                "fire_resistance": true
+            },
+            "interactions": {
+                "with_freezing_conditions": {
+                    "condition_check": "has_condition:Freezing",
+                    "additional_effects": {
+                        "constitution_modifier": -2,
+                        "hypothermia_risk_multiplier": 3.0,
+                        "movement_penalty": 0.255
+                    },
+                    "description": "Soaked clothing in freezing weather is extremely dangerous"
+                }
+            },
+            "severity": "moderate",
+            "category": "wetness"
+        },
+        "Wind Chilled": {
+            "description": "Strong winds increase cold exposure",
+            "trigger": "wind_chill >= 100",
+            "effects": {
+                "constitution_modifier": -1,
+                "skill_penalties": {
+                    "perception": -2,
+                    "survival": -1
+                },
+                "cold_vulnerability": true,
+                "ranged_attack_penalty": -2
+            },
+            "severity": "moderate",
+            "category": "weather"
+        },
+        "Icy": {
+            "description": "Body temperature dangerously low",
+            "trigger": "body_temperature <= 100 or hypothermia_risk >= 90",
+            "hierarchy": "temperature",
+            "priority": 3,
+            "exclusion_group": "temperature",
+            "effects": {
+                "all_ability_modifiers": -3,
+                "movement_penalty": 0.75,
+                "unconscious_risk": true,
+                "damage_over_time": {
+                    "type": "cold",
+                    "amount": 2,
+                    "interval": "5_minutes"
+                },
+                "faint_chance": 0.2
+            },
+            "severity": "life_threatening",
+            "category": "disease"
+        },
+        "Heat Stroke": {
+            "description": "Body overheating to dangerous levels",
+            "trigger": "body_temperature >= 900 or hyperthermia_risk >= 90",
+            "hierarchy": "temperature",
+            "priority": 3,
+            "exclusion_group": "temperature",
+            "effects": {
+                "constitution_modifier": -4,
+                "wisdom_modifier": -3,
+                "unconscious_risk": true,
+                "damage_over_time": {
+                    "type": "heat",
+                    "amount": 2,
+                    "interval": "5_minutes"
+                },
+                "faint_chance": 0.2
+            },
+            "severity": "life_threatening",
+            "category": "disease"
+        },
+        "Fainted": {
+            "description": "Unconscious from exhaustion, dehydration, or extreme temperatures",
+            "trigger": "False",
+            "effects": {
+                "all_ability_modifiers": -10,
+                "movement_penalty": 1.0,
+                "unconscious": true,
+                "helpless": true,
+                "fatigue_recovery": 100
+            },
+            "duration": {
+                "min_minutes": 30,
+                "max_minutes": 180,
+                "recovery_check_interval": "15_minutes"
+            },
+            "severity": "life_threatening",
+            "category": "unconscious"
+        }
+    },
+    "severity_levels": {
+        "mild": {
+            "color": "#FFFF00",
+            "priority": 1,
+            "description": "Minor impairment"
+        },
+        "moderate": {
+            "color": "#FF8800",
+            "priority": 2,
+            "description": "Noticeable impairment"
+        },
+        "critical": {
+            "color": "#FF0000",
+            "priority": 3,
+            "description": "Severe impairment"
+        },
+        "life_threatening": {
+            "color": "#AA0000",
+            "priority": 4,
+            "description": "Potentially fatal"
+        }
+    }
+}

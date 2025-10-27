@@ -115,7 +115,7 @@ class TimeSystem:
             "Take a brief rest", weather_affected=True
         )
         
-        # Medium actions (1 hour)
+        # Medium actions (1 hour base, modified by speed)
         activities["travel"] = ActivityDefinition(
             "travel", ActivityType.MEDIUM, 1.0, "active",
             "Travel to an adjacent location", weather_affected=True
@@ -181,6 +181,17 @@ class TimeSystem:
         Returns:
             Dictionary with activity results and time information
         """
+        # Check if character is dead
+        if hasattr(self.player_state, 'character') and self.player_state.character:
+            if self.player_state.character.hp <= 0:
+                print("💀 CHARACTER DIED! Cannot perform any actions.")
+                return {
+                    "success": False,
+                    "message": "💀 CHARACTER DIED! You cannot perform any actions while dead.",
+                    "time_passed": 0.0,
+                    "character_dead": True
+                }
+        
         if activity_name not in self.activity_definitions:
             return {
                 "success": False,
@@ -193,18 +204,28 @@ class TimeSystem:
         # Calculate actual duration
         duration = self._calculate_activity_duration(activity, **kwargs)
         
-        # Check if activity is possible
-        can_perform, reason = self._can_perform_activity(activity, duration)
-        if not can_perform:
-            return {
-                "success": False,
-                "message": reason,
-                "time_passed": 0.0
-            }
+        # Get warnings about dangerous conditions (but never block)
+        warnings = self._get_activity_warnings(activity, duration)
+        can_perform, _ = self._can_perform_activity(activity, duration)  # Always returns True now
         
         # Perform the activity
         if duration > 0:
             self._advance_time(duration, activity.exertion_level)
+        
+        # Check if character died during the activity
+        if hasattr(self.player_state, 'character') and self.player_state.character:
+            if self.player_state.character.hp <= 0:
+                print("💀 CHARACTER DIED during the activity!")
+                return {
+                    "success": False,
+                    "message": "💀 CHARACTER DIED! You collapsed and died during the activity.",
+                    "time_passed": duration,
+                    "character_dead": True,
+                    "activity": activity_name,
+                    "duration_hours": duration,
+                    "time_passed_description": self._format_duration(duration),
+                    "new_time": self.player_state.get_time_string()
+                }
         
         # Get activity-specific results
         results = self._get_activity_results(activity_name, duration, **kwargs)
@@ -216,6 +237,7 @@ class TimeSystem:
             "time_passed_description": self._format_duration(duration),
             "new_time": self.player_state.get_time_string(),
             "exertion_level": activity.exertion_level,
+            "warnings": warnings,
             **results
         }
     
@@ -253,6 +275,21 @@ class TimeSystem:
             duration *= 1.5  # Takes 50% longer when exhausted
         elif fatigue_level.value <= 3:  # POOR fatigue
             duration *= 1.2  # Takes 20% longer when tired
+        
+        # Speed effects for travel activities
+        if activity.name == "travel" and hasattr(self.player_state, 'character'):
+            character = self.player_state.character
+            if hasattr(character, 'get_effective_speed'):
+                effective_speed = character.get_effective_speed()
+                base_speed = getattr(character, 'base_speed', 30)
+                
+                # Calculate speed modifier (slower = takes longer)
+                # Standard travel assumes 30ft speed, adjust proportionally
+                speed_modifier = base_speed / max(5, effective_speed)  # Prevent division by zero
+                duration *= speed_modifier
+                
+                # Cap maximum travel time at 5x normal (for very slow characters)
+                duration = min(duration, activity.base_duration_hours * 5.0)
         
         return duration
     
@@ -295,39 +332,59 @@ class TimeSystem:
         return modifier
     
     def _can_perform_activity(self, activity: ActivityDefinition, duration: float) -> Tuple[bool, str]:
-        """Check if an activity can be performed"""
-        # Check if player is conscious
+        """Check if an activity can be performed - now only provides warnings, never blocks"""
+        # Never block activities - player agency is paramount
+        # All checks now return warnings that will be shown but won't prevent action
+        return True, ""
+    
+    def _get_activity_warnings(self, activity: ActivityDefinition, duration: float) -> List[str]:
+        """Get warnings about dangerous conditions for an activity"""
+        warnings = []
+        
+        # Check survival conditions and add warnings
         if self.player_state.survival.get_fatigue_level().value == 0:  # CRITICAL fatigue
-            return False, "You are too exhausted to perform this activity"
+            warnings.append("[!] You are exhausted!")
+        elif self.player_state.survival.get_fatigue_level().value <= 2:  # BAD fatigue
+            warnings.append("[!] You are very tired.")
         
-        # Check for severe dehydration
         if self.player_state.survival.get_thirst_level().value == 0:  # CRITICAL thirst
-            return False, "You are too dehydrated to perform this activity"
+            warnings.append("[!] You are severely dehydrated!")
+        elif self.player_state.survival.get_thirst_level().value <= 2:  # BAD thirst
+            warnings.append("[!] You are very thirsty.")
         
-        # Check for severe starvation
         if self.player_state.survival.get_hunger_level().value == 0:  # CRITICAL hunger
-            return False, "You are too weak from hunger to perform this activity"
+            warnings.append("[!] You are starving!")
+        elif self.player_state.survival.get_hunger_level().value <= 2:  # BAD hunger
+            warnings.append("[!] You are very hungry.")
         
-        # Check for hypothermia risk
+        # Temperature warnings
         if self.player_state.survival.hypothermia_risk > 80:
-            return False, "You are too cold to perform this activity safely"
+            warnings.append("[!] You are dangerously cold!")
+        elif self.player_state.survival.hypothermia_risk > 60:
+            warnings.append("[!] You are getting very cold.")
         
-        # Check for hyperthermia risk
         if self.player_state.survival.hyperthermia_risk > 80:
-            return False, "You are overheating and cannot perform this activity"
+            warnings.append("[!] You are dangerously overheated!")
+        elif self.player_state.survival.hyperthermia_risk > 60:
+            warnings.append("[!] You are getting very hot.")
         
-        # Weather-specific checks
+        # Weather warnings
         if activity.weather_affected and self.player_state.current_weather:
             weather = self.player_state.current_weather
             
-            # Extreme weather conditions
             if weather.is_storm and activity.name in ["travel", "explore", "hunt"]:
-                return False, "The storm is too dangerous for outdoor activities"
+                warnings.append("[!] Storm conditions make this very dangerous!")
             
             if weather.visibility < 100 and activity.name in ["travel", "explore"]:
-                return False, "Visibility is too poor for this activity"
+                warnings.append("[!] Very poor visibility makes this risky!")
+            
+            if weather.feels_like < 32 and activity.name in ["travel", "explore"]:
+                warnings.append("[!] Freezing temperatures increase exposure risk!")
+            
+            if weather.feels_like > 100 and activity.name in ["travel", "explore"]:
+                warnings.append("[!] Extreme heat increases heat stroke risk!")
         
-        return True, ""
+        return warnings
     
     def _advance_time(self, hours: float, exertion_level: str):
         """Advance game time and update all systems"""
@@ -335,6 +392,12 @@ class TimeSystem:
         
         # Advance player state
         self.player_state.advance_time(hours, exertion_level)
+        
+        # Apply damage-over-time effects
+        self._apply_damage_over_time(hours)
+        
+        # Check for fainting
+        self._check_for_fainting()
         
         # Update weather if needed
         self.hours_since_weather_update += hours
@@ -370,6 +433,121 @@ class TimeSystem:
         # Notify callbacks
         for callback in self.on_weather_change:
             callback(old_weather, new_weather)
+    
+    def _apply_damage_over_time(self, hours_passed: float):
+        """Apply damage-over-time effects from active conditions"""
+        try:
+            from .conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            
+            # Get active conditions
+            active_conditions = conditions_manager.evaluate_conditions(self.player_state)
+            
+            # Check each condition for damage-over-time effects
+            for condition_name in active_conditions:
+                condition_data = conditions_manager.conditions_data.get(condition_name, {})
+                effects = condition_data.get("effects", {})
+                damage_over_time = effects.get("damage_over_time")
+                
+                if damage_over_time:
+                    interval_str = damage_over_time.get("interval", "10_minutes")
+                    damage_amount = damage_over_time.get("amount", 1)
+                    damage_type = damage_over_time.get("type", "generic")
+                    
+                    # Convert interval string to hours
+                    interval_hours = self._parse_time_interval(interval_str)
+                    
+                    if interval_hours > 0:
+                        # Calculate how many damage applications should occur
+                        damage_applications = int(hours_passed / interval_hours)
+                        
+                        if damage_applications > 0:
+                            total_damage = damage_applications * damage_amount
+                            
+                            # Apply damage to character
+                            if hasattr(self.player_state, 'character'):
+                                character = self.player_state.character
+                                old_hp = character.hp
+                                character.hp = max(0, character.hp - total_damage)
+                                
+                                # Log the damage using action logger
+                                try:
+                                    from ..ui.action_logger import get_action_logger
+                                    action_logger = get_action_logger()
+                                    action_logger.log_damage_taken(
+                                        damage_amount=total_damage,
+                                        damage_type=damage_type,
+                                        source=condition_name,
+                                        old_hp=old_hp,
+                                        new_hp=character.hp
+                                    )
+                                except ImportError:
+                                    # Fallback to print if action logger not available
+                                    print(f"Condition '{condition_name}' deals {total_damage} {damage_type} damage over time ({old_hp} → {character.hp} HP)")
+                                
+                                # Notify status change callbacks
+                                for callback in self.on_status_change:
+                                    callback(f"Took {total_damage} {damage_type} damage from {condition_name}")
+                        else:
+                            # Debug: show why no damage was applied
+                            print(f"Condition '{condition_name}': {hours_passed:.2f}h passed, {interval_hours:.2f}h interval → {damage_applications} applications")
+        
+        except (ImportError, Exception) as e:
+            # Conditions system not available or error occurred
+            pass
+    
+    def _parse_time_interval(self, interval_str: str) -> float:
+        """Parse time interval string to hours"""
+        interval_map = {
+            "1_minute": 1/60,
+            "5_minutes": 5/60,
+            "10_minutes": 10/60,
+            "15_minutes": 15/60,
+            "30_minutes": 0.5,
+            "1_hour": 1.0,
+            "2_hours": 2.0,
+            "4_hours": 4.0,
+            "6_hours": 6.0,
+            "8_hours": 8.0,
+            "12_hours": 12.0,
+            "24_hours": 24.0
+        }
+        
+        return interval_map.get(interval_str, 10/60)  # Default to 10 minutes
+    
+    def _check_for_fainting(self):
+        """Check if the character should faint and handle fainting"""
+        try:
+            from .conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            
+            # Check if character should faint
+            should_faint = conditions_manager.check_for_fainting(self.player_state)
+            
+            print(f"  Fainting check: should_faint={should_faint}")
+            
+            if should_faint:
+                # Apply fainting
+                faint_result = conditions_manager.apply_fainting(self.player_state)
+                
+                # Force the character to rest for the fainting duration
+                faint_hours = faint_result["duration_minutes"] / 60.0
+                
+                # Apply the unconscious time (unconscious activity provides some fatigue recovery)
+                self.player_state.advance_time(faint_hours, "unconscious")
+                
+                # Notify callbacks about fainting
+                for callback in self.on_status_change:
+                    callback(faint_result["message"])
+                    callback(f"Recovered some fatigue while unconscious, but underlying conditions persist")
+                
+                return faint_result
+        
+        except (ImportError, Exception) as e:
+            # Conditions system not available
+            pass
+        
+        return None
     
     def _get_activity_results(self, activity_name: str, duration: float, **kwargs) -> Dict[str, any]:
         """Get specific results for different activities"""
@@ -457,7 +635,7 @@ class TimeSystem:
         available = []
         
         for name, activity in self.activity_definitions.items():
-            can_perform, reason = self._can_perform_activity(activity, activity.base_duration_hours)
+            warnings = self._get_activity_warnings(activity, activity.base_duration_hours)
             
             available.append({
                 "name": name,
@@ -465,8 +643,8 @@ class TimeSystem:
                 "description": activity.description,
                 "duration": self._format_duration(activity.base_duration_hours),
                 "exertion": activity.exertion_level,
-                "available": can_perform,
-                "reason": reason if not can_perform else ""
+                "available": True,  # All activities are always available
+                "warnings": warnings
             })
         
         return available

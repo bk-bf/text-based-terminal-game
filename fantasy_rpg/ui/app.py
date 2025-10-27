@@ -293,31 +293,50 @@ class FantasyRPGApp(App):
         self.log_message("")
     
     # Character actions
-    def heal_character(self, amount: int):
+    def heal_character(self, amount: int, source: str = "unknown"):
         """Heal character by amount"""
         if self.character:
             old_hp = self.character.hp
             self.character.hp = min(self.character.hp + amount, self.character.max_hp)
             healed = self.character.hp - old_hp
             if healed > 0:
-                self.log_message(f"[+] {self.character.name} healed {healed} HP ({old_hp} -> {self.character.hp})")
+                # Use action logger for consistent healing logging
+                from .action_logger import get_action_logger
+                action_logger = get_action_logger()
+                action_logger.log_healing_received(
+                    heal_amount=healed,
+                    source=source,
+                    old_hp=old_hp,
+                    new_hp=self.character.hp
+                )
+                
                 if self.character.hp == self.character.max_hp:
-                    self.log_message("You are now at full health!")
+                    self.log_message("💚 You are now at full health!")
             else:
                 self.log_message("Already at full health.")
             self.log_message("")  # Add separator
             self.character_panel.refresh_display()
     
-    def damage_character(self, amount: int):
+    def damage_character(self, amount: int, source: str = "unknown"):
         """Damage character by amount"""
         if self.character:
             old_hp = self.character.hp
             self.character.hp = max(0, self.character.hp - amount)
             damage_taken = old_hp - self.character.hp
             if damage_taken > 0:
-                self.log_combat_message(f"{self.character.name} takes {damage_taken} damage ({old_hp} -> {self.character.hp})")
+                # Use action logger for consistent damage logging
+                from .action_logger import get_action_logger
+                action_logger = get_action_logger()
+                action_logger.log_damage_taken(
+                    damage_amount=damage_taken,
+                    damage_type="generic",
+                    source=source,
+                    old_hp=old_hp,
+                    new_hp=self.character.hp
+                )
+                
                 if self.character.hp == 0:
-                    self.log_combat_message("[X] You have fallen unconscious!")
+                    self.log_combat_message("💀 You have fallen unconscious!")
                 elif self.character.hp <= self.character.max_hp * 0.25:
                     self.log_message("[!] You are badly wounded!")
             self.log_message("")  # Add separator
