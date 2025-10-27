@@ -21,6 +21,7 @@ class Hex:
     
     Each hex contains coordinates, biome information, elevation,
     and optional location/features for detailed world generation.
+    Now supports micro-level locations for detailed exploration.
     """
     coords: Tuple[int, int]  # (x, y) coordinates in the world grid
     biome: str  # Biome type (e.g., 'forest', 'plains', 'mountains')
@@ -28,14 +29,20 @@ class Hex:
     location: Optional[Dict[str, Any]] = None  # Special location (town, dungeon, etc.)
     features: Optional[List[str]] = None  # Natural features (river, cave, etc.)
     
+    # Location exploration support
+    locations: Optional[List[Any]] = None  # List of Location objects for detailed exploration
+    has_been_explored: bool = False  # Track if player has explored locations
+    
     def __post_init__(self):
         """Initialize empty features list if not provided."""
         if self.features is None:
             self.features = []
+        if self.locations is None:
+            self.locations = []
     
     def has_location(self) -> bool:
         """Check if this hex has a special location."""
-        return self.location is not None
+        return self.location is not None or len(self.locations) > 0
     
     def has_feature(self, feature_name: str) -> bool:
         """Check if this hex has a specific feature."""
@@ -48,11 +55,23 @@ class Hex:
         if feature_name not in self.features:
             self.features.append(feature_name)
     
+    def add_location(self, location):
+        """Add a location to this hex."""
+        if self.locations is None:
+            self.locations = []
+        self.locations.append(location)
+    
+    def get_explorable_locations(self) -> List[Any]:
+        """Get all locations that can be explored in this hex."""
+        return self.locations or []
+    
     def get_description(self) -> str:
         """Get a basic description of this hex."""
         desc = f"{self.biome.title()} hex at {self.coords}"
         if self.location:
             desc += f" with {self.location.get('name', 'special location')}"
+        if self.locations:
+            desc += f" ({len(self.locations)} explorable locations)"
         if self.features:
             desc += f" (features: {', '.join(self.features)})"
         return desc
@@ -134,27 +153,43 @@ def generate_world_with_terrain(seed: int, size: Tuple[int, int]) -> World:
     climate_system = ClimateSystem(height)
     climate_zones = climate_system.generate_climate_zones(size, heightmap)
     
-    # Generate terrain types from elevation
-    terrain_types = terrain_gen.generate_terrain_types(heightmap)
+    # Use existing biome system for realistic biome assignment
+    print("Generating biomes using enhanced biome system...")
+    try:
+        from .biomes import BiomeClassifier
+    except ImportError:
+        from biomes import BiomeClassifier
     
-    # Convert terrain types to biomes (simple mapping for now)
-    # TODO: This will be enhanced to use climate + terrain for realistic biomes
-    biomes = {}
-    for coords, terrain_type in terrain_types.items():
-        if terrain_type == "water":
-            biomes[coords] = "ocean"
-        elif terrain_type == "coastal":
-            biomes[coords] = "coastal"
-        elif terrain_type == "plains":
-            biomes[coords] = "grassland"
-        elif terrain_type == "hills":
-            biomes[coords] = "forest"
-        elif terrain_type == "mountains":
-            biomes[coords] = "mountains"
-        elif terrain_type == "peaks":
-            biomes[coords] = "alpine"
-        else:
-            biomes[coords] = "plains"  # fallback
+    # Initialize biome classifier with enhanced biomes
+    biome_classifier = BiomeClassifier(use_enhanced_biomes=True)
+    
+    # Generate precipitation map (simplified for now)
+    precipitation_map = {}
+    for coords in heightmap.keys():
+        climate_zone = climate_zones[coords]
+        # Estimate precipitation based on climate zone and elevation
+        base_precip = 30.0  # inches per year
+        if climate_zone.zone_type == "tropical":
+            base_precip = 60.0
+        elif climate_zone.zone_type == "arctic":
+            base_precip = 10.0
+        elif climate_zone.zone_type == "temperate":
+            base_precip = 40.0
+        
+        # Modify by elevation (orographic precipitation)
+        elevation_factor = heightmap[coords]
+        precip_modifier = 1.0 + (elevation_factor * 0.5)
+        annual_precip = base_precip * precip_modifier
+        
+        precipitation_map[coords] = {
+            "annual_precipitation": annual_precip,
+            "seasonal_variation": 0.3
+        }
+    
+    # Generate biome map using the enhanced biome system
+    biomes = biome_classifier.generate_biome_map(
+        size, climate_zones, precipitation_map, heightmap
+    )
     
     # Create world with generated data
     world = World(

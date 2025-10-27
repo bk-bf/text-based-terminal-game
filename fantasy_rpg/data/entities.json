@@ -1,0 +1,385 @@
+{
+    "entities": {
+        "giant_rat": {
+            "name": "Giant Rat",
+            "description": "A rat the size of a small dog, with matted fur and glowing red eyes. It hisses menacingly.",
+            "hostile": true,
+            "pools": [
+                "ruins",
+                "underground",
+                "vermin",
+                "common"
+            ],
+            "spawn_weight": 30,
+            "stats": {
+                "hp": 7,
+                "ac": 12,
+                "speed": 30,
+                "str": 7,
+                "dex": 15,
+                "con": 11,
+                "int": 2,
+                "wis": 10,
+                "cha": 4
+            },
+            "abilities": [
+                "bite",
+                "disease_carrier"
+            ],
+            "challenge_rating": 0.125,
+            "treasure": [
+                "small_bones",
+                "rat_pelt"
+            ]
+        },
+        "skeleton_warrior": {
+            "name": "Skeleton Warrior",
+            "description": "The animated bones of a long-dead warrior, still wearing tattered armor and wielding ancient weapons.",
+            "hostile": true,
+            "pools": [
+                "ruins",
+                "undead",
+                "ancient",
+                "rare"
+            ],
+            "spawn_weight": 10,
+            "stats": {
+                "hp": 13,
+                "ac": 13,
+                "speed": 30,
+                "str": 10,
+                "dex": 14,
+                "con": 15,
+                "int": 6,
+                "wis": 8,
+                "cha": 5
+            },
+            "abilities": [
+                "undead_resilience",
+                "weapon_attack"
+            ],
+            "challenge_rating": 0.25,
+            "treasure": [
+                "bone_fragments",
+                "rusty_armor",
+                "ancient_weapon"
+            ]
+        },
+        "goblin_scout": {
+            "name": "Goblin Scout",
+            "description": "A small, green-skinned humanoid with sharp teeth and cunning eyes. It carries crude weapons.",
+            "hostile": true,
+            "pools": [
+                "ruins",
+                "wilderness",
+                "humanoid",
+                "common"
+            ],
+            "spawn_weight": 50,
+            "stats": {
+                "hp": 7,
+                "ac": 15,
+                "speed": 30,
+                "str": 8,
+                "dex": 14,
+                "con": 10,
+                "int": 10,
+                "wis": 8,
+                "cha": 8
+            },
+            "abilities": [
+                "nimble_escape",
+                "scimitar_attack",
+                "shortbow_attack"
+            ],
+            "challenge_rating": 0.25,
+            "treasure": [
+                "goblin_coins",
+                "crude_weapons",
+                "leather_scraps"
+            ]
+        },
+        "wight": {
+            "name": "Wight",
+            "description": "A powerful undead creature with glowing eyes and an aura of cold death. Ancient armor clings to its skeletal frame.",
+            "hostile": true,
+            "pools": [
+                "ruins",
+                "undead",
+                "ancient",
+                "boss",
+                "very_rare"
+            ],
+            "spawn_weight": 5,
+            "stats": {
+                "hp": 45,
+                "ac": 14,
+                "speed": 30,
+                "str": 15,
+                "dex": 14,
+                "con": 16,
+                "int": 10,
+                "wis": 13,
+                "cha": 15
+            },
+            "abilities": [
+                "life_drain",
+                "longsword_attack",
+                "longbow_attack",
+                "undead_resilience"
+            ],
+            "challenge_rating": 3,
+            "treasure": [
+                "ancient_armor",
+                "masterwork_weapons",
+                "soul_gems",
+                "gold_coins"
+            ]
+        },
+        "vault_guardian": {
+            "name": "Vault Guardian",
+            "description": "A magical construct created to protect ancient treasures. Its stone body is inscribed with protective runes.",
+            "hostile": true,
+            "pools": [
+                "treasure",
+                "construct",
+                "guardian",
+                "boss",
+                "rare"
+            ],
+            "spawn_weight": 80,
+            "stats": {
+                "hp": 60,
+                "ac": 17,
+                "speed": 20,
+                "str": 18,
+                "dex": 9,
+                "con": 18,
+                "int": 6,
+                "wis": 10,
+                "cha": 5
+            },
+            "abilities": [
+                "slam_attack",
+                "magic_resistance",
+                "construct_resilience"
+            ],
+            "challenge_rating": 4,
+            "treasure": [
+                "guardian_core",
+                "enchanted_materials",
+                "protective_runes"
+            ]
+        },
+        "deer": {
+            "name": "Deer",
+            "description": "A graceful woodland creature with alert eyes and a twitching tail. It seems ready to bolt at any moment.",
+            "hostile": false,
+            "pools": [
+                "forest",
+                "wilderness",
+                "animals",
+                "peaceful",
+                "common"
+            ],
+            "spawn_weight": 30,
+            "stats": {
+                "hp": 4,
+                "ac": 13,
+                "speed": 50,
+                "str": 11,
+                "dex": 16,
+                "con": 11,
+                "int": 2,
+                "wis": 14,
+                "cha": 5
+            },
+            "abilities": [
+                "keen_senses",
+                "fleet_footed"
+            ],
+            "challenge_rating": 0,
+            "treasure": [
+                "venison",
+                "deer_hide",
+                "antlers"
+            ]
+        },
+        "wolf": {
+            "name": "Wolf",
+            "description": "A lean predator with sharp teeth and intelligent eyes. It watches you warily, ready to attack or flee.",
+            "hostile": true,
+            "pools": [
+                "forest",
+                "wilderness",
+                "predators",
+                "pack_animals"
+            ],
+            "spawn_weight": 10,
+            "stats": {
+                "hp": 11,
+                "ac": 13,
+                "speed": 40,
+                "str": 12,
+                "dex": 15,
+                "con": 12,
+                "int": 3,
+                "wis": 12,
+                "cha": 6
+            },
+            "abilities": [
+                "pack_tactics",
+                "keen_hearing",
+                "bite_attack"
+            ],
+            "challenge_rating": 0.25,
+            "treasure": [
+                "wolf_pelt",
+                "wolf_teeth",
+                "wolf_meat"
+            ]
+        },
+        "hermit_npc": {
+            "name": "Forest Hermit",
+            "description": "An old man with a long beard and weathered clothes. He lives alone in the wilderness and knows its secrets.",
+            "hostile": false,
+            "pools": [
+                "forest",
+                "npc",
+                "wise",
+                "rare"
+            ],
+            "spawn_weight": 20,
+            "stats": {
+                "hp": 27,
+                "ac": 11,
+                "speed": 30,
+                "str": 10,
+                "dex": 12,
+                "con": 13,
+                "int": 15,
+                "wis": 17,
+                "cha": 11
+            },
+            "abilities": [
+                "herbalism",
+                "survival_expert",
+                "nature_lore"
+            ],
+            "challenge_rating": 0,
+            "dialogue": {
+                "greeting": "Ah, a traveler! It's been months since I've seen another soul.",
+                "trade": "I have herbs and knowledge to share, if you're interested.",
+                "quest": "The wolves have been acting strange lately. Something dark stirs in the deep woods."
+            },
+            "treasure": [
+                "medicinal_herbs",
+                "survival_gear",
+                "nature_knowledge"
+            ]
+        },
+        "wild_dog": {
+            "name": "Wild Dog",
+            "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
+            "hostile": true,
+            "pools": [
+                "plains",
+                "abandoned",
+                "feral",
+                "common"
+            ],
+            "spawn_weight": 40,
+            "stats": {
+                "hp": 5,
+                "ac": 12,
+                "speed": 40,
+                "str": 10,
+                "dex": 14,
+                "con": 10,
+                "int": 3,
+                "wis": 12,
+                "cha": 6
+            },
+            "abilities": [
+                "bite_attack",
+                "pack_tactics"
+            ],
+            "challenge_rating": 0.125,
+            "treasure": [
+                "dog_meat",
+                "scraps"
+            ]
+        },
+        "bat_swarm": {
+            "name": "Swarm of Bats",
+            "description": "A writhing mass of small bats that fills the air with leathery wings and high-pitched squeaks.",
+            "hostile": false,
+            "pools": [
+                "cave",
+                "underground",
+                "swarm",
+                "common"
+            ],
+            "spawn_weight": 70,
+            "stats": {
+                "hp": 22,
+                "ac": 12,
+                "speed": 0,
+                "fly_speed": 30,
+                "str": 5,
+                "dex": 15,
+                "con": 10,
+                "int": 2,
+                "wis": 12,
+                "cha": 4
+            },
+            "abilities": [
+                "swarm",
+                "echolocation",
+                "flyby"
+            ],
+            "challenge_rating": 0.25,
+            "treasure": [
+                "bat_guano",
+                "cave_insects"
+            ]
+        },
+        "cave_bear": {
+            "name": "Cave Bear",
+            "description": "A massive bear that has made its home in the cave system. Its fur is thick and its claws are razor-sharp.",
+            "hostile": true,
+            "pools": [
+                "cave",
+                "predators",
+                "large",
+                "dangerous",
+                "rare"
+            ],
+            "spawn_weight": 20,
+            "stats": {
+                "hp": 42,
+                "ac": 11,
+                "speed": 40,
+                "str": 20,
+                "dex": 10,
+                "con": 16,
+                "int": 2,
+                "wis": 13,
+                "cha": 7
+            },
+            "abilities": [
+                "multiattack",
+                "claw_attack",
+                "bite_attack",
+                "keen_smell"
+            ],
+            "challenge_rating": 2,
+            "treasure": [
+                "bear_pelt",
+                "bear_meat",
+                "bear_claws",
+                "cave_treasures"
+            ]
+        }
+    }
+}

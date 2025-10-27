@@ -1,0 +1,334 @@
+{
+    "objects": {
+        "stone_altar": {
+            "name": "Stone Altar",
+            "description": "An ancient stone altar covered in moss and weathered by time. Faded runes are carved into its surface.",
+            "interactive": true,
+            "pools": [
+                "ruins",
+                "religious",
+                "ancient"
+            ],
+            "spawn_weight": 30,
+            "properties": {
+                "can_examine": true,
+                "examination_text": "The runes appear to be prayers to forgotten gods.",
+                "provides_shelter": false
+            }
+        },
+        "rubble_pile": {
+            "name": "Rubble Pile",
+            "description": "A heap of broken stones and debris from collapsed walls.",
+            "interactive": false,
+            "pools": [
+                "ruins",
+                "destroyed",
+                "common"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "blocks_movement": false,
+                "provides_cover": "partial"
+            }
+        },
+        "overgrown_vines": {
+            "name": "Overgrown Vines",
+            "description": "Thick vines that have grown over the ancient stonework, reclaiming the structure for nature.",
+            "interactive": true,
+            "pools": [
+                "ruins",
+                "forest",
+                "overgrown",
+                "common"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "can_cut": true,
+                "blocks_movement": false,
+                "provides_concealment": true
+            }
+        },
+        "broken_column": {
+            "name": "Broken Column",
+            "description": "A once-grand stone column, now cracked and partially collapsed.",
+            "interactive": false,
+            "pools": [
+                "ruins",
+                "ancient",
+                "architectural"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "provides_cover": "half",
+                "blocks_movement": false
+            }
+        },
+        "throne_remnant": {
+            "name": "Throne Remnant",
+            "description": "The remains of what was once a magnificent throne, now broken and covered in dust.",
+            "interactive": true,
+            "pools": [
+                "ruins",
+                "royal",
+                "rare"
+            ],
+            "spawn_weight": 20,
+            "properties": {
+                "can_examine": true,
+                "examination_text": "This throne once seated a powerful ruler. Jewel settings remain empty.",
+                "historical_significance": true
+            }
+        },
+        "locked_door": {
+            "name": "Locked Door",
+            "description": "A heavy stone door sealed with ancient locks and magical wards.",
+            "interactive": true,
+            "pools": [
+                "ruins",
+                "security",
+                "rare"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "blocks_movement": true,
+                "can_unlock": true,
+                "dc_lockpick": 20,
+                "dc_strength": 25,
+                "magical_lock": true
+            }
+        },
+        "treasure_chest": {
+            "name": "Treasure Chest",
+            "description": "An ornate chest bound with iron and secured with complex locks.",
+            "interactive": true,
+            "pools": [
+                "treasure",
+                "rare",
+                "valuable"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "can_unlock": true,
+                "dc_lockpick": 15,
+                "contains_treasure": true,
+                "trapped": true,
+                "trap_dc": 18
+            }
+        },
+        "berry_bush": {
+            "name": "Berry Bush",
+            "description": "A wild bush heavy with ripe berries. The fruit looks safe to eat.",
+            "interactive": true,
+            "pools": [
+                "forest",
+                "wilderness",
+                "food",
+                "common"
+            ],
+            "spawn_weight": 60,
+            "properties": {
+                "can_forage": true,
+                "food_value": 2,
+                "seasonal": true,
+                "renewable": true
+            }
+        },
+        "fallen_log": {
+            "name": "Fallen Log",
+            "description": "A large tree trunk that has fallen across the path, now covered in moss.",
+            "interactive": true,
+            "pools": [
+                "forest",
+                "wilderness",
+                "common"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "can_sit": true,
+                "provides_cover": "partial",
+                "can_climb": true,
+                "blocks_movement": false
+            }
+        },
+        "fireplace": {
+            "name": "Stone Fireplace",
+            "description": "A well-built stone fireplace with a chimney. Cold ashes remain from old fires.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "shelter",
+                "warmth"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "can_light_fire": true,
+                "provides_warmth": true,
+                "provides_light": true,
+                "fuel_required": true
+            }
+        },
+        "bed": {
+            "name": "Simple Bed",
+            "description": "A basic wooden bed frame with a straw mattress. It looks reasonably comfortable.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "furniture",
+                "rest"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "can_sleep": true,
+                "rest_bonus": 2,
+                "comfort_level": "basic"
+            }
+        },
+        "table": {
+            "name": "Wooden Table",
+            "description": "A sturdy wooden table scarred by years of use. Various items could be placed on it.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "furniture",
+                "common"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "can_place_items": true,
+                "storage_slots": 6,
+                "provides_work_surface": true
+            }
+        },
+        "chopping_block": {
+            "name": "Chopping Block",
+            "description": "A thick wooden stump used for splitting firewood. An axe is embedded in its surface.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "tools",
+                "work"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "can_chop_wood": true,
+                "tool_required": false,
+                "provides_axe": true
+            }
+        },
+        "woodpile": {
+            "name": "Woodpile",
+            "description": "A neat stack of cut firewood, ready for use.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "fuel",
+                "common"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "can_take_wood": true,
+                "fuel_value": 10,
+                "renewable": false
+            }
+        },
+        "broken_fence": {
+            "name": "Broken Fence",
+            "description": "Sections of wooden fencing that have fallen into disrepair.",
+            "interactive": false,
+            "pools": [
+                "plains",
+                "abandoned",
+                "common"
+            ],
+            "spawn_weight": 100,
+            "properties": {
+                "blocks_movement": false,
+                "provides_cover": "partial",
+                "can_repair": true
+            }
+        },
+        "old_well": {
+            "name": "Old Well",
+            "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
+            "interactive": true,
+            "pools": [
+                "plains",
+                "structure",
+                "water"
+            ],
+            "spawn_weight": 60,
+            "properties": {
+                "provides_water": true,
+                "water_quality": "good",
+                "requires_bucket": false,
+                "depth": "deep"
+            }
+        },
+        "old_furniture": {
+            "name": "Old Furniture",
+            "description": "Various pieces of household furniture covered in dust and cobwebs.",
+            "interactive": true,
+            "pools": [
+                "abandoned",
+                "furniture",
+                "common"
+            ],
+            "spawn_weight": 90,
+            "properties": {
+                "can_search": true,
+                "search_dc": 12,
+                "may_contain_items": true
+            }
+        },
+        "root_cellar": {
+            "name": "Root Cellar",
+            "description": "A small underground storage area accessed by a wooden trapdoor.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "storage",
+                "rare"
+            ],
+            "spawn_weight": 30,
+            "properties": {
+                "can_enter": true,
+                "storage_space": "large",
+                "preserves_food": true,
+                "hidden": true
+            }
+        },
+        "rock_formation": {
+            "name": "Rock Formation",
+            "description": "Natural stone formations jutting from the cave walls and floor.",
+            "interactive": false,
+            "pools": [
+                "cave",
+                "natural",
+                "common"
+            ],
+            "spawn_weight": 80,
+            "properties": {
+                "provides_cover": "partial",
+                "blocks_movement": false,
+                "climbable": true
+            }
+        },
+        "cave_pool": {
+            "name": "Underground Pool",
+            "description": "A clear pool of water fed by underground springs. The water looks fresh and clean.",
+            "interactive": true,
+            "pools": [
+                "cave",
+                "water",
+                "natural"
+            ],
+            "spawn_weight": 40,
+            "properties": {
+                "provides_water": true,
+                "water_quality": "excellent",
+                "depth": "shallow",
+                "temperature": "cool"
+            }
+        }
+    }
+}

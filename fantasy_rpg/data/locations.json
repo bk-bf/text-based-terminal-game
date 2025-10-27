@@ -1,0 +1,326 @@
+{
+    "locations": {
+        "entrance_courtyard": {
+            "name": "Entrance Courtyard",
+            "description": "Crumbling stone walls surround an overgrown courtyard. Moss-covered statues line the perimeter.",
+            "size": "large",
+            "terrain": "open",
+            "type": "ruins",
+            "exit_flag": true,
+            "spawn_weight": 80,
+            "content_pools": {
+                "objects": [
+                    "ruins",
+                    "religious",
+                    "ancient",
+                    "overgrown"
+                ],
+                "entities": [
+                    "ruins",
+                    "vermin",
+                    "undead",
+                    "common"
+                ]
+            }
+        },
+        "ruins_courtyard": {
+            "name": "Ruined Courtyard",
+            "description": "A vast hall with broken columns. Shadows dance in the dim light filtering through collapsed sections of roof.",
+            "size": "vast",
+            "terrain": "cluttered",
+            "type": "ruins",
+            "exit_flag": false,
+            "spawn_weight": 60,
+            "content_pools": {
+                "objects": [
+                    "ruins",
+                    "architectural",
+                    "royal"
+                ],
+                "entities": [
+                    "ruins",
+                    "humanoid",
+                    "undead",
+                    "ancient"
+                ]
+            }
+        },
+        "treasure_vault": {
+            "name": "Hidden Vault",
+            "description": "A secret chamber filled with ancient treasures and guarded by magic.",
+            "size": "small",
+            "terrain": "open",
+            "type": "ruins",
+            "exit_flag": false,
+            "spawn_weight": 10,
+            "content_pools": {
+                "objects": [
+                    "treasure",
+                    "security",
+                    "valuable"
+                ],
+                "entities": [
+                    "treasure",
+                    "guardian",
+                    "boss",
+                    "construct"
+                ]
+            }
+        },
+        "sealed_entrance": {
+            "name": "Sealed Entrance",
+            "description": "A heavy stone door with ancient locks. Runes warn of dire consequences.",
+            "size": "small",
+            "terrain": "open",
+            "type": "ruins",
+            "exit_flag": true,
+            "spawn_weight": 30,
+            "content_pools": {
+                "objects": [
+                    "security",
+                    "ruins"
+                ],
+                "entities": []
+            }
+        },
+        "forest_clearing": {
+            "name": "Forest Clearing",
+            "description": "Sunlight streams through a break in the canopy. Wildflowers dot the grass.",
+            "size": "large",
+            "terrain": "open",
+            "type": "forest",
+            "exit_flag": true,
+            "spawn_weight": 100,
+            "content_pools": {
+                "objects": [
+                    "forest",
+                    "wilderness",
+                    "food",
+                    "common"
+                ],
+                "entities": [
+                    "forest",
+                    "wilderness",
+                    "animals",
+                    "peaceful"
+                ]
+            }
+        },
+        "dense_thicket": {
+            "name": "Dense Thicket",
+            "description": "A tangle of bushes and undergrowth that blocks easy passage.",
+            "size": "small",
+            "terrain": "difficult",
+            "type": "forest",
+            "exit_flag": false,
+            "spawn_weight": 40,
+            "content_pools": {
+                "objects": [
+                    "forest",
+                    "overgrown",
+                    "common"
+                ],
+                "entities": [
+                    "forest",
+                    "predators"
+                ]
+            }
+        },
+        "cabin_exterior": {
+            "name": "Outside Cabin",
+            "description": "A weathered wooden cabin sits among the trees. The door hangs ajar.",
+            "size": "small",
+            "terrain": "open",
+            "type": "forest",
+            "exit_flag": true,
+            "spawn_weight": 20,
+            "content_pools": {
+                "objects": [
+                    "structure",
+                    "tools",
+                    "work",
+                    "fuel"
+                ],
+                "entities": []
+            }
+        },
+        "cabin_interior": {
+            "name": "Inside Cabin",
+            "description": "A simple one-room dwelling. A fireplace dominates one wall.",
+            "size": "small",
+            "terrain": "cluttered",
+            "type": "forest",
+            "exit_flag": false,
+            "spawn_weight": 15,
+            "content_pools": {
+                "objects": [
+                    "structure",
+                    "furniture",
+                    "warmth",
+                    "rest"
+                ],
+                "entities": [
+                    "forest",
+                    "npc",
+                    "wise"
+                ]
+            }
+        },
+        "farmyard": {
+            "name": "Farmyard",
+            "description": "Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.",
+            "size": "large",
+            "terrain": "open",
+            "type": "plains",
+            "exit_flag": true,
+            "spawn_weight": 70,
+            "content_pools": {
+                "objects": [
+                    "plains",
+                    "abandoned",
+                    "structure",
+                    "water"
+                ],
+                "entities": [
+                    "plains",
+                    "abandoned",
+                    "feral"
+                ]
+            }
+        },
+        "farmhouse_interior": {
+            "name": "Abandoned Farmhouse",
+            "description": "The interior is dusty and abandoned. Furniture sits covered in cobwebs.",
+            "size": "medium",
+            "terrain": "cluttered",
+            "type": "plains",
+            "exit_flag": false,
+            "spawn_weight": 50,
+            "content_pools": {
+                "objects": [
+                    "abandoned",
+                    "furniture",
+                    "storage"
+                ],
+                "entities": []
+            }
+        },
+        "old_barn": {
+            "name": "Collapsed Barn",
+            "description": "The roof has caved in and hay lies rotting on the ground.",
+            "size": "large",
+            "terrain": "difficult",
+            "type": "plains",
+            "exit_flag": false,
+            "spawn_weight": 30,
+            "content_pools": {
+                "objects": [
+                    "abandoned",
+                    "structure"
+                ],
+                "entities": [
+                    "plains",
+                    "feral",
+                    "vermin"
+                ]
+            }
+        },
+        "cave_entrance": {
+            "name": "Cave Entrance",
+            "description": "A natural opening in the rock face. Cool air flows from within.",
+            "size": "medium",
+            "terrain": "difficult",
+            "type": "cave",
+            "exit_flag": true,
+            "spawn_weight": 90,
+            "content_pools": {
+                "objects": [
+                    "cave",
+                    "natural",
+                    "water"
+                ],
+                "entities": [
+                    "cave",
+                    "underground",
+                    "swarm"
+                ]
+            }
+        },
+        "deep_chamber": {
+            "name": "Deep Chamber",
+            "description": "A large underground chamber with stalactites hanging from the ceiling.",
+            "size": "large",
+            "terrain": "difficult",
+            "type": "cave",
+            "exit_flag": false,
+            "spawn_weight": 40,
+            "content_pools": {
+                "objects": [
+                    "cave",
+                    "natural",
+                    "water"
+                ],
+                "entities": [
+                    "cave",
+                    "predators",
+                    "large",
+                    "underground"
+                ]
+            }
+        },
+        "crystal_cavern": {
+            "name": "Crystal Cavern",
+            "description": "Glittering crystals line the walls of this beautiful underground chamber.",
+            "size": "medium",
+            "terrain": "open",
+            "type": "cave",
+            "exit_flag": false,
+            "spawn_weight": 15,
+            "content_pools": {
+                "objects": [
+                    "cave",
+                    "natural",
+                    "treasure"
+                ],
+                "entities": [
+                    "cave",
+                    "guardian"
+                ]
+            }
+        },
+        "underground_lake": {
+            "name": "Underground Lake",
+            "description": "A vast underground lake with crystal-clear water fed by hidden springs.",
+            "size": "vast",
+            "terrain": "open",
+            "type": "cave",
+            "exit_flag": true,
+            "spawn_weight": 20,
+            "content_pools": {
+                "objects": [
+                    "cave",
+                    "water",
+                    "natural"
+                ],
+                "entities": [
+                    "cave",
+                    "underground"
+                ]
+            }
+        }
+    },
+    "type_mapping": {
+        "temperate_forest": "forest",
+        "boreal_forest": "forest",
+        "dense_forest": "forest",
+        "alpine_mountains": "cave",
+        "temperate_mountains": "cave",
+        "ancient_ruins": "ruins",
+        "temperate_grassland": "plains",
+        "plains": "plains",
+        "cave_entrance": "cave",
+        "hills": "forest",
+        "mountains": "cave",
+        "default": "forest"
+    }
+}
