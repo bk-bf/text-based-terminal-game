@@ -117,7 +117,7 @@ This spec implements the foundation layer for the Fantasy RPG system, establishi
 
 ---
 
-## Milestone 1.5: Save System (Days 15-16)
+## Milestone 1.5: Save System (Days 15-16)y
 
 ### **Milestone 1.5.1: Database Schema (Day 15)**
 - [ ] Design SQLite schema for game saves (5 tables minimum)

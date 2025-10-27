@@ -7,7 +7,12 @@ This creates realistic ecosystems that match real-world climate patterns.
 
 from dataclasses import dataclass
 from typing import Dict, Tuple, List, Optional
-from climate import ClimateZone
+try:
+    from .world_coordinator import WorldCoordinator
+    from .climate import ClimateZone
+except ImportError:
+    from world_coordinator import WorldCoordinator
+    from climate import ClimateZone
 try:
     from .enhanced_biomes import EnhancedBiomeSystem, EnhancedBiome
 except ImportError:

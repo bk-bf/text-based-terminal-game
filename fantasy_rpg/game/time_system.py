@@ -472,7 +472,7 @@ class TimeSystem:
                                 
                                 # Log the damage using action logger
                                 try:
-                                    from ..ui.action_logger import get_action_logger
+                                    from ..actions.action_logger import get_action_logger
                                     action_logger = get_action_logger()
                                     action_logger.log_damage_taken(
                                         damage_amount=total_damage,

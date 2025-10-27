@@ -1,8 +1,11 @@
 """
 Fantasy RPG - Main Application
 
-Main app class with input handling and game logic coordination.
+Main app class with visual presentation and UI coordination.
+All input processing is handled by the InputController.
 """
+
+from typing import Dict, Any
 
 try:
     from textual.app import App
@@ -13,12 +16,12 @@ except ImportError:
 
 try:
     from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
-    from .action_handler import ActionHandler
-    from .action_logger import get_action_logger
+    from ..actions.input_controller import InputController
+    from ..actions.action_logger import get_action_logger
 except ImportError:
     from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
-    from action_handler import ActionHandler
-    from action_logger import get_action_logger
+    from fantasy_rpg.actions.input_controller import InputController
+    from fantasy_rpg.actions.action_logger import get_action_logger
 
 
 class FantasyRPGApp(App):
@@ -189,7 +192,8 @@ class FantasyRPGApp(App):
         self.poi_panel = None
         self.player_state = None
         self.time_system = None
-        self.action_handler = None
+        self.input_controller = None
+        self.world_coordinator = None
     
     def on_mount(self) -> None:
         """Initialize the app"""
@@ -201,96 +205,92 @@ class FantasyRPGApp(App):
         
         self.push_screen(main_screen)
         
-        # Initialize action handler
-        self.action_handler = ActionHandler(self)
-        
-        # Initialize survival system after screen is mounted
+        # Initialize survival system first, then action handler
         self.call_after_refresh(self._initialize_survival_system)
     
     def process_command(self, command: str):
-        """Process a typed command"""
-        parts = command.split()
-        cmd = parts[0] if parts else ""
+        """Process a typed command through the input controller"""
+        if not self.input_controller:
+            self.log_message("Input system not initialized.")
+            return
         
-        if cmd == "help":
-            self.action_handler.handle_help()
-        elif cmd in ["n", "north"]:
-            self.action_handler.handle_movement("north")
-        elif cmd in ["s", "south"]:
-            self.action_handler.handle_movement("south")
-        elif cmd in ["e", "east"]:
-            self.action_handler.handle_movement("east")
-        elif cmd in ["w", "west"]:
-            self.action_handler.handle_movement("west")
-        elif cmd in ["heal", "h"]:
-            self.log_command("heal")
+        # Process input through the input controller
+        response = self.input_controller.process_input(command)
+        
+        # Handle the response based on type
+        self._handle_input_response(response)
+    
+    def _handle_input_response(self, response: Dict[str, Any]):
+        """Handle response from input controller"""
+        response_type = response.get('type', 'unknown')
+        
+        if response_type == 'error':
+            self.log_message(response.get('message', 'Unknown error'))
+            
+        elif response_type == 'show_modal':
+            modal_type = response.get('modal_type')
+            if modal_type == 'inventory':
+                self.push_screen(InventoryScreen(self.character))
+            elif modal_type == 'character':
+                self.push_screen(CharacterScreen(self.character))
+                
+        elif response_type == 'show_help':
+            self.show_help()
+            
+        elif response_type == 'location_update':
+            hex_id = response.get('hex_id')
+            location_name = response.get('location_name')
+            elevation = response.get('elevation')
+            if hex_id and location_name:
+                self.update_location(hex_id, location_name, elevation)
+                
+        elif response_type == 'heal_character':
+            amount = response.get('amount', 0)
+            source = response.get('source', 'unknown')
+            if amount > 0:
+                self.heal_character(amount, source)
+                
+        elif response_type == 'debug_heal':
+            command = response.get('command', 'heal')
+            self.log_command(command)
             self.heal_character(10)
-        elif cmd in ["damage", "hurt"]:
-            self.log_command("take damage")
+            
+        elif response_type == 'debug_damage':
+            command = response.get('command', 'damage')
+            self.log_command(command)
             self.damage_character(5)
-        elif cmd in ["xp", "experience"]:
-            self.log_command("gain experience")
+            
+        elif response_type == 'debug_xp':
+            command = response.get('command', 'xp')
+            self.log_command(command)
             self.add_experience(100)
-        elif cmd in ["inventory", "i"]:
-            self.action_handler.handle_inventory()
-        elif cmd in ["character", "c", "sheet"]:
-            self.action_handler.handle_character()
-        elif cmd in ["map", "m"]:
-            self.action_handler.handle_map()
-        elif cmd in ["rest", "r"]:
-            self.action_handler.handle_rest()
-        elif cmd in ["look", "l", "examine"]:
-            self.action_handler.handle_look()
-        elif cmd in ["eat"]:
-            self.action_handler.handle_eat()
-        elif cmd in ["drink"]:
-            self.action_handler.handle_drink()
-        elif cmd in ["sleep"]:
-            self.action_handler.handle_sleep()
-        elif cmd in ["survival", "status"]:
-            self.action_handler.handle_survival_status()
-        elif cmd in ["save"]:
-            self.save_log()
-        elif cmd in ["clear"]:
+            
+        elif response_type == 'save_log':
+            command = response.get('command', 'save')
+            filename = response.get('filename')
+            self.log_command(command)
+            self.save_log(filename)
+            
+        elif response_type == 'clear_log':
+            command = response.get('command', 'clear')
+            self.log_command(command)
             self.clear_log()
-        elif cmd in ["quit", "exit"]:
+            
+        elif response_type == 'quit_game':
             self.push_screen(QuitConfirmationScreen())
-        else:
-            self.log_message(f"Unknown command: {command}")
-            self.log_message("Type 'help' for available commands.")
-            self.log_message("")
+        
+        # Always refresh display after processing input
+        if self.character_panel:
+            self.character_panel.refresh_display()
     
     def show_help(self):
         """Show available commands"""
-        self.log_command("help")
-        self.log_message("Available commands:")
-        self.log_message("")
-        self.log_message("Movement:")
-        self.log_message("  n, north - Move north")
-        self.log_message("  s, south - Move south")
-        self.log_message("  e, east - Move east")
-        self.log_message("  w, west - Move west")
-        self.log_message("")
-        self.log_message("Actions:")
-        self.log_message("  look, l - Examine current location")
-        self.log_message("  rest, r - Rest and recover health")
-        self.log_message("  inventory, i - View inventory and equipment")
-        self.log_message("  character, c - View character sheet")
-        self.log_message("  map, m - View map and nearby locations")
-        self.log_message("")
-        self.log_message("Survival:")
-        self.log_message("  eat - Eat food to reduce hunger")
-        self.log_message("  drink - Drink water to reduce thirst")
-        self.log_message("  sleep - Sleep for 8 hours")
-        self.log_message("  survival, status - View survival status")
-        self.log_message("")
-        self.log_message("System:")
-        self.log_message("  heal - Heal 10 HP (debug)")
-        self.log_message("  xp - Gain 100 XP (debug)")
-        self.log_message("  save - Save game log")
-        self.log_message("  clear - Clear game log")
-        self.log_message("  quit, exit - Quit game")
-        self.log_message("")
+        if self.input_controller:
+            help_text = self.input_controller.get_help_text()
+            for line in help_text.split('\n'):
+                self.log_message(line)
+        else:
+            self.log_message("Help system not available.")
     
     # Character actions
     def heal_character(self, amount: int, source: str = "unknown"):
@@ -301,7 +301,7 @@ class FantasyRPGApp(App):
             healed = self.character.hp - old_hp
             if healed > 0:
                 # Use action logger for consistent healing logging
-                from .action_logger import get_action_logger
+                from ..actions.action_logger import get_action_logger
                 action_logger = get_action_logger()
                 action_logger.log_healing_received(
                     heal_amount=healed,
@@ -325,7 +325,7 @@ class FantasyRPGApp(App):
             damage_taken = old_hp - self.character.hp
             if damage_taken > 0:
                 # Use action logger for consistent damage logging
-                from .action_logger import get_action_logger
+                from ..actions.action_logger import get_action_logger
                 action_logger = get_action_logger()
                 action_logger.log_damage_taken(
                     damage_amount=damage_taken,
@@ -394,11 +394,13 @@ class FantasyRPGApp(App):
             self.character_panel.update_world_data(weather=weather)
     
     # System actions
-    def save_log(self):
+    def save_log(self, filename: str = None):
         """Save game log"""
-        self.log_command("save log")
         if self.game_log_panel:
-            self.game_log_panel.save_log_to_file()
+            if filename:
+                self.game_log_panel.save_log_to_file(filename)
+            else:
+                self.game_log_panel.save_log_to_file()
             self.log_message("")
     
     def clear_log(self):
@@ -480,12 +482,56 @@ class FantasyRPGApp(App):
             action_logger.set_game_log(self.game_log_panel)
             action_logger.last_weather = initial_weather
             
+            # Initialize world coordinator (placeholder for now)
+            try:
+                from ..world.world_coordinator import WorldCoordinator
+                self.world_coordinator = WorldCoordinator()
+            except ImportError:
+                self.world_coordinator = None
+            
+            # Initialize input controller with all systems
+            self.input_controller = InputController(
+                character=self.character,
+                player_state=self.player_state,
+                time_system=self.time_system
+            )
+            
+            # Initialize the input controller
+            self.input_controller.initialize(self.world_coordinator)
+            
+            # Set up UI callbacks for the input controller
+            self._setup_input_controller_callbacks()
+            
             self.log_system_message("Welcome to your adventure!\n")
             
         except ImportError as e:
             self.log_system_message(f"Could not initialize survival system: {e}")
         except Exception as e:
             self.log_system_message(f"Error initializing survival system: {e}")
+    
+    def _setup_input_controller_callbacks(self):
+        """Set up UI callbacks for the input controller"""
+        if not self.input_controller:
+            return
+        
+        # Set up callbacks so input controller can trigger UI actions
+        self.input_controller.set_ui_callback('show_inventory', 
+            lambda: self.push_screen(InventoryScreen(self.character)))
+        self.input_controller.set_ui_callback('show_character', 
+            lambda: self.push_screen(CharacterScreen(self.character)))
+        self.input_controller.set_ui_callback('show_help', self.show_help)
+        self.input_controller.set_ui_callback('update_location', self.update_location)
+        self.input_controller.set_ui_callback('heal_character', self.heal_character)
+        self.input_controller.set_ui_callback('damage_character', self.damage_character)
+        self.input_controller.set_ui_callback('add_experience', self.add_experience)
+        self.input_controller.set_ui_callback('save_log', self.save_log)
+        self.input_controller.set_ui_callback('clear_log', self.clear_log)
+        self.input_controller.set_ui_callback('quit_game', 
+            lambda: self.push_screen(QuitConfirmationScreen()))
+        self.input_controller.set_ui_callback('log_message', self.log_message)
+        self.input_controller.set_ui_callback('log_command', self.log_command)
+        self.input_controller.set_ui_callback('refresh_display', 
+            lambda: self.character_panel.refresh_display() if self.character_panel else None)
     
     # Survival system callbacks
     def _on_time_advance(self, old_time: str, new_time: str, hours_passed: float):

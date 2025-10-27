@@ -1,517 +1,331 @@
 """
 Fantasy RPG - World Coordinator
 
-Central coordinator for all world-related systems. This file serves as the single
-point of integration between terrain generation, climate systems, biome classification,
-location exploration, and all other world components.
-
-This prevents circular imports and provides clear data flow architecture.
+Coordinates between overworld hexes and micro-level locations.
+Handles movement between different scales of the game world.
+Integrates climate system and world generation.
 """
 
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Any, Tuple
-import random
-
-# Core world components
-from world import World, Hex
-from terrain_generation import TerrainGenerator
-from climate import ClimateSystem
-from biomes import BiomeClassifier
-from enhanced_biomes import EnhancedBiomeSystem
-
-# Location systems (from separate locations package)
-import sys
+import json
 import os
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
 
+# Import climate system components
 try:
-    from locations.location_generator import LocationGenerator, Location, LocationType
+    from .climate import ClimateSystem, ClimateZone
 except ImportError:
-    print("Warning: Could not import location systems, using placeholders")
-    # Placeholder classes if import fails
-    class LocationGenerator:
-        def __init__(self, seed=None):
-            self.seed = seed
-        def generate_location_for_hex(self, coords, biome, terrain=None):
-            return Location("placeholder", "Placeholder Location", "wilderness")
-    
-    class Location:
-        def __init__(self, id, name, type):
-            self.id = id
-            self.name = name
-            self.type = type
-            self.areas = {}
-    
-    class LocationType:
-        WILDERNESS = "wilderness"
-
-# Simple location manager for world coordinator
-class LocationManager:
-    def __init__(self, world):
-        self.world = world
-        self.location_generator = LocationGenerator()
-    
-    def get_explorable_locations(self, coords):
-        # Get hex data
-        hex_data = self.world.get_hex_data(coords)
-        biome = hex_data.get('biome', 'plains')
-        
-        # Generate a location for this hex
-        location = self.location_generator.generate_location_for_hex(coords, biome)
-        return [location]
-    
-    def display_hex_locations(self, coords):
-        locations = self.get_explorable_locations(coords)
-        hex_data = self.world.get_hex_data(coords)
-        biome = hex_data.get('biome', 'plains')
-        
-        output = []
-        output.append("╔" + "═" * 58 + "╗")
-        output.append(f"║ HEX {coords}: {biome.title()} " + " " * (58 - len(f"HEX {coords}: {biome.title()} ")) + "║")
-        output.append("╠" + "═" * 58 + "╣")
-        output.append("║ EXPLORABLE LOCATIONS:" + " " * 36 + "║")
-        
-        for i, location in enumerate(locations, 1):
-            location_desc = f"[{i}] {location.name}"
-            if len(location_desc) > 56:
-                location_desc = location_desc[:53] + "..."
-            output.append(f"║ {location_desc:<56} ║")
-        
-        output.append("╚" + "═" * 58 + "╝")
-        return "\n".join(output)
-
-class ExplorationInterface:
-    def __init__(self, world):
-        self.world = world
-        self.location_manager = LocationManager(world)
-
-# Weather and travel systems
-from weather_core import WeatherState, generate_weather_state
-from travel_system import create_travel_methods, create_biome_weather_modifiers
-
-
-@dataclass
-class WorldGenerationConfig:
-    """Configuration for world generation"""
-    seed: int
-    size: Tuple[int, int]  # (width, height)
-    use_enhanced_biomes: bool = True
-    generate_locations: bool = True
-    enable_weather_system: bool = True
-    enable_travel_system: bool = True
+    from climate import ClimateSystem, ClimateZone
 
 
 class WorldCoordinator:
-    """
-    Central coordinator for all world systems.
+    """Coordinates world-level and location-level interactions"""
     
-    This class manages the integration between:
-    - Terrain generation
-    - Climate simulation  
-    - Biome classification
-    - Location exploration systems
-    - Weather systems
-    - Travel mechanics
+    def __init__(self, world_size: Tuple[int, int] = (20, 20)):
+        self.world_size = world_size
+        self.hex_data = {}
+        self.location_data = {}
+        self.loaded_locations = {}
+        self.climate_system = None
+        self.climate_zones = {}
+        
+        # Initialize climate system
+        self._initialize_climate_system()
+        
+        # Load basic hex data
+        self._load_hex_data()
+        self._load_location_index()
     
-    It provides a clean API and prevents circular imports.
-    """
-    
-    def __init__(self, config: WorldGenerationConfig):
-        """Initialize the world coordinator with configuration."""
-        self.config = config
-        self.world: Optional[World] = None
-        
-        # Initialize core systems
-        self.terrain_generator = TerrainGenerator(config.seed)
-        self.climate_system = ClimateSystem(config.size[1])  # height for latitude calculations
-        self.biome_classifier = BiomeClassifier(use_enhanced_biomes=config.use_enhanced_biomes)
-        
-        # Initialize location systems (will be set up after world generation)
-        self.location_generator: Optional[LocationGenerator] = None
-        self.location_manager: Optional[LocationManager] = None
-        self.exploration_interface: Optional[ExplorationInterface] = None
-        
-        # Initialize optional systems
-        self.travel_methods = create_travel_methods() if config.enable_travel_system else {}
-        self.biome_weather_modifiers = create_biome_weather_modifiers() if config.enable_weather_system else {}
-        
-        print(f"WorldCoordinator initialized with seed {config.seed}")
-        print(f"World size: {config.size[0]}x{config.size[1]} hexes")
-        print(f"Enhanced biomes: {config.use_enhanced_biomes}")
-        print(f"Locations: {config.generate_locations}")
-    
-    def generate_world(self) -> World:
-        """
-        Generate a complete world with all systems integrated.
-        
-        Returns:
-            Generated World object with all systems initialized
-        """
-        print("\n" + "="*60)
-        print("WORLD GENERATION - INTEGRATED SYSTEMS")
-        print("="*60)
-        
-        # Step 1: Generate terrain
-        print("\n1. Generating terrain...")
-        heightmap = self.terrain_generator.generate_continental_heightmap(
-            self.config.size[0], self.config.size[1]
-        )
-        
-        # Step 2: Generate climate zones
-        print("\n2. Generating climate zones...")
-        climate_zones = self.climate_system.generate_climate_zones(
-            self.config.size, heightmap
-        )
-        
-        # Step 3: Generate precipitation patterns
-        print("\n3. Calculating precipitation patterns...")
-        precipitation_map = self._generate_precipitation_map(climate_zones, heightmap)
-        
-        # Step 4: Classify biomes using integrated biome system
-        print("\n4. Classifying biomes...")
-        biomes = self.biome_classifier.generate_biome_map(
-            self.config.size, climate_zones, precipitation_map, heightmap
-        )
-        
-        # Step 5: Create world object
-        print("\n5. Creating world object...")
-        self.world = World(
-            seed=self.config.seed,
-            size=self.config.size,
-            heightmap=heightmap,
-            climate_zones=climate_zones,
-            biomes=biomes
-        )
-        
-        # Step 6: Initialize location systems
-        if self.config.generate_locations:
-            print("\n6. Initializing location exploration systems...")
-            self._initialize_location_systems()
-        
-        # Step 7: Generate initial weather if enabled
-        if self.config.enable_weather_system:
-            print("\n7. Initializing weather systems...")
-            self._initialize_weather_systems()
-        
-        print(f"\n✅ World generation complete!")
-        print(f"Generated {len(heightmap)} hexes with integrated systems")
-        
-        return self.world
-    
-    def _generate_precipitation_map(self, climate_zones: Dict[Tuple[int, int], Any], 
-                                  heightmap: Dict[Tuple[int, int], float]) -> Dict[Tuple[int, int], Dict]:
-        """Generate precipitation patterns based on climate and elevation."""
-        precipitation_map = {}
-        
-        for coords, climate_zone in climate_zones.items():
-            elevation = heightmap[coords]
-            
-            # Base precipitation by climate zone
-            base_precip_inches = {
-                "arctic": 8.0,
-                "subarctic": 15.0,
-                "temperate": 35.0,
-                "subtropical": 45.0,
-                "tropical": 80.0
-            }.get(climate_zone.zone_type, 25.0)
-            
-            # Orographic precipitation effect (mountains get more rain)
-            elevation_multiplier = 1.0 + (elevation * 0.8)
-            
-            # Rain shadow effect (simplified)
-            if elevation > 0.6:
-                # Leeward side gets less precipitation
-                rain_shadow_factor = 0.7
-            else:
-                rain_shadow_factor = 1.0
-            
-            annual_precip = base_precip_inches * elevation_multiplier * rain_shadow_factor
-            
-            precipitation_map[coords] = {
-                "annual_precipitation": annual_precip,
-                "seasonal_variation": 0.4,  # 40% variation between seasons
-                "monthly_distribution": self._generate_monthly_precipitation(climate_zone.zone_type)
-            }
-        
-        return precipitation_map
-    
-    def _generate_monthly_precipitation(self, climate_type: str) -> List[float]:
-        """Generate monthly precipitation distribution based on climate type."""
-        if climate_type == "tropical":
-            # Wet season (May-Oct), dry season (Nov-Apr)
-            return [0.5, 0.4, 0.6, 0.8, 1.5, 1.8, 1.9, 1.7, 1.4, 1.2, 0.7, 0.5]
-        elif climate_type == "temperate":
-            # More even distribution with spring/fall peaks
-            return [0.8, 0.7, 1.1, 1.3, 1.2, 1.0, 0.9, 0.8, 1.0, 1.2, 1.0, 0.9]
-        elif climate_type == "arctic":
-            # Most precipitation as snow in winter
-            return [1.2, 1.1, 0.9, 0.6, 0.4, 0.3, 0.3, 0.4, 0.6, 0.8, 1.0, 1.4]
-        else:
-            # Default even distribution
-            return [1.0] * 12
-    
-    def _initialize_location_systems(self):
-        """Initialize location exploration systems."""
-        if not self.world:
-            raise RuntimeError("World must be generated before initializing location systems")
-        
-        # Initialize location generator
-        self.location_generator = LocationGenerator(seed=self.config.seed)
-        
-        # Initialize location manager
-        self.location_manager = LocationManager(self.world)
-        
-        # Initialize exploration interface
-        self.exploration_interface = ExplorationInterface(self.world)
-        
-        print("  ✓ Location generator initialized")
-        print("  ✓ Location manager initialized") 
-        print("  ✓ Exploration interface initialized")
-    
-    def _initialize_weather_systems(self):
-        """Initialize weather systems for the world."""
-        if not self.world:
-            raise RuntimeError("World must be generated before initializing weather systems")
-        
-        # Generate initial weather for all hexes
-        weather_map = {}
-        for coords in self.world.heightmap.keys():
-            climate_zone = self.world.climate_zones[coords]
-            weather_state = generate_weather_state(
-                base_temperature=climate_zone.base_temperature,
-                season="summer",  # Default to summer
-                climate_type=climate_zone.zone_type
-            )
-            weather_map[coords] = weather_state
-        
-        # Store weather map in world (extend World class if needed)
-        if not hasattr(self.world, 'current_weather'):
-            self.world.current_weather = weather_map
-        
-        print(f"  ✓ Weather initialized for {len(weather_map)} hexes")
-    
-    def get_hex_complete_data(self, coords: Tuple[int, int]) -> Dict[str, Any]:
-        """
-        Get complete data for a hex including all systems.
-        
-        This is the main API for getting hex information.
-        """
-        if not self.world:
-            raise RuntimeError("World not generated yet")
-        
-        if not self.world.is_valid_coordinate(coords):
-            raise ValueError(f"Invalid coordinates: {coords}")
-        
-        # Get base hex data
-        hex_data = self.world.get_hex_data(coords)
-        
-        # Add biome information
-        biome_name = hex_data['biome']
-        biome_info = self.biome_classifier.get_biome_info(biome_name)
-        
-        # Add locations if available
-        explorable_locations = []
-        if self.location_manager:
-            explorable_locations = self.location_manager.get_explorable_locations(coords)
-        
-        # Add weather if available
-        current_weather = None
-        if hasattr(self.world, 'current_weather'):
-            current_weather = self.world.current_weather.get(coords)
-        
-        # Add travel information
-        travel_info = {}
-        if self.travel_methods and biome_name in self.biome_weather_modifiers:
-            travel_info = {
-                'biome_modifier': self.biome_weather_modifiers[biome_name],
-                'available_methods': list(self.travel_methods.keys())
-            }
-        
-        return {
-            **hex_data,  # Base hex data (coords, elevation, climate, biome, etc.)
-            'biome_details': biome_info,
-            'explorable_locations': explorable_locations,
-            'current_weather': current_weather,
-            'travel_info': travel_info,
-            'has_exploration': len(explorable_locations) > 0
-        }
-    
-    def enter_hex_exploration(self, player, hex_coords: Tuple[int, int]) -> bool:
-        """
-        Enter location exploration for a hex.
-        
-        Args:
-            player: Player object
-            hex_coords: Hex coordinates to explore
-            
-        Returns:
-            True if exploration interface is ready, False otherwise
-        """
-        if not self.exploration_interface:
-            print("Location exploration not available (disabled in config)")
-            return False
-        
-        # Set player's current hex
-        player.current_hex = hex_coords
-        
-        # Display available locations
-        display = self.exploration_interface.location_manager.display_hex_locations(hex_coords)
-        print(display)
-        
-        return True
-    
-    def process_exploration_command(self, player, command: str) -> bool:
-        """
-        Process an exploration command through the integrated interface.
-        
-        Args:
-            player: Player object
-            command: Command string
-            
-        Returns:
-            True if command was handled, False otherwise
-        """
-        if not self.exploration_interface:
-            return False
-        
-        return self.exploration_interface.process_command(player, command)
-    
-    def get_biome_analysis(self) -> Dict[str, Any]:
-        """Get analysis of biome distribution and properties."""
-        if not self.world:
-            raise RuntimeError("World not generated yet")
-        
-        # Get biome counts
-        biome_counts = {}
-        total_hexes = len(self.world.biomes)
-        
-        for biome_name in self.world.biomes.values():
-            biome_counts[biome_name] = biome_counts.get(biome_name, 0) + 1
-        
-        # Get biome details
-        biome_details = {}
-        for biome_name in biome_counts.keys():
-            biome_info = self.biome_classifier.get_biome_info(biome_name)
-            if biome_info:
-                biome_details[biome_name] = {
-                    'display_name': getattr(biome_info, 'display_name', biome_name.replace('_', ' ').title()),
-                    'description': getattr(biome_info, 'description', 'No description available'),
-                    'count': biome_counts[biome_name],
-                    'percentage': (biome_counts[biome_name] / total_hexes) * 100
-                }
-        
-        return {
-            'total_hexes': total_hexes,
-            'biome_counts': biome_counts,
-            'biome_details': biome_details,
-            'diversity_index': len(biome_counts)  # Simple diversity measure
-        }
-    
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get status of all integrated systems."""
-        return {
-            'world_generated': self.world is not None,
-            'world_size': self.config.size if self.world else None,
-            'total_hexes': len(self.world.heightmap) if self.world else 0,
-            'systems': {
-                'terrain_generation': True,
-                'climate_system': True,
-                'biome_classification': True,
-                'enhanced_biomes': self.config.use_enhanced_biomes,
-                'location_generation': self.location_generator is not None,
-                'location_manager': self.location_manager is not None,
-                'exploration_interface': self.exploration_interface is not None,
-                'weather_system': self.config.enable_weather_system,
-                'travel_system': self.config.enable_travel_system
+    def _load_hex_data(self):
+        """Load basic hex information"""
+        # Simplified hex data - in a real system this would come from world generation
+        self.hex_data = {
+            "0847": {
+                "name": "Forest Clearing",
+                "type": "forest",
+                "description": "A peaceful clearing surrounded by ancient oaks",
+                "elevation": "320 ft",
+                "biome": "temperate_forest",
+                "locations": ["forest_clearing_01", "old_oak_grove"]
             },
-            'biome_system': 'Enhanced (8 core biomes)' if self.config.use_enhanced_biomes else 'Whittaker (13 biomes)',
-            'seed': self.config.seed
+            "0746": {
+                "name": "Ancient Ruins", 
+                "type": "ruins",
+                "description": "Crumbling stone structures from a forgotten age",
+                "elevation": "280 ft",
+                "biome": "temperate_forest",
+                "locations": ["ruined_temple", "collapsed_tower"]
+            },
+            "0848": {
+                "name": "Mountain Pass",
+                "type": "mountain", 
+                "description": "A narrow path through rocky peaks",
+                "elevation": "1200 ft",
+                "biome": "mountain",
+                "locations": ["narrow_pass", "cave_entrance"]
+            },
+            "0948": {
+                "name": "Trading Village",
+                "type": "settlement",
+                "description": "A bustling village with merchants and travelers", 
+                "elevation": "250 ft",
+                "biome": "temperate_plains",
+                "locations": ["village_center", "merchant_quarter", "inn"]
+            }
         }
-
-
-def create_world_coordinator(seed: int, size: Tuple[int, int], **kwargs) -> WorldCoordinator:
-    """
-    Convenience function to create a WorldCoordinator with default configuration.
     
-    Args:
-        seed: Random seed for world generation
-        size: World size as (width, height) tuple
-        **kwargs: Additional configuration options
+    def _load_location_index(self):
+        """Load location index data"""
+        # Try to load from locations.json
+        try:
+            locations_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'locations.json')
+            if os.path.exists(locations_path):
+                with open(locations_path, 'r') as f:
+                    self.location_data = json.load(f)
+            else:
+                # Fallback to basic location data
+                self._create_basic_locations()
+        except Exception as e:
+            print(f"Warning: Could not load locations.json: {e}")
+            self._create_basic_locations()
+    
+    def _create_basic_locations(self):
+        """Create basic location data as fallback"""
+        self.location_data = {
+            "forest_clearing_01": {
+                "name": "Forest Clearing",
+                "type": "location",
+                "description": "A small clearing in the forest with wildflowers and berry bushes.",
+                "can_enter": True,
+                "exit_flags": ["forest"],
+                "objects": [
+                    {
+                        "name": "Berry Bush",
+                        "properties": {"can_forage": True},
+                        "pools": ["forest_berries", "common_herbs"]
+                    },
+                    {
+                        "name": "Fallen Log", 
+                        "properties": {"can_forage": True},
+                        "pools": ["dead_wood", "insects"]
+                    }
+                ],
+                "exits": {}
+            },
+            "old_oak_grove": {
+                "name": "Old Oak Grove",
+                "type": "location", 
+                "description": "A grove of ancient oak trees with thick canopy overhead.",
+                "can_enter": True,
+                "exit_flags": ["forest"],
+                "objects": [
+                    {
+                        "name": "Ancient Oak",
+                        "properties": {"can_forage": True},
+                        "pools": ["tree_bark", "acorns", "medicinal_herbs"]
+                    }
+                ],
+                "exits": {}
+            }
+        }
+    
+    def can_travel_to_hex(self, from_hex: str, to_hex: str) -> bool:
+        """Check if travel between hexes is possible"""
+        # Simplified - in real system would check terrain, roads, etc.
+        from_data = self.hex_data.get(from_hex)
+        to_data = self.hex_data.get(to_hex)
         
-    Returns:
-        Configured WorldCoordinator instance
-    """
-    config = WorldGenerationConfig(
-        seed=seed,
-        size=size,
-        use_enhanced_biomes=kwargs.get('use_enhanced_biomes', True),
-        generate_locations=kwargs.get('generate_locations', True),
-        enable_weather_system=kwargs.get('enable_weather_system', True),
-        enable_travel_system=kwargs.get('enable_travel_system', True)
-    )
+        if not from_data or not to_data:
+            return False
+        
+        # Check if hexes are adjacent (simplified hex math)
+        try:
+            from_col = int(from_hex[:2])
+            from_row = int(from_hex[2:])
+            to_col = int(to_hex[:2])
+            to_row = int(to_hex[2:])
+            
+            col_diff = abs(to_col - from_col)
+            row_diff = abs(to_row - from_row)
+            
+            # Adjacent if difference is 1 in any direction
+            return (col_diff <= 1 and row_diff <= 1) and (col_diff + row_diff > 0)
+        except:
+            return False
     
-    return WorldCoordinator(config)
-
-
-def test_world_coordinator():
-    """Test the world coordinator system."""
-    print("=== Testing World Coordinator ===")
+    def get_hex_info(self, hex_id: str) -> Dict[str, Any]:
+        """Get information about a hex"""
+        return self.hex_data.get(hex_id, {
+            "name": f"Unknown Hex {hex_id}",
+            "type": "unknown",
+            "description": "An unexplored area",
+            "elevation": "320 ft",
+            "locations": []
+        })
     
-    # Create coordinator
-    coordinator = create_world_coordinator(
-        seed=42,
-        size=(15, 15),
-        use_enhanced_biomes=True,
-        generate_locations=True
-    )
+    def get_nearby_hexes(self, hex_id: str) -> List[Dict[str, Any]]:
+        """Get nearby hexes with their information"""
+        nearby = []
+        
+        try:
+            col = int(hex_id[:2])
+            row = int(hex_id[2:])
+            
+            # Check all adjacent hexes
+            directions = [
+                (-1, -1, "northwest"), (-1, 0, "north"), (-1, 1, "northeast"),
+                (0, -1, "west"), (0, 1, "east"),
+                (1, -1, "southwest"), (1, 0, "south"), (1, 1, "southeast")
+            ]
+            
+            for dc, dr, direction in directions:
+                nearby_hex = f"{col + dc:02d}{row + dr:02d}"
+                if nearby_hex in self.hex_data:
+                    hex_info = self.hex_data[nearby_hex].copy()
+                    hex_info["direction"] = direction
+                    hex_info["hex"] = nearby_hex
+                    nearby.append(hex_info)
+        except:
+            pass
+        
+        return nearby
     
-    # Generate world
-    world = coordinator.generate_world()
+    def get_hex_locations(self, hex_id: str) -> List[Dict[str, Any]]:
+        """Get locations available in a hex"""
+        hex_info = self.get_hex_info(hex_id)
+        location_ids = hex_info.get("locations", [])
+        
+        locations = []
+        for loc_id in location_ids:
+            if loc_id in self.location_data:
+                loc_data = self.location_data[loc_id].copy()
+                loc_data["id"] = loc_id
+                locations.append(loc_data)
+        
+        return locations
     
-    # Test system status
-    print("\n" + "="*60)
-    print("SYSTEM STATUS")
-    print("="*60)
-    status = coordinator.get_system_status()
-    for key, value in status.items():
-        if isinstance(value, dict):
-            print(f"{key}:")
-            for subkey, subvalue in value.items():
-                print(f"  {subkey}: {subvalue}")
+    def get_location_by_id(self, location_id: str) -> Optional[Dict[str, Any]]:
+        """Get location data by ID"""
+        return self.location_data.get(location_id)
+    
+    def load_location(self, location_id: str) -> Optional[Dict[str, Any]]:
+        """Load full location data for gameplay"""
+        if location_id in self.loaded_locations:
+            return self.loaded_locations[location_id]
+        
+        base_data = self.location_data.get(location_id)
+        if not base_data:
+            return None
+        
+        # Create a copy for gameplay (so we can modify it)
+        location = base_data.copy()
+        location["id"] = location_id
+        
+        # Cache the loaded location
+        self.loaded_locations[location_id] = location
+        
+        return location
+    
+    def update_location(self, location_id: str, updates: Dict[str, Any]):
+        """Update a loaded location with changes"""
+        if location_id in self.loaded_locations:
+            self.loaded_locations[location_id].update(updates)
+    
+    def get_current_scale(self, player_state) -> str:
+        """Determine if player is on overworld or in a location"""
+        if hasattr(player_state, 'current_location') and player_state.current_location:
+            return "location"
         else:
-            print(f"{key}: {value}")
+            return "overworld"
     
-    # Test hex data retrieval
-    print("\n" + "="*60)
-    print("HEX DATA EXAMPLE")
-    print("="*60)
-    test_coords = (7, 7)  # Center of 15x15 world
-    hex_data = coordinator.get_hex_complete_data(test_coords)
+    def get_movement_time_multiplier(self, scale: str) -> float:
+        """Get time multiplier for movement at different scales"""
+        if scale == "overworld":
+            return 2.0  # Overworld movement takes longer
+        elif scale == "location":
+            return 0.1  # Location movement is faster
+        else:
+            return 1.0  # Default
     
-    print(f"Hex {test_coords}:")
-    print(f"  Biome: {hex_data['biome']}")
-    print(f"  Elevation: {hex_data['elevation']:.3f}")
-    print(f"  Climate: {hex_data['climate_type']}")
-    print(f"  Explorable locations: {len(hex_data['explorable_locations'])}")
-    print(f"  Has exploration: {hex_data['has_exploration']}")
+    def _initialize_climate_system(self):
+        """Initialize the climate system for world generation"""
+        try:
+            width, height = self.world_size
+            self.climate_system = ClimateSystem(height)
+            
+            # Generate basic heightmap for climate calculation
+            heightmap = self._generate_basic_heightmap()
+            
+            # Generate climate zones
+            self.climate_zones = self.climate_system.generate_climate_zones(
+                self.world_size, heightmap
+            )
+            
+        except Exception as e:
+            print(f"Warning: Could not initialize climate system: {e}")
+            self.climate_system = None
+            self.climate_zones = {}
     
-    # Test biome analysis
-    print("\n" + "="*60)
-    print("BIOME ANALYSIS")
-    print("="*60)
-    biome_analysis = coordinator.get_biome_analysis()
-    print(f"Total hexes: {biome_analysis['total_hexes']}")
-    print(f"Biome diversity: {biome_analysis['diversity_index']} different biomes")
+    def _generate_basic_heightmap(self) -> Dict[Tuple[int, int], float]:
+        """Generate a basic heightmap for climate calculations"""
+        import math
+        
+        width, height = self.world_size
+        heightmap = {}
+        center_x, center_y = width // 2, height // 2
+        
+        for x in range(width):
+            for y in range(height):
+                # Simple heightmap - higher in center, lower at edges
+                dx = abs(x - center_x)
+                dy = abs(y - center_y)
+                distance = math.sqrt(dx*dx + dy*dy)
+                max_distance = math.sqrt(center_x*center_x + center_y*center_y)
+                
+                # Normalize to 0.0-1.0
+                if max_distance > 0:
+                    elevation = max(0.0, 1.0 - (distance / max_distance))
+                else:
+                    elevation = 0.5
+                
+                heightmap[(x, y)] = elevation
+        
+        return heightmap
     
-    print("\nBiome distribution:")
-    for biome_name, details in biome_analysis['biome_details'].items():
-        print(f"  {details['display_name']}: {details['count']} hexes ({details['percentage']:.1f}%)")
+    def get_climate_info(self, hex_id: str) -> Optional[Dict[str, Any]]:
+        """Get climate information for a hex"""
+        try:
+            # Parse hex coordinates
+            col = int(hex_id[:2])
+            row = int(hex_id[2:])
+            coords = (col, row)
+            
+            if coords in self.climate_zones:
+                climate_zone = self.climate_zones[coords]
+                return {
+                    "zone_type": climate_zone.zone_type,
+                    "base_temperature": climate_zone.base_temperature,
+                    "annual_precipitation": climate_zone.annual_precipitation,
+                    "has_snow": climate_zone.has_snow,
+                    "seasonal_variation": climate_zone.seasonal_variation
+                }
+        except:
+            pass
+        
+        return None
     
-    print("\n✅ World Coordinator test complete!")
-    print("All systems integrated successfully through central coordinator.")
-
-
-if __name__ == "__main__":
-    test_world_coordinator()
+    def get_temperature_at_hex(self, hex_id: str, season: str = "summer") -> float:
+        """Get temperature at a specific hex for a given season"""
+        try:
+            col = int(hex_id[:2])
+            row = int(hex_id[2:])
+            coords = (col, row)
+            
+            if coords in self.climate_zones:
+                climate_zone = self.climate_zones[coords]
+                temp_range = climate_zone.get_seasonal_temp(season)
+                return sum(temp_range) / 2  # Return average temperature
+        except:
+            pass
+        
+        # Default temperature
+        return 65.0

@@ -8,10 +8,12 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple, Optional, Any
 try:
     from .terrain_generation import TerrainGenerator
-    from .climate import ClimateSystem, ClimateZone
+    from .world_coordinator import WorldCoordinator
+    from .climate import ClimateZone
 except ImportError:
     from terrain_generation import TerrainGenerator
-    from climate import ClimateSystem, ClimateZone
+    from world_coordinator import WorldCoordinator
+    from climate import ClimateZone
 
 
 @dataclass

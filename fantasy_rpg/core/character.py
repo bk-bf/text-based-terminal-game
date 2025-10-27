@@ -436,6 +436,51 @@ class Character:
         else:
             print(f"{self.name} already has feat: {feat_name}")
     
+    def attempt_foraging(self, forageable_object: Dict, season: str = "summer"):
+        """Attempt to forage from an object"""
+        try:
+            from .foraging import ForagingSystem
+        except ImportError:
+            from foraging import ForagingSystem
+        
+        foraging_system = ForagingSystem()
+        return foraging_system.attempt_foraging(self, forageable_object, season)
+    
+    def get_foraging_info(self, forageable_object: Dict, season: str = "summer"):
+        """Get information about foraging an object"""
+        try:
+            from .foraging import ForagingSystem
+        except ImportError:
+            from foraging import ForagingSystem
+        
+        foraging_system = ForagingSystem()
+        return foraging_system.get_foraging_info(forageable_object, self, season)
+    
+    def detect_shelter(self, location_data: Dict):
+        """Detect available shelter at current location"""
+        try:
+            from .shelter import ShelterSystem
+        except ImportError:
+            from shelter import ShelterSystem
+        
+        shelter_system = ShelterSystem()
+        return shelter_system.detect_natural_shelter(location_data, self)
+    
+    def attempt_camping(self, materials_available: List[str] = None, shelter_type: str = "makeshift_lean_to"):
+        """Attempt to make camp"""
+        try:
+            from .shelter import ShelterSystem, ShelterType
+        except ImportError:
+            from shelter import ShelterSystem, ShelterType
+        
+        # Convert string to enum
+        shelter_enum = ShelterType.MAKESHIFT_LEAN_TO
+        if shelter_type == "proper_camp":
+            shelter_enum = ShelterType.PROPER_CAMP
+        
+        shelter_system = ShelterSystem()
+        return shelter_system.attempt_camping(self, materials_available, shelter_enum)
+    
     def has_feat(self, feat_name: str) -> bool:
         """Check if character has a specific feat"""
         return feat_name in self.feats

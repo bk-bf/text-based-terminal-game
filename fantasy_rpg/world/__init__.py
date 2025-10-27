@@ -8,7 +8,7 @@ The WorldCoordinator serves as the central integration point for all world syste
 """
 
 # Main coordinator - primary entry point
-from .world_coordinator import WorldCoordinator, WorldGenerationConfig, create_world_coordinator
+from .world_coordinator import WorldCoordinator
 
 # Core world classes (for advanced usage)
 from .world import World, Hex
@@ -28,7 +28,7 @@ from .travel_system import TravelMethod, BiomeWeatherModifier, create_travel_met
 
 __all__ = [
     # Main coordinator (recommended entry point)
-    'WorldCoordinator', 'WorldGenerationConfig', 'create_world_coordinator',
+    'WorldCoordinator',
     
     # Core world classes
     'World', 'Hex',

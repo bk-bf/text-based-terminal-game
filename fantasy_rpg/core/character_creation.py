@@ -352,7 +352,7 @@ class CharacterCreationFlow:
                     "quantity": quantity,
                     "weight": item.weight,
                     "ac_bonus": item.ac_bonus,
-                    "damage": item.damage,
+                    "damage": item.damage_dice,
                     "damage_type": item.damage_type,
                     "properties": item.properties or [],
                     "description": item.description

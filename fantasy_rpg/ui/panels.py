@@ -697,19 +697,71 @@ class GameLogPanel(ScrollableContainer):
     
     def save_log_to_file(self, filename: str = "game_log.txt"):
         """Save the current log to a file"""
+        import os
+        from datetime import datetime
+        
         try:
-            with open(filename, 'w') as f:
+            # Generate filename with timestamp if default is used
+            if filename == "game_log.txt":
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"adventure_log_{timestamp}.txt"
+            
+            # Save directly in the game directory (no subdirectory)
+            
+            # Write the log file
+            with open(filename, 'w', encoding='utf-8') as f:
+                # Header with game info
+                f.write("=" * 60 + "\n")
+                f.write("FANTASY RPG - ADVENTURE LOG\n")
+                f.write("=" * 60 + "\n\n")
+                
+                # Time and character info
                 if self.player_state:
                     time_desc = self._get_natural_time_description()
-                    f.write(f"Fantasy RPG Adventure Log - {time_desc}\n")
+                    f.write(f"Session Time: {time_desc}\n")
+                    
+                    # Add character info if available
+                    if hasattr(self.player_state, 'character') and self.player_state.character:
+                        char = self.player_state.character
+                        f.write(f"Character: {char.name} (Level {char.level} {char.race} {char.character_class})\n")
+                        f.write(f"HP: {char.hp}/{char.max_hp}, AC: {char.armor_class}\n")
                 else:
-                    f.write("Fantasy RPG Adventure Log\n")
-                f.write("=" * 50 + "\n\n")
-                for message in self.messages:
-                    f.write(message + "\n")
-            self.add_system_message(f"Adventure log saved to {filename}")
+                    f.write(f"Log saved: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                
+                f.write(f"Total messages: {len(self.messages)}\n")
+                f.write("\n" + "=" * 60 + "\n\n")
+                
+                # Write all messages
+                for i, message in enumerate(self.messages, 1):
+                    # Clean up message formatting for file output
+                    clean_message = message.replace("[!]", "⚠️").replace("[^]", "⬆️").replace("[*]", "✦")
+                    f.write(f"{clean_message}\n")
+                
+                # Footer
+                f.write("\n" + "=" * 60 + "\n")
+                f.write("End of Adventure Log\n")
+                f.write("=" * 60 + "\n")
+            
+            # Get file size for confirmation
+            file_size = os.path.getsize(filename)
+            size_kb = file_size / 1024
+            
+            self.add_system_message(f"📝 Adventure log saved to {filename}")
+            self.add_system_message(f"   File size: {size_kb:.1f} KB ({len(self.messages)} messages)")
+            
         except Exception as e:
-            self.add_system_message(f"Failed to save log: {str(e)}")
+            self.add_system_message(f"❌ Failed to save log: {str(e)}")
+            # Try fallback save to current directory
+            try:
+                fallback_filename = f"adventure_log_backup_{datetime.now().strftime('%H%M%S')}.txt"
+                with open(fallback_filename, 'w', encoding='utf-8') as f:
+                    f.write("Fantasy RPG Adventure Log (Emergency Backup)\n")
+                    f.write("=" * 50 + "\n\n")
+                    for message in self.messages:
+                        f.write(message + "\n")
+                self.add_system_message(f"📝 Backup log saved to {fallback_filename}")
+            except Exception as backup_error:
+                self.add_system_message(f"❌ Backup save also failed: {str(backup_error)}")
     
     def search_messages(self, search_term: str) -> list:
         """Search for messages containing a specific term"""
