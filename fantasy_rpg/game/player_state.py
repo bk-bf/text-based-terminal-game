@@ -14,8 +14,19 @@ try:
     from ..world.weather_core import WeatherState
     from ..world.character_weather import CharacterWeatherResistance
 except ImportError:
-    from fantasy_rpg.world.weather_core import WeatherState
-    from fantasy_rpg.world.character_weather import CharacterWeatherResistance
+    try:
+        from fantasy_rpg.world.weather_core import WeatherState
+        from fantasy_rpg.world.character_weather import CharacterWeatherResistance
+    except ImportError:
+        # Create minimal stubs if weather system not available
+        class WeatherState:
+            def __init__(self):
+                self.temperature = 70.0
+                self.precipitation = 0
+                self.wind_speed = 0
+        class CharacterWeatherResistance:
+            def __init__(self):
+                pass
 
 
 class SurvivalLevel(Enum):

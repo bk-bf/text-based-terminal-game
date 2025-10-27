@@ -4,9 +4,7 @@ Fantasy RPG - Game Logic and Management
 This package contains main game logic, save system, and game state management.
 """
 
-# Import game classes for easy access
-from .main import main
-# SaveSystem will be implemented later
-# from .save import SaveSystem
+# Keep minimal to avoid circular dependencies
+# Don't import anything here that might cause circular imports
 
-__all__ = ['main']
+__all__ = []

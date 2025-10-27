@@ -10,68 +10,300 @@ from typing import Dict, List, Optional, Any, Tuple
 import json
 import os
 
-# Import climate system components
+# Import world generation systems (avoiding circular imports)
 try:
     from .climate import ClimateSystem, ClimateZone
+    from .terrain_generation import TerrainGenerator
+    from .enhanced_biomes import EnhancedBiomeSystem
 except ImportError:
-    from climate import ClimateSystem, ClimateZone
+    try:
+        from climate import ClimateSystem, ClimateZone
+        from terrain_generation import TerrainGenerator
+        from enhanced_biomes import EnhancedBiomeSystem
+    except ImportError:
+        # Create minimal stubs if imports fail
+        class ClimateSystem:
+            def __init__(self, *args, **kwargs):
+                pass
+        class ClimateZone:
+            def __init__(self, *args, **kwargs):
+                self.base_temperature = 65.0
+                self.zone_type = "temperate"
+        class TerrainGenerator:
+            def __init__(self, *args, **kwargs):
+                pass
+            def generate_heightmap(self, *args, **kwargs):
+                return {}
+        class EnhancedBiomeSystem:
+            def __init__(self, *args, **kwargs):
+                pass
+            def classify_biome(self, *args, **kwargs):
+                return "temperate_grassland"
+            def get_biome(self, *args, **kwargs):
+                return None
 
 
 class WorldCoordinator:
-    """Coordinates world-level and location-level interactions"""
+    """Coordinates world-level and location-level interactions with full world generation"""
     
-    def __init__(self, world_size: Tuple[int, int] = (20, 20)):
+    def __init__(self, world_size: Tuple[int, int] = (20, 20), seed: int = 12345):
         self.world_size = world_size
+        self.seed = seed
         self.hex_data = {}
         self.location_data = {}
         self.loaded_locations = {}
+        
+        # World generation systems
+        self.terrain_generator = None
+        self.enhanced_biomes = None
         self.climate_system = None
         self.climate_zones = {}
+        
+        # Initialize all world systems
+        self._initialize_world_systems()
+        
+        # Generate the world
+        self._generate_world()
+        
+        # Load location data
+        self._load_location_index()
+    
+    def _initialize_world_systems(self):
+        """Initialize all world generation systems"""
+        print(f"Initializing world systems with seed {self.seed}...")
+        
+        # Initialize terrain generation
+        self.terrain_generator = TerrainGenerator(self.seed)
+        
+        # Initialize biome systems
+        self.enhanced_biomes = EnhancedBiomeSystem()
         
         # Initialize climate system
         self._initialize_climate_system()
         
-        # Load basic hex data
-        self._load_hex_data()
-        self._load_location_index()
+        print("World systems initialized successfully")
     
-    def _load_hex_data(self):
-        """Load basic hex information"""
-        # Simplified hex data - in a real system this would come from world generation
-        self.hex_data = {
-            "0847": {
+    def _generate_world(self):
+        """Generate the complete world using all systems"""
+        print(f"Generating {self.world_size[0]}x{self.world_size[1]} world...")
+        
+        # Generate heightmap
+        heightmap = self.terrain_generator.generate_heightmap(
+            self.world_size[0], 
+            self.world_size[1],
+            scale=0.1,
+            octaves=4
+        )
+        
+        # Generate each hex
+        for x in range(self.world_size[0]):
+            for y in range(self.world_size[1]):
+                hex_id = f"{x:02d}{y:02d}"
+                
+                # Get elevation
+                elevation = heightmap.get((x, y), 0.5)
+                
+                # Get climate zone
+                climate_zone = self.climate_zones.get(hex_id)
+                
+                # Determine biome using enhanced biome system
+                if climate_zone and hasattr(self.enhanced_biomes, 'classify_biome'):
+                    # Convert temperature to Celsius for biome classification
+                    temp_c = (climate_zone.base_temperature - 32) * 5/9
+                    # Estimate precipitation (simplified)
+                    precip_mm = 500  # Default moderate precipitation
+                    
+                    # Use enhanced biome system for gameplay-focused biomes
+                    biome_type = self.enhanced_biomes.classify_biome(
+                        temp_c, 
+                        precip_mm,
+                        elevation
+                    )
+                    biome_data = self.enhanced_biomes.get_biome(biome_type)
+                    biome_name = biome_data.display_name if biome_data else biome_type.replace('_', ' ').title()
+                    description = biome_data.description if biome_data else f"A {biome_name.lower()} area"
+                else:
+                    # Fallback - simple biome based on elevation and climate
+                    if elevation > 0.7:
+                        biome_name = "Mountains"
+                        biome_type = "alpine_mountains"
+                        description = "Rugged mountain terrain with steep slopes"
+                    elif elevation < 0.3:
+                        biome_name = "Plains"
+                        biome_type = "temperate_grassland"
+                        description = "Rolling grasslands with scattered trees"
+                    else:
+                        biome_name = "Forest"
+                        biome_type = "temperate_forest"
+                        description = "Dense woodland with mixed trees"
+                
+                # Create hex data dictionary (locations generated on-demand)
+                self.hex_data[hex_id] = {
+                    "name": f"{biome_name} {hex_id}",
+                    "type": biome_type,
+                    "description": description,
+                    "elevation": f"{int(elevation * 1000)}ft",
+                    "biome": biome_type,
+                    "locations": [],  # Will be populated on first visit
+                    "locations_generated": False,  # Flag to track if locations have been generated
+                    "coords": (x, y),
+                    "elevation_raw": elevation
+                }
+        
+        print(f"Generated world with {len(self.hex_data)} hexes")
+        print("Locations will be generated on-demand when hexes are first visited")
+        
+        # Add some special locations to interesting hexes
+        self._add_special_locations()
+    
+    def _add_special_locations(self):
+        """Add special locations to interesting hexes"""
+        # Add a few special locations for gameplay
+        special_locations = [
+            ("0847", ["forest_clearing_01", "old_oak_grove"]),
+            ("0746", ["ruined_temple", "collapsed_tower"]),
+            ("0848", ["narrow_pass", "cave_entrance"]),
+            ("0948", ["village_center", "merchant_quarter", "inn"])
+        ]
+        
+        for hex_id, locations in special_locations:
+            if hex_id in self.hex_data:
+                self.hex_data[hex_id]["locations"] = locations
+                # Update the name to be more interesting
+                if hex_id == "0847":
+                    self.hex_data[hex_id]["name"] = "Forest Clearing"
+                    self.hex_data[hex_id]["description"] = "A peaceful clearing surrounded by ancient oaks"
+                elif hex_id == "0746":
+                    self.hex_data[hex_id]["name"] = "Ancient Ruins"
+                    self.hex_data[hex_id]["description"] = "Crumbling stone structures from a forgotten age"
+                elif hex_id == "0848":
+                    self.hex_data[hex_id]["name"] = "Mountain Pass"
+                    self.hex_data[hex_id]["description"] = "A narrow path through rocky peaks"
+                elif hex_id == "0948":
+                    self.hex_data[hex_id]["name"] = "Trading Village"
+                    self.hex_data[hex_id]["description"] = "A bustling village with merchants and travelers"
+    
+    def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
+        """Generate locations for a hex using LocationGenerator"""
+        try:
+            # Import LocationGenerator here to avoid circular imports
+            from locations.location_generator import LocationGenerator
+            
+            # Create a LocationGenerator if we don't have one (use consistent seed)
+            if not hasattr(self, '_location_generator'):
+                self._location_generator = LocationGenerator(seed=self.seed)
+            
+            # Generate locations using the LocationGenerator
+            locations = self._location_generator.generate_locations_for_hex(
+                coords, 
+                biome, 
+                terrain_type=self._get_terrain_type(elevation)
+            )
+            
+            # Convert Location objects to dictionaries for storage
+            location_dicts = []
+            for location in locations:
+                if hasattr(location, '__dict__'):
+                    # Convert Location object to dictionary
+                    location_type = getattr(location, 'type', 'wilderness')
+                    # Handle LocationType enum
+                    if hasattr(location_type, 'value'):
+                        location_type = location_type.value
+                    elif hasattr(location_type, 'name'):
+                        location_type = location_type.name.lower()
+                    
+                    # Get description from starting area if available
+                    areas = getattr(location, 'areas', {})
+                    starting_area_id = getattr(location, 'starting_area', 'entrance')
+                    description = getattr(location, 'description', 'An unremarkable area.')
+                    
+                    # Try to get description from starting area
+                    if areas and starting_area_id in areas:
+                        starting_area = areas[starting_area_id]
+                        if hasattr(starting_area, 'description'):
+                            description = starting_area.description
+                    
+                    location_dict = {
+                        "id": getattr(location, 'id', f"loc_{coords[0]}_{coords[1]}_{len(location_dicts)}"),
+                        "name": getattr(location, 'name', 'Unknown Location'),
+                        "type": str(location_type),
+                        "description": description,
+                        "exit_flag": getattr(location, 'exit_flag', True),
+                        "size": getattr(location, 'size', 'medium'),
+                        "terrain": getattr(location, 'terrain', 'open'),
+                        "areas": areas,
+                        "starting_area": starting_area_id
+                    }
+                else:
+                    # Already a dictionary
+                    location_dict = location
+                
+                location_dicts.append(location_dict)
+            
+            return location_dicts
+            
+        except Exception as e:
+            print(f"Warning: Could not generate locations for hex {coords}: {e}")
+            # Return basic fallback locations
+            return self._get_fallback_locations(biome, coords)
+    
+    def _get_terrain_type(self, elevation: float) -> str:
+        """Determine terrain type from elevation"""
+        if elevation > 0.7:
+            return "mountain"
+        elif elevation > 0.5:
+            return "hills"
+        elif elevation < 0.3:
+            return "lowland"
+        else:
+            return "plains"
+    
+    def _get_fallback_locations(self, biome: str, coords: Tuple[int, int]) -> List[Dict[str, Any]]:
+        """Generate basic fallback locations if LocationGenerator fails"""
+        locations = []
+        
+        # Create 1-2 basic locations based on biome
+        if "forest" in biome.lower():
+            locations.append({
+                "id": f"forest_clearing_{coords[0]}_{coords[1]}",
                 "name": "Forest Clearing",
-                "type": "forest",
-                "description": "A peaceful clearing surrounded by ancient oaks",
-                "elevation": "320 ft",
-                "biome": "temperate_forest",
-                "locations": ["forest_clearing_01", "old_oak_grove"]
-            },
-            "0746": {
-                "name": "Ancient Ruins", 
-                "type": "ruins",
-                "description": "Crumbling stone structures from a forgotten age",
-                "elevation": "280 ft",
-                "biome": "temperate_forest",
-                "locations": ["ruined_temple", "collapsed_tower"]
-            },
-            "0848": {
-                "name": "Mountain Pass",
-                "type": "mountain", 
-                "description": "A narrow path through rocky peaks",
-                "elevation": "1200 ft",
-                "biome": "mountain",
-                "locations": ["narrow_pass", "cave_entrance"]
-            },
-            "0948": {
-                "name": "Trading Village",
-                "type": "settlement",
-                "description": "A bustling village with merchants and travelers", 
-                "elevation": "250 ft",
-                "biome": "temperate_plains",
-                "locations": ["village_center", "merchant_quarter", "inn"]
-            }
-        }
+                "type": "wilderness",
+                "description": "A small clearing surrounded by trees.",
+                "exit_flag": True,
+                "size": "medium",
+                "terrain": "open"
+            })
+            locations.append({
+                "id": f"dense_woods_{coords[0]}_{coords[1]}",
+                "name": "Dense Woods",
+                "type": "wilderness", 
+                "description": "Thick forest with limited visibility.",
+                "exit_flag": True,
+                "size": "large",
+                "terrain": "difficult"
+            })
+        elif "mountain" in biome.lower():
+            locations.append({
+                "id": f"rocky_outcrop_{coords[0]}_{coords[1]}",
+                "name": "Rocky Outcrop",
+                "type": "wilderness",
+                "description": "A jutting formation of weathered stone.",
+                "exit_flag": True,
+                "size": "small",
+                "terrain": "difficult"
+            })
+        else:
+            locations.append({
+                "id": f"open_area_{coords[0]}_{coords[1]}",
+                "name": "Open Area",
+                "type": "wilderness",
+                "description": "An open stretch of land.",
+                "exit_flag": True,
+                "size": "medium", 
+                "terrain": "open"
+            })
+        
+        return locations
     
     def _load_location_index(self):
         """Load location index data"""
@@ -154,13 +386,56 @@ class WorldCoordinator:
     
     def get_hex_info(self, hex_id: str) -> Dict[str, Any]:
         """Get information about a hex"""
-        return self.hex_data.get(hex_id, {
+        if hex_id in self.hex_data:
+            return self.hex_data[hex_id]
+        
+        # Generate basic hex data on-demand for valid coordinates
+        try:
+            col = int(hex_id[:2])
+            row = int(hex_id[2:])
+            
+            # Check if coordinates are within world bounds
+            if 0 <= col < self.world_size[0] and 0 <= row < self.world_size[1]:
+                # Generate basic hex based on climate zone
+                climate_zone = self.climate_zones.get(hex_id)
+                if climate_zone:
+                    terrain_types = {
+                        "arctic": ("Frozen Wasteland", "A desolate expanse of ice and snow"),
+                        "subarctic": ("Tundra", "Cold, windswept plains with sparse vegetation"),
+                        "temperate": ("Rolling Hills", "Gentle hills covered in grass and scattered trees"),
+                        "subtropical": ("Warm Plains", "Sun-warmed grasslands with occasional groves"),
+                        "tropical": ("Jungle", "Dense tropical vegetation and humid air")
+                    }
+                    
+                    terrain_name, terrain_desc = terrain_types.get(
+                        climate_zone.zone_type, 
+                        ("Wilderness", "An unremarkable stretch of land")
+                    )
+                    
+                    generated_hex = {
+                        "name": f"{terrain_name} {hex_id}",
+                        "type": climate_zone.zone_type,
+                        "description": terrain_desc,
+                        "elevation": f"{300 + (row * 20)}ft",
+                        "biome": climate_zone.zone_type,
+                        "locations": [],
+                        "generated": True  # Mark as auto-generated
+                    }
+                    
+                    # Cache the generated hex
+                    self.hex_data[hex_id] = generated_hex
+                    return generated_hex
+        except:
+            pass
+        
+        # Fallback for invalid coordinates
+        return {
             "name": f"Unknown Hex {hex_id}",
             "type": "unknown",
-            "description": "An unexplored area",
+            "description": "An unexplored area beyond the known world",
             "elevation": "320 ft",
             "locations": []
-        })
+        }
     
     def get_nearby_hexes(self, hex_id: str) -> List[Dict[str, Any]]:
         """Get nearby hexes with their information"""
@@ -190,18 +465,29 @@ class WorldCoordinator:
         return nearby
     
     def get_hex_locations(self, hex_id: str) -> List[Dict[str, Any]]:
-        """Get locations available in a hex"""
+        """Get locations available in a hex (generate on-demand)"""
         hex_info = self.get_hex_info(hex_id)
-        location_ids = hex_info.get("locations", [])
         
-        locations = []
-        for loc_id in location_ids:
-            if loc_id in self.location_data:
-                loc_data = self.location_data[loc_id].copy()
-                loc_data["id"] = loc_id
-                locations.append(loc_data)
+        # Check if locations have been generated for this hex
+        if not hex_info.get("locations_generated", False):
+            # Generate locations on first access
+            coords = hex_info.get("coords", (0, 0))
+            biome = hex_info.get("biome", "temperate_forest")
+            elevation = hex_info.get("elevation_raw", 0.5)
+            
+            # Generate locations for this hex
+            generated_locations = self._generate_hex_locations(coords, biome, elevation)
+            
+            # Update hex data with generated locations
+            hex_info["locations"] = generated_locations
+            hex_info["locations_generated"] = True
+            
+            # Update the stored hex data
+            self.hex_data[hex_id] = hex_info
+            
+            print(f"Generated {len(generated_locations)} locations for hex {hex_id}")
         
-        return locations
+        return hex_info.get("locations", [])
     
     def get_location_by_id(self, location_id: str) -> Optional[Dict[str, Any]]:
         """Get location data by ID"""

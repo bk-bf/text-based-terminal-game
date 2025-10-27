@@ -12,8 +12,13 @@ try:
     from .player_state import PlayerState
     from ..world.weather_core import WeatherState, generate_weather_state
 except ImportError:
-    from player_state import PlayerState
-    from fantasy_rpg.world.weather_core import WeatherState, generate_weather_state
+    try:
+        from player_state import PlayerState
+        from fantasy_rpg.world.weather_core import WeatherState, generate_weather_state
+    except ImportError:
+        # When running as module, use absolute imports
+        from fantasy_rpg.game.player_state import PlayerState
+        from fantasy_rpg.world.weather_core import WeatherState, generate_weather_state
 
 
 class ActivityType(Enum):

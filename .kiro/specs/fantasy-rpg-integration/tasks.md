@@ -15,19 +15,19 @@ Connect all existing foundation systems through a GameEngine coordinator layer. 
 ### 1. GameEngine Foundation
 Create the central coordinator that ties all existing systems together.
 
-- [ ] 1.1 Create `fantasy_rpg/game/game_engine.py` with GameEngine class
+- [x] 1.1 Create `fantasy_rpg/game/game_engine.py` with GameEngine class
   - Implement GameState dataclass for complete game state
   - Add world initialization through existing WorldCoordinator
   - Connect to existing character and player state systems
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 1.2 Implement new_game() method
+- [x] 1.2 Implement new_game() method
   - Initialize world through existing world generation
   - Place character in starting hex with proper state
   - Set up initial environmental conditions
   - _Requirements: 1.1, 1.4_
 
-- [ ] 1.3 Test GameEngine initialization
+- [x] 1.3 Test GameEngine initialization
   - Verify world generation works through GameEngine
   - Test character placement and initial state
   - Validate all systems are properly connected
@@ -36,13 +36,13 @@ Create the central coordinator that ties all existing systems together.
 ### 2. Movement System Integration
 Connect movement commands to existing world and survival systems.
 
-- [ ] 2.1 Implement move_player() method in GameEngine
+- [x] 2.1 Implement move_player() method in GameEngine
   - Connect to existing WorldCoordinator for hex validation
   - Apply environmental effects using existing survival mechanics
   - Update time and weather through existing systems
   - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-- [ ] 2.2 Connect movement to action handler
+- [x] 2.2 Connect movement to action handler
   - Update existing action handler to use GameEngine
   - Route movement commands through GameEngine coordinator
   - Implement proper error handling for invalid moves
@@ -57,7 +57,7 @@ Connect movement commands to existing world and survival systems.
 ### 3. Location System Integration
 Connect location exploration to existing location generation and foraging systems.
 
-- [ ] 3.1 Implement location entry/exit methods
+- [x] 3.1 Implement location entry/exit methods
   - Connect to existing LocationGenerator
   - Implement persistent location data storage
   - Add location state management for re-entry
