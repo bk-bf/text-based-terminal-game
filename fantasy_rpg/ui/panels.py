@@ -26,6 +26,12 @@ except ImportError:
     print(f"   {sys.executable} -m pip install textual>=0.40.0 rich>=13.0.0")
     exit(1)
 
+# Import custom colors
+try:
+    from .colors import format_survival_text, format_temperature_text, format_wetness_text
+except ImportError:
+    from colors import format_survival_text, format_temperature_text, format_wetness_text
+
 
 class CharacterPanel(Static):
     """Left panel showing character stats and current status"""
@@ -117,7 +123,7 @@ class CharacterPanel(Static):
             return mock_char
     
     def compose(self) -> ComposeResult:
-        yield Static(self._render_character_info(), id="character-info", markup=False)
+        yield Static(self._render_character_info(), id="character-info", markup=True)
     
     def update_character(self, character):
         """Update the character data and refresh display"""
@@ -188,19 +194,28 @@ CHA: {char.charisma} ({char.ability_modifier('charisma'):+d})"""
             warmth_desc = self._get_warmth_description(player_state.survival.get_temperature_status())
             wetness_desc = self._get_wetness_description(player_state.survival.get_wetness_level())
             
+            # Add color coding to survival descriptions
+            hunger_colored = self._add_survival_color(hunger_desc, player_state.survival.get_hunger_level())
+            thirst_colored = self._add_survival_color(thirst_desc, player_state.survival.get_thirst_level())
+            fatigue_colored = self._add_survival_color(fatigue_desc, player_state.survival.get_fatigue_level())
+            warmth_colored = self._add_temperature_color(warmth_desc, player_state.survival.get_temperature_status())
+            wetness_colored = self._add_wetness_color(wetness_desc, player_state.survival.get_wetness_level())
+            
             survival_text = f"""
 ----------------------------
 survival:
-Hunger: {hunger_desc} 
-Thirst: {thirst_desc} 
-Fatigue: {fatigue_desc}
-Warmth: {warmth_desc} 
-Dryness: {wetness_desc}
+Hunger: {hunger_colored} 
+Thirst: {thirst_colored} 
+Fatigue: {fatigue_colored}
+Warmth: {warmth_colored} 
+Dryness: {wetness_colored}
 ----------------------------
 condition:"""
             
             if player_state.status_effects:
-                for effect in player_state.status_effects[:3]:  # Show first 3 effects
+                # Remove duplicates and show first 3 unique effects
+                unique_effects = list(dict.fromkeys(player_state.status_effects))[:3]
+                for effect in unique_effects:
                     survival_text += f"\n• {effect}"
             else:
                 survival_text += "\nHealthy"
@@ -223,10 +238,7 @@ abilities:
 ----------------------------
 environment:
 {environment_text}
-----------------------------
-location:
-Hex {world["hex"]} - {world["location"]}
-Elevation: {world["elevation"]}"""
+"""
     
     def _create_bar(self, current: int, maximum: int, width: int) -> str:
         """Create a simple text-based progress bar"""
@@ -304,6 +316,49 @@ Elevation: {world["elevation"]}"""
         }
         return descriptions.get(level.name, "Dry")
     
+    def _add_survival_color(self, description: str, level) -> str:
+        """Add color coding to survival descriptions based on level"""
+        return format_survival_text(description, level.name)
+    
+    def _add_temperature_color(self, description: str, status) -> str:
+        """Add color coding to temperature descriptions"""
+        return format_temperature_text(description, status.name)
+    
+    def _add_wetness_color(self, description: str, level) -> str:
+        """Add color coding to wetness descriptions"""
+        return format_wetness_text(description, level.name)
+    
+    def _get_elevation_description(self) -> str:
+        """Get natural language elevation description"""
+        elevation_str = self.world_data.get("elevation", "320 ft")
+        
+        # Extract numeric value from elevation string
+        try:
+            if "ft" in elevation_str:
+                elevation_ft = int(elevation_str.replace("ft", "").strip())
+            else:
+                elevation_ft = 320  # Default
+        except:
+            elevation_ft = 320  # Default fallback
+        
+        # Convert to natural language descriptions
+        if elevation_ft < 100:
+            return "Near sea level"
+        elif elevation_ft < 500:
+            return "Low hills"
+        elif elevation_ft < 1000:
+            return "Rolling hills"
+        elif elevation_ft < 2000:
+            return "High hills"
+        elif elevation_ft < 3000:
+            return "Low mountains"
+        elif elevation_ft < 5000:
+            return "Mountains"
+        elif elevation_ft < 8000:
+            return "High mountains"
+        else:
+            return "Alpine peaks"
+    
     def _get_environment_description(self, char) -> str:
         """Get realistic environment description without modern measurements"""
         if hasattr(char, 'player_state') and char.player_state and char.player_state.current_weather:
@@ -376,13 +431,15 @@ Elevation: {world["elevation"]}"""
 Wind: {self._get_wind_description(weather.wind_speed)}
 Sky: {sky_desc}
 Weather: {weather_desc}
-Humidity: {humidity}"""
+Humidity: {humidity}
+Elevation: {self._get_elevation_description()}"""
         else:
-            return """Temperature: Mild
+            return f"""Temperature: Mild
 Wind: Light breeze
 Sky: Clear
 Weather: Sunny
-Humidity: Moderate"""
+Humidity: Moderate
+Elevation: {self._get_elevation_description()}"""
     
     def _get_ambient_temperature_description(self, temp_f: float) -> str:
         """Get ambient temperature description without numbers"""

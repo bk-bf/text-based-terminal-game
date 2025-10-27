@@ -193,7 +193,8 @@ class ActionLogger:
         if result.get("success", True) and destination:
             self.game_log_panel.add_message(f"[>] You travel to {destination} (Hex {hex_id})")
             if elevation:
-                self.game_log_panel.add_message(f"Elevation: {elevation}")
+                natural_elevation = self._convert_elevation_to_natural(elevation)
+                self.game_log_panel.add_message(f"Elevation: {natural_elevation}")
             
             # Show nearby locations
             if nearby_locations:
@@ -387,6 +388,34 @@ class ActionLogger:
         # Log warnings
         for warning in warnings:
             self.game_log_panel.add_message(f"[!] {warning}")
+    
+    def _convert_elevation_to_natural(self, elevation_str: str) -> str:
+        """Convert elevation to natural language description"""
+        try:
+            if "ft" in elevation_str:
+                elevation_ft = int(elevation_str.replace("ft", "").strip())
+            else:
+                elevation_ft = 320  # Default
+        except:
+            elevation_ft = 320  # Default fallback
+        
+        # Convert to natural language descriptions
+        if elevation_ft < 100:
+            return "Near sea level"
+        elif elevation_ft < 500:
+            return "Low hills"
+        elif elevation_ft < 1000:
+            return "Rolling hills"
+        elif elevation_ft < 2000:
+            return "High hills"
+        elif elevation_ft < 3000:
+            return "Low mountains"
+        elif elevation_ft < 5000:
+            return "Mountains"
+        elif elevation_ft < 8000:
+            return "High mountains"
+        else:
+            return "Alpine peaks"
 
 
 # Global action logger instance

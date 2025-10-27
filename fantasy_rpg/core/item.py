@@ -135,7 +135,28 @@ class ItemLoader:
     def __init__(self, data_dir: Path = None):
         """Initialize with data directory path."""
         if data_dir is None:
-            data_dir = Path(__file__).parent / "data"
+            # Try to find the data directory relative to this file
+            current_dir = Path(__file__).parent
+            
+            # Option 1: data directory in same parent as core (fantasy_rpg/data)
+            parent_data_dir = current_dir.parent / "data"
+            
+            # Option 2: data directory in core (fantasy_rpg/core/data)
+            core_data_dir = current_dir / "data"
+            
+            # Option 3: relative to working directory
+            relative_data_dir = Path("fantasy_rpg/data")
+            
+            if parent_data_dir.exists():
+                data_dir = parent_data_dir
+            elif core_data_dir.exists():
+                data_dir = core_data_dir
+            elif relative_data_dir.exists():
+                data_dir = relative_data_dir
+            else:
+                # Fallback - use parent data dir even if it doesn't exist yet
+                data_dir = parent_data_dir
+        
         self.data_dir = data_dir
         self._cache = {}
     
