@@ -1,4 +1,91 @@
 {
+    "_comment": "AVAILABLE POOLS FOR ITEMS",
+    "_item_pools": [
+        "treasure",
+        "valuable",
+        "currency",
+        "magical",
+        "weapons",
+        "common",
+        "melee",
+        "versatile",
+        "armor",
+        "defensive",
+        "light",
+        "leather",
+        "heavy",
+        "finesse",
+        "thrown",
+        "basic",
+        "blunt",
+        "wood",
+        "tools",
+        "rare",
+        "criminal",
+        "utility",
+        "ruins",
+        "ancient",
+        "damaged",
+        "food",
+        "forest",
+        "wilderness",
+        "natural",
+        "herbs",
+        "healing",
+        "potions",
+        "preserved",
+        "survival",
+        "materials",
+        "fuel",
+        "bones",
+        "undead",
+        "pelts",
+        "predators",
+        "animals",
+        "crystals",
+        "cave",
+        "underground",
+        "alchemy",
+        "abandoned",
+        "sentimental",
+        "farming",
+        "enchanted",
+        "very_rare",
+        "fighter_gear",
+        "rogue_gear",
+        "cleric_gear",
+        "wizard_gear",
+        "acolyte_gear",
+        "criminal_gear",
+        "folk_hero_gear",
+        "noble_gear",
+        "sage_gear",
+        "soldier_gear",
+        "human_gear",
+        "elf_gear",
+        "dwarf_gear",
+        "halfling_gear",
+        "religious",
+        "scholarly",
+        "artisan",
+        "military",
+        "noble_items",
+        "starting_gear"
+    ],
+    "_item_types": [
+        "weapon",
+        "armor",
+        "shield",
+        "tool",
+        "consumable",
+        "material",
+        "treasure",
+        "accessory",
+        "ammunition",
+        "component",
+        "container"
+    ],
+    "_usage": "Items have 'pools' that determine where they can drop, 'drop_weight' for rarity in drops, 'type' for categorization, game stats (damage, AC, value, weight), and equipment properties.",
     "items": {
         "chain_mail": {
             "name": "Chain Mail",
@@ -9,7 +96,17 @@
             "value": 75,
             "equippable": true,
             "slot": "body",
-            "description": "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows."
+            "description": "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows.",
+            "pools": [
+                "treasure",
+                "valuable",
+                "armor",
+                "heavy",
+                "fighter_gear",
+                "military",
+                "starting_gear"
+            ],
+            "drop_weight": 15
         },
         "longsword": {
             "name": "Longsword",
@@ -23,7 +120,14 @@
             "special_properties": [
                 "versatile"
             ],
-            "description": "A versatile weapon that can be used with one or two hands."
+            "description": "A versatile weapon that can be used with one or two hands.",
+            "pools": [
+                "weapons",
+                "common",
+                "melee",
+                "versatile"
+            ],
+            "drop_weight": 40
         },
         "shield": {
             "name": "Shield",
@@ -33,7 +137,13 @@
             "value": 10,
             "equippable": true,
             "slot": "off_hand",
-            "description": "A shield is made from wood or metal and is carried in one hand."
+            "description": "A shield is made from wood or metal and is carried in one hand.",
+            "pools": [
+                "armor",
+                "common",
+                "defensive"
+            ],
+            "drop_weight": 30
         },
         "leather_armor": {
             "name": "Leather Armor",
@@ -44,7 +154,16 @@
             "value": 10,
             "equippable": true,
             "slot": "body",
-            "description": "The breastplate and shoulder protectors of this armor are made of leather that has been stiffened by being boiled in oil."
+            "description": "The breastplate and shoulder protectors of this armor are made of leather that has been stiffened by being boiled in oil.",
+            "pools": [
+                "armor",
+                "common",
+                "light",
+                "leather",
+                "rogue_gear",
+                "starting_gear"
+            ],
+            "drop_weight": 50
         },
         "shortsword": {
             "name": "Shortsword",
@@ -59,7 +178,14 @@
                 "finesse",
                 "light"
             ],
-            "description": "A light, finesse weapon perfect for quick strikes."
+            "description": "A light, finesse weapon perfect for quick strikes.",
+            "pools": [
+                "weapons",
+                "common",
+                "melee",
+                "finesse"
+            ],
+            "drop_weight": 45
         },
         "thieves_tools": {
             "name": "Thieves' Tools",
@@ -67,51 +193,14 @@
             "weight": 1,
             "value": 25,
             "equippable": false,
-            "description": "This set of tools includes a small file, a set of lock picks, a small mirror mounted on a metal handle, a set of narrow-bladed scissors, and a pair of pliers."
-        },
-        "scale_mail": {
-            "name": "Scale Mail",
-            "type": "armor",
-            "ac_bonus": 14,
-            "armor_type": "medium",
-            "weight": 45,
-            "value": 50,
-            "equippable": true,
-            "slot": "body",
-            "description": "This armor consists of a coat and leggings (and perhaps a separate skirt) of leather covered with overlapping pieces of metal."
-        },
-        "mace": {
-            "name": "Mace",
-            "type": "weapon",
-            "damage_dice": "1d6",
-            "damage_type": "bludgeoning",
-            "weight": 4,
-            "value": 5,
-            "equippable": true,
-            "slot": "hand",
-            "description": "A simple weapon with a heavy head on a handle, effective against armor."
-        },
-        "holy_symbol": {
-            "name": "Holy Symbol",
-            "type": "tool",
-            "weight": 1,
-            "value": 5,
-            "equippable": false,
-            "description": "A holy symbol is a representation of a god or pantheon. A cleric or paladin can use a holy symbol as a spellcasting focus."
-        },
-        "quarterstaff": {
-            "name": "Quarterstaff",
-            "type": "weapon",
-            "damage_dice": "1d6",
-            "damage_type": "bludgeoning",
-            "weight": 4,
-            "value": 2,
-            "equippable": true,
-            "slot": "hand",
-            "special_properties": [
-                "versatile"
+            "description": "This set of tools includes a small file, a set of lock picks, a small mirror mounted on a metal handle, a set of narrow-bladed scissors, and a pair of pliers.",
+            "pools": [
+                "tools",
+                "rare",
+                "criminal",
+                "utility"
             ],
-            "description": "A quarterstaff is a simple weapon that can be used with one or two hands."
+            "drop_weight": 20
         },
         "dagger": {
             "name": "Dagger",
@@ -127,136 +216,357 @@
                 "light",
                 "thrown"
             ],
-            "description": "A simple, versatile weapon that can be thrown or used in melee."
+            "description": "A simple, versatile weapon that can be thrown or used in melee.",
+            "pools": [
+                "weapons",
+                "common",
+                "melee",
+                "thrown",
+                "basic"
+            ],
+            "drop_weight": 60
         },
-        "spellbook": {
-            "name": "Spellbook",
-            "type": "tool",
-            "weight": 3,
-            "value": 50,
-            "equippable": false,
-            "description": "Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells."
+        "quarterstaff": {
+            "name": "Quarterstaff",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "weight": 4,
+            "value": 2,
+            "equippable": true,
+            "slot": "hand",
+            "special_properties": [
+                "versatile"
+            ],
+            "description": "A quarterstaff is a simple weapon that can be used with one or two hands.",
+            "pools": [
+                "weapons",
+                "common",
+                "melee",
+                "basic",
+                "wood"
+            ],
+            "drop_weight": 50
         },
-        "component_pouch": {
-            "name": "Component Pouch",
-            "type": "tool",
-            "weight": 2,
-            "value": 25,
-            "equippable": false,
-            "description": "A component pouch is a small, watertight leather belt pouch that has compartments to hold all the material components and other special items you need to cast your spells."
-        },
-        "leather_boots": {
-            "name": "Leather Boots",
-            "type": "armor",
-            "ac_bonus": 0,
-            "weight": 2,
+        "mace": {
+            "name": "Mace",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "weight": 4,
             "value": 5,
             "equippable": true,
-            "slot": "feet",
-            "description": "Sturdy leather boots that protect your feet."
+            "slot": "hand",
+            "description": "A simple weapon with a heavy head on a handle, effective against armor.",
+            "pools": [
+                "weapons",
+                "common",
+                "melee",
+                "blunt"
+            ],
+            "drop_weight": 35
         },
-        "leather_gloves": {
-            "name": "Leather Gloves",
-            "type": "armor",
-            "ac_bonus": 0,
-            "weight": 1,
-            "value": 3,
-            "equippable": true,
-            "slot": "hands",
-            "description": "Flexible leather gloves that provide grip and protection."
-        },
-        "iron_helmet": {
-            "name": "Iron Helmet",
-            "type": "armor",
-            "ac_bonus": 1,
+        "rusty_sword": {
+            "name": "Rusty Sword",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "slashing",
             "weight": 3,
-            "value": 15,
+            "value": 2,
             "equippable": true,
-            "slot": "head",
-            "description": "A sturdy iron helmet that protects your head."
+            "slot": "hand",
+            "description": "An old, rusty sword found in ancient ruins. Still functional but worn.",
+            "pools": [
+                "weapons",
+                "ruins",
+                "ancient",
+                "damaged",
+                "common"
+            ],
+            "drop_weight": 70
         },
-        "silver_ring": {
-            "name": "Silver Ring",
-            "type": "accessory",
-            "ac_bonus": 0,
+        "ancient_coin": {
+            "name": "Ancient Coin",
+            "type": "treasure",
             "weight": 0.1,
-            "value": 25,
-            "equippable": true,
-            "slot": "ring",
-            "description": "A simple silver ring."
+            "value": 5,
+            "equippable": false,
+            "description": "A tarnished coin from a long-lost civilization.",
+            "pools": [
+                "treasure",
+                "ruins",
+                "ancient",
+                "currency",
+                "common"
+            ],
+            "drop_weight": 80
         },
-        "gold_amulet": {
-            "name": "Gold Amulet",
-            "type": "accessory",
-            "ac_bonus": 0,
+        "gold_coins": {
+            "name": "Gold Coins",
+            "type": "treasure",
+            "weight": 0.02,
+            "value": 1,
+            "equippable": false,
+            "description": "Standard gold coins used as currency.",
+            "pools": [
+                "treasure",
+                "currency",
+                "valuable",
+                "common"
+            ],
+            "drop_weight": 90
+        },
+        "silver_coins": {
+            "name": "Silver Coins",
+            "type": "treasure",
+            "weight": 0.02,
+            "value": 0.1,
+            "equippable": false,
+            "description": "Silver coins, worth less than gold but still valuable.",
+            "pools": [
+                "treasure",
+                "currency",
+                "common"
+            ],
+            "drop_weight": 100
+        },
+        "wild_berries": {
+            "name": "Wild Berries",
+            "type": "consumable",
+            "weight": 0.1,
+            "value": 1,
+            "equippable": false,
+            "description": "Fresh berries found growing wild. Restores 1 HP when eaten.",
+            "pools": [
+                "food",
+                "forest",
+                "wilderness",
+                "natural",
+                "common"
+            ],
+            "drop_weight": 60
+        },
+        "medicinal_herbs": {
+            "name": "Medicinal Herbs",
+            "type": "consumable",
+            "weight": 0.1,
+            "value": 5,
+            "equippable": false,
+            "description": "Herbs with healing properties. Can be used to craft potions.",
+            "pools": [
+                "herbs",
+                "forest",
+                "wilderness",
+                "healing",
+                "natural"
+            ],
+            "drop_weight": 40
+        },
+        "healing_potion": {
+            "name": "Potion of Healing",
+            "type": "consumable",
             "weight": 0.5,
-            "value": 100,
-            "equippable": true,
-            "slot": "amulet",
-            "description": "A beautiful gold amulet worn around the neck."
-        },
-        "ring_of_protection": {
-            "name": "Ring of Protection",
-            "type": "accessory",
-            "ac_bonus": 1,
-            "weight": 0.1,
-            "value": 500,
-            "equippable": true,
-            "slot": "ring",
-            "magical": true,
-            "enchantment_bonus": 1,
-            "special_properties": [
-                "protection"
+            "value": 50,
+            "equippable": false,
+            "description": "A magical red liquid that restores 2d4+2 hit points when consumed.",
+            "pools": [
+                "potions",
+                "healing",
+                "magical",
+                "valuable"
             ],
-            "description": "A magical ring that provides +1 AC and +1 to saving throws."
+            "drop_weight": 25
         },
-        "gauntlets_of_ogre_power": {
-            "name": "Gauntlets of Ogre Power",
-            "type": "accessory",
-            "ac_bonus": 0,
-            "weight": 2,
-            "value": 8000,
-            "equippable": true,
-            "slot": "hands",
-            "magical": true,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "strength_19"
+        "dried_meat": {
+            "name": "Dried Meat",
+            "type": "consumable",
+            "weight": 1.0,
+            "value": 3,
+            "equippable": false,
+            "description": "Preserved meat that provides sustenance.",
+            "pools": [
+                "food",
+                "preserved",
+                "common",
+                "survival"
             ],
-            "description": "These gauntlets set your Strength score to 19 while worn."
+            "drop_weight": 50
         },
-        "headband_of_intellect": {
-            "name": "Headband of Intellect",
-            "type": "accessory",
-            "ac_bonus": 0,
-            "weight": 1,
-            "value": 8000,
-            "equippable": true,
-            "slot": "head",
-            "magical": true,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "intelligence_19"
+        "firewood": {
+            "name": "Firewood",
+            "type": "material",
+            "weight": 2.0,
+            "value": 1,
+            "equippable": false,
+            "description": "Dry wood suitable for burning.",
+            "pools": [
+                "materials",
+                "fuel",
+                "wood",
+                "common",
+                "survival"
             ],
-            "description": "This headband sets your Intelligence score to 19 while worn."
+            "drop_weight": 80
         },
-        "amulet_of_health": {
-            "name": "Amulet of Health",
-            "type": "accessory",
-            "ac_bonus": 0,
-            "weight": 1,
-            "value": 8000,
-            "equippable": true,
-            "slot": "amulet",
-            "magical": true,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "constitution_19"
+        "rope": {
+            "name": "Hemp Rope",
+            "type": "tool",
+            "weight": 10.0,
+            "value": 2,
+            "equippable": false,
+            "description": "50 feet of sturdy hemp rope.",
+            "pools": [
+                "tools",
+                "utility",
+                "common",
+                "survival"
             ],
-            "description": "This amulet sets your Constitution score to 19 while worn."
+            "drop_weight": 30
         },
-        "magic_sword_plus_1": {
-            "name": "Magic Sword +1",
+        "torch": {
+            "name": "Torch",
+            "type": "tool",
+            "weight": 1.0,
+            "value": 1,
+            "equippable": false,
+            "description": "A wooden torch that provides light for 1 hour when lit.",
+            "pools": [
+                "tools",
+                "light",
+                "common",
+                "survival"
+            ],
+            "drop_weight": 70
+        },
+        "bone_fragments": {
+            "name": "Bone Fragments",
+            "type": "material",
+            "weight": 0.5,
+            "value": 1,
+            "equippable": false,
+            "description": "Fragments of old bones, possibly useful for crafting.",
+            "pools": [
+                "materials",
+                "bones",
+                "undead",
+                "ruins",
+                "common"
+            ],
+            "drop_weight": 90
+        },
+        "wolf_pelt": {
+            "name": "Wolf Pelt",
+            "type": "material",
+            "weight": 3.0,
+            "value": 10,
+            "equippable": false,
+            "description": "The hide of a wolf, useful for crafting leather goods.",
+            "pools": [
+                "materials",
+                "pelts",
+                "forest",
+                "predators",
+                "valuable"
+            ],
+            "drop_weight": 80
+        },
+        "deer_hide": {
+            "name": "Deer Hide",
+            "type": "material",
+            "weight": 2.0,
+            "value": 5,
+            "equippable": false,
+            "description": "Soft deer hide, excellent for crafting.",
+            "pools": [
+                "materials",
+                "pelts",
+                "forest",
+                "animals",
+                "common"
+            ],
+            "drop_weight": 70
+        },
+        "cave_crystals": {
+            "name": "Cave Crystals",
+            "type": "material",
+            "weight": 1.0,
+            "value": 15,
+            "equippable": false,
+            "description": "Glittering crystals found in deep caves.",
+            "pools": [
+                "materials",
+                "crystals",
+                "cave",
+                "underground",
+                "valuable"
+            ],
+            "drop_weight": 30
+        },
+        "bat_guano": {
+            "name": "Bat Guano",
+            "type": "material",
+            "weight": 0.5,
+            "value": 2,
+            "equippable": false,
+            "description": "Bat droppings, useful as fertilizer or alchemical component.",
+            "pools": [
+                "materials",
+                "cave",
+                "underground",
+                "alchemy",
+                "common"
+            ],
+            "drop_weight": 60
+        },
+        "rusty_tools": {
+            "name": "Rusty Tools",
+            "type": "tool",
+            "weight": 5.0,
+            "value": 3,
+            "equippable": false,
+            "description": "Old farming tools, rusty but still functional.",
+            "pools": [
+                "tools",
+                "abandoned",
+                "plains",
+                "farming",
+                "damaged"
+            ],
+            "drop_weight": 50
+        },
+        "family_heirloom": {
+            "name": "Family Heirloom",
+            "type": "treasure",
+            "weight": 1.0,
+            "value": 50,
+            "equippable": false,
+            "description": "A precious family keepsake left behind in the abandoned home.",
+            "pools": [
+                "treasure",
+                "abandoned",
+                "valuable",
+                "rare",
+                "sentimental"
+            ],
+            "drop_weight": 15
+        },
+        "preserved_food": {
+            "name": "Preserved Food",
+            "type": "consumable",
+            "weight": 1.5,
+            "value": 4,
+            "equippable": false,
+            "description": "Food that has been preserved and is still edible.",
+            "pools": [
+                "food",
+                "preserved",
+                "abandoned",
+                "survival"
+            ],
+            "drop_weight": 40
+        },
+        "magic_weapon": {
+            "name": "Enchanted Blade",
             "type": "weapon",
             "damage_dice": "1d8",
             "damage_type": "slashing",
@@ -266,219 +576,179 @@
             "slot": "hand",
             "magical": true,
             "enchantment_bonus": 1,
-            "special_properties": [
-                "versatile"
+            "description": "A magical sword that glows with inner light.",
+            "pools": [
+                "weapons",
+                "magical",
+                "treasure",
+                "rare",
+                "enchanted"
             ],
-            "description": "A magical longsword with a +1 enhancement bonus to attack and damage rolls."
+            "drop_weight": 5
         },
-        "magic_armor_plus_1": {
-            "name": "Magic Leather Armor +1",
-            "type": "armor",
-            "ac_bonus": 11,
-            "armor_type": "light",
-            "weight": 10,
-            "value": 1500,
-            "equippable": true,
-            "slot": "body",
-            "magical": true,
-            "enchantment_bonus": 1,
-            "special_properties": [],
-            "description": "Magical leather armor with a +1 enhancement bonus to AC."
-        },
-        "greatsword": {
-            "name": "Greatsword",
-            "type": "weapon",
-            "damage_dice": "2d6",
-            "damage_type": "slashing",
-            "weight": 6,
-            "value": 50,
-            "equippable": true,
-            "slot": "hand",
-            "magical": false,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "two-handed",
-                "heavy"
-            ],
-            "description": "A massive two-handed sword that deals devastating damage."
-        },
-        "greataxe": {
-            "name": "Greataxe",
-            "type": "weapon",
-            "damage_dice": "1d12",
-            "damage_type": "slashing",
-            "weight": 7,
-            "value": 30,
-            "equippable": true,
-            "slot": "hand",
-            "magical": false,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "two-handed",
-                "heavy"
-            ],
-            "description": "A large, two-handed axe favored by barbarians."
-        },
-        "longbow": {
-            "name": "Longbow",
-            "type": "weapon",
-            "damage_dice": "1d8",
-            "damage_type": "piercing",
-            "weight": 2,
-            "value": 50,
-            "equippable": true,
-            "slot": "hand",
-            "magical": false,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "two-handed",
-                "ranged"
-            ],
-            "description": "A tall bow that requires both hands to use effectively."
-        },
-        "heavy_crossbow": {
-            "name": "Heavy Crossbow",
-            "type": "weapon",
-            "damage_dice": "1d10",
-            "damage_type": "piercing",
-            "weight": 18,
-            "value": 50,
-            "equippable": true,
-            "slot": "hand",
-            "magical": false,
-            "enchantment_bonus": 0,
-            "special_properties": [
-                "two-handed",
-                "ranged",
-                "loading"
-            ],
-            "description": "A powerful crossbow that requires both hands to operate."
-        },
-        "healing_potion": {
-            "name": "Potion of Healing",
-            "type": "consumable",
-            "weight": 0.5,
-            "value": 50,
-            "equippable": false,
-            "description": "A magical red liquid that restores 2d4+2 hit points when consumed."
-        },
-        "mana_potion": {
-            "name": "Potion of Mana",
-            "type": "consumable",
-            "weight": 0.5,
-            "value": 75,
-            "equippable": false,
-            "description": "A shimmering blue potion that restores spell slots when consumed."
-        },
-        "antidote": {
-            "name": "Antidote",
-            "type": "consumable",
-            "weight": 0.25,
-            "value": 25,
-            "equippable": false,
-            "description": "A bitter green liquid that neutralizes poison when consumed."
-        },
-        "rations": {
-            "name": "Trail Rations",
-            "type": "consumable",
+        "ancient_artifact": {
+            "name": "Ancient Artifact",
+            "type": "treasure",
             "weight": 2.0,
-            "value": 2,
+            "value": 500,
             "equippable": false,
-            "description": "Dried food that provides sustenance for one day."
+            "magical": true,
+            "description": "A mysterious artifact from a bygone age, radiating magical energy.",
+            "pools": [
+                "treasure",
+                "magical",
+                "ancient",
+                "ruins",
+                "very_rare"
+            ],
+            "drop_weight": 3
         },
-        "arrows": {
-            "name": "Arrows",
-            "type": "ammunition",
-            "weight": 0.05,
-            "value": 1,
-            "equippable": false,
-            "description": "Standard arrows for bows. Sold in bundles of 20."
-        },
-        "crossbow_bolts": {
-            "name": "Crossbow Bolts",
-            "type": "ammunition",
-            "weight": 0.075,
-            "value": 1,
-            "equippable": false,
-            "description": "Standard bolts for crossbows. Sold in bundles of 20."
-        },
-        "torch": {
-            "name": "Torch",
+        "holy_symbol": {
+            "name": "Holy Symbol",
             "type": "tool",
-            "weight": 1.0,
-            "value": 1,
-            "equippable": false,
-            "description": "A wooden torch that provides light for 1 hour when lit."
-        },
-        "rope": {
-            "name": "Hemp Rope (50 feet)",
-            "type": "tool",
-            "weight": 10.0,
-            "value": 2,
-            "equippable": false,
-            "description": "50 feet of sturdy hemp rope."
-        },
-        "spell_components": {
-            "name": "Spell Components",
-            "type": "component",
-            "weight": 0.1,
+            "weight": 1,
             "value": 5,
             "equippable": false,
-            "description": "Various magical components used for spellcasting."
-        },
-        "backpack": {
-            "name": "Backpack",
-            "type": "container",
-            "weight": 5.0,
-            "value": 2,
-            "equippable": true,
-            "slot": "back",
-            "capacity_bonus": 30.0,
-            "description": "A sturdy leather backpack that increases carrying capacity by 30 lbs."
-        },
-        "large_backpack": {
-            "name": "Large Backpack",
-            "type": "container",
-            "weight": 8.0,
-            "value": 10,
-            "equippable": true,
-            "slot": "back",
-            "capacity_bonus": 50.0,
-            "description": "A large, reinforced backpack that increases carrying capacity by 50 lbs."
-        },
-        "satchel": {
-            "name": "Satchel",
-            "type": "container",
-            "weight": 2.0,
-            "value": 1,
-            "equippable": true,
-            "slot": "waist",
-            "capacity_bonus": 10.0,
-            "description": "A small leather satchel that increases carrying capacity by 10 lbs."
-        },
-        "belt_pouch": {
-            "name": "Belt Pouch",
-            "type": "container",
-            "weight": 1.0,
-            "value": 1,
-            "equippable": true,
-            "slot": "waist",
-            "capacity_bonus": 5.0,
-            "description": "A small belt pouch that increases carrying capacity by 5 lbs."
-        },
-        "bag_of_holding": {
-            "name": "Bag of Holding",
-            "type": "container",
-            "weight": 15.0,
-            "value": 4000,
-            "equippable": true,
-            "slot": "back",
-            "magical": true,
-            "capacity_bonus": 500.0,
-            "special_properties": [
-                "extradimensional"
+            "description": "A holy symbol is a representation of a god or pantheon. A cleric or paladin can use a holy symbol as a spellcasting focus.",
+            "pools": [
+                "religious",
+                "cleric_gear",
+                "acolyte_gear",
+                "starting_gear",
+                "tools"
             ],
-            "description": "A magical bag that creates an extradimensional space, increasing carrying capacity by 500 lbs."
+            "drop_weight": 40
+        },
+        "spellbook": {
+            "name": "Spellbook",
+            "type": "tool",
+            "weight": 3,
+            "value": 50,
+            "equippable": false,
+            "description": "Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells.",
+            "pools": [
+                "scholarly",
+                "wizard_gear",
+                "sage_gear",
+                "starting_gear",
+                "tools",
+                "magical"
+            ],
+            "drop_weight": 30
+        },
+        "component_pouch": {
+            "name": "Component Pouch",
+            "type": "tool",
+            "weight": 2,
+            "value": 25,
+            "equippable": false,
+            "description": "A component pouch is a small, watertight leather belt pouch that has compartments to hold all the material components and other special items you need to cast your spells.",
+            "pools": [
+                "scholarly",
+                "wizard_gear",
+                "starting_gear",
+                "tools",
+                "magical"
+            ],
+            "drop_weight": 35
+        },
+        "scale_mail": {
+            "name": "Scale Mail",
+            "type": "armor",
+            "ac_bonus": 14,
+            "armor_type": "medium",
+            "weight": 45,
+            "value": 50,
+            "equippable": true,
+            "slot": "body",
+            "description": "This armor consists of a coat and leggings (and perhaps a separate skirt) of leather covered with overlapping pieces of metal.",
+            "pools": [
+                "armor",
+                "cleric_gear",
+                "starting_gear",
+                "military"
+            ],
+            "drop_weight": 25
+        },
+        "common_clothes": {
+            "name": "Common Clothes",
+            "type": "clothing",
+            "weight": 3,
+            "value": 1,
+            "equippable": true,
+            "slot": "body",
+            "description": "Simple, everyday clothing worn by common folk.",
+            "pools": [
+                "common",
+                "starting_gear",
+                "acolyte_gear",
+                "folk_hero_gear",
+                "sage_gear",
+                "soldier_gear"
+            ],
+            "drop_weight": 80
+        },
+        "fine_clothes": {
+            "name": "Fine Clothes",
+            "type": "clothing",
+            "weight": 6,
+            "value": 15,
+            "equippable": true,
+            "slot": "body",
+            "description": "Expensive, well-made clothing that marks the wearer as wealthy.",
+            "pools": [
+                "noble_items",
+                "noble_gear",
+                "starting_gear",
+                "valuable"
+            ],
+            "drop_weight": 20
+        },
+        "signet_ring": {
+            "name": "Signet Ring",
+            "type": "accessory",
+            "weight": 0.1,
+            "value": 50,
+            "equippable": true,
+            "slot": "ring",
+            "description": "A ring bearing a family crest or noble seal.",
+            "pools": [
+                "noble_items",
+                "noble_gear",
+                "starting_gear",
+                "valuable"
+            ],
+            "drop_weight": 15
+        },
+        "artisan_tools": {
+            "name": "Artisan's Tools",
+            "type": "tool",
+            "weight": 5,
+            "value": 20,
+            "equippable": false,
+            "description": "Tools for a specific craft or trade.",
+            "pools": [
+                "artisan",
+                "folk_hero_gear",
+                "starting_gear",
+                "tools"
+            ],
+            "drop_weight": 40
+        },
+        "crowbar": {
+            "name": "Crowbar",
+            "type": "tool",
+            "weight": 5,
+            "value": 2,
+            "equippable": false,
+            "description": "A heavy iron bar used for prying things apart.",
+            "pools": [
+                "criminal_gear",
+                "starting_gear",
+                "tools",
+                "utility"
+            ],
+            "drop_weight": 50
         }
     }
 }

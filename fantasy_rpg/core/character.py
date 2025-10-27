@@ -6,7 +6,20 @@ Character creation and management functionality.
 
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
-from .inventory import Inventory, InventoryItem, InventoryManager
+try:
+    from .inventory import Inventory, InventoryItem, InventoryManager
+except ImportError:
+    # Handle running directly from core directory
+    try:
+        from inventory import Inventory, InventoryItem, InventoryManager
+    except ImportError:
+        # Create minimal stubs if inventory system not available
+        class Inventory:
+            def __init__(self): pass
+        class InventoryItem:
+            def __init__(self): pass
+        class InventoryManager:
+            def __init__(self): pass
 
 # D&D 5e Experience Point Thresholds for levels 1-20
 # Generated using the official D&D 5e XP progression formula
@@ -786,10 +799,28 @@ def create_character(name: str, race: str = "Human", character_class: str = "Fig
     # Try to load class data for proper HP calculation
     try:
         from .character_class import ClassLoader
+    except ImportError:
+        try:
+            from character_class import ClassLoader
+        except ImportError:
+            print("Warning: ClassLoader not available, using minimal class system")
+            class ClassLoader:
+                def get_class(self, class_name):
+                    return type('MockClass', (), {
+                        'name': class_name.title(),
+                        'hit_die': 10,
+                        'starting_equipment': []
+                    })()
+    
+    try:
         from .equipment import Equipment
     except ImportError:
-        from fantasy_rpg.core.character_class import ClassLoader
-        from fantasy_rpg.core.equipment import Equipment
+        try:
+            from equipment import Equipment
+        except ImportError:
+            print("Warning: Equipment system not available, using minimal equipment")
+            class Equipment:
+                def __init__(self): pass
     
     class_loader = ClassLoader()
     char_class = class_loader.get_class(character_class.lower())

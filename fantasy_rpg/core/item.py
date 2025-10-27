@@ -21,19 +21,30 @@ class Item:
     name: str
     item_type: str  # 'weapon', 'armor', 'shield', 'consumable', etc.
     weight: float
-    cost: int = 0
+    value: int = 0  # Changed from 'cost' to match JSON
     description: str = ""
     properties: Optional[List[str]] = None
+    pools: Optional[List[str]] = None  # Pool tags for spawning/drops
+    drop_weight: int = 1  # Weight for drop calculations
     
     # Equipment-specific attributes (None for non-equipment items)
     ac_bonus: Optional[int] = None
-    damage: Optional[str] = None
+    damage_dice: Optional[str] = None  # Changed from 'damage' to match JSON
     damage_type: Optional[str] = None
+    equippable: bool = False
+    slot: Optional[str] = None
+    magical: bool = False
+    enchantment_bonus: int = 0
+    special_properties: Optional[List[str]] = None
     
     def __post_init__(self):
-        """Initialize empty properties list if not provided."""
+        """Initialize empty lists if not provided."""
         if self.properties is None:
             self.properties = []
+        if self.pools is None:
+            self.pools = []
+        if self.special_properties is None:
+            self.special_properties = []
     
     def has_property(self, property_name: str) -> bool:
         """Check if this item has a specific property."""
@@ -91,12 +102,18 @@ class Item:
         desc = f"{self.name} ({self.item_type})"
         if self.weight > 0:
             desc += f" - {self.weight} lbs"
+        if self.value > 0:
+            desc += f" - ${self.value}"
         if self.ac_bonus:
             desc += f" - AC +{self.ac_bonus}"
-        if self.damage:
-            desc += f" - {self.damage} {self.damage_type or ''} damage"
-        if self.properties:
-            desc += f" - Properties: {', '.join(self.properties)}"
+        if self.damage_dice:
+            desc += f" - {self.damage_dice} {self.damage_type or ''} damage"
+        if self.magical:
+            desc += f" - Magical"
+            if self.enchantment_bonus > 0:
+                desc += f" +{self.enchantment_bonus}"
+        if self.special_properties:
+            desc += f" - Properties: {', '.join(self.special_properties)}"
         return desc
     
     def to_dict(self) -> Dict[str, Any]:
@@ -105,12 +122,18 @@ class Item:
             "name": self.name,
             "type": self.item_type,
             "weight": self.weight,
-            "cost": self.cost,
+            "value": self.value,
             "description": self.description,
-            "properties": self.properties or [],
+            "pools": self.pools or [],
+            "drop_weight": self.drop_weight,
             "ac_bonus": self.ac_bonus,
-            "damage": self.damage,
-            "damage_type": self.damage_type
+            "damage_dice": self.damage_dice,
+            "damage_type": self.damage_type,
+            "equippable": self.equippable,
+            "slot": self.slot,
+            "magical": self.magical,
+            "enchantment_bonus": self.enchantment_bonus,
+            "special_properties": self.special_properties or []
         }
     
     @classmethod
@@ -120,12 +143,19 @@ class Item:
             name=data["name"],
             item_type=data.get("type", "misc"),
             weight=data.get("weight", 0.0),
-            cost=data.get("cost", 0),
+            value=data.get("value", 0),
             description=data.get("description", ""),
             properties=data.get("properties", []),
+            pools=data.get("pools", []),
+            drop_weight=data.get("drop_weight", 1),
             ac_bonus=data.get("ac_bonus"),
-            damage=data.get("damage"),
-            damage_type=data.get("damage_type")
+            damage_dice=data.get("damage_dice"),
+            damage_type=data.get("damage_type"),
+            equippable=data.get("equippable", False),
+            slot=data.get("slot"),
+            magical=data.get("magical", False),
+            enchantment_bonus=data.get("enchantment_bonus", 0),
+            special_properties=data.get("special_properties", [])
         )
 
 
@@ -196,6 +226,20 @@ class ItemLoader:
         """Get all items of a specific type."""
         items = self.load_items()
         return [item for item in items.values() if item.item_type == item_type]
+    
+    def get_items_by_pool(self, pool_name: str) -> List[Item]:
+        """Get all items that belong to a specific pool."""
+        items = self.load_items()
+        return [item for item in items.values() if pool_name in (item.pools or [])]
+    
+    def get_items_by_pools(self, pool_names: List[str]) -> List[Item]:
+        """Get all items that belong to any of the specified pools."""
+        items = self.load_items()
+        result = []
+        for item in items.values():
+            if item.pools and any(pool in item.pools for pool in pool_names):
+                result.append(item)
+        return result
 
 
 # Utility functions for creating common items
@@ -205,12 +249,19 @@ def create_item(name: str, item_type: str, weight: float, **kwargs) -> Item:
         name=name,
         item_type=item_type,
         weight=weight,
-        cost=kwargs.get('cost', 0),
+        value=kwargs.get('value', kwargs.get('cost', 0)),  # Support both value and legacy cost
         description=kwargs.get('description', ''),
         properties=kwargs.get('properties', []),
+        pools=kwargs.get('pools', []),
+        drop_weight=kwargs.get('drop_weight', 1),
         ac_bonus=kwargs.get('ac_bonus'),
-        damage=kwargs.get('damage'),
-        damage_type=kwargs.get('damage_type')
+        damage_dice=kwargs.get('damage_dice', kwargs.get('damage')),  # Support both names
+        damage_type=kwargs.get('damage_type'),
+        equippable=kwargs.get('equippable', True),
+        slot=kwargs.get('slot'),
+        magical=kwargs.get('magical', False),
+        enchantment_bonus=kwargs.get('enchantment_bonus', 0),
+        special_properties=kwargs.get('special_properties', [])
     )
     print(f"Created item: {item.get_description()}")
     return item
@@ -222,8 +273,10 @@ def create_weapon(name: str, damage: str, damage_type: str, weight: float, **kwa
         name=name,
         item_type="weapon",
         weight=weight,
-        damage=damage,
+        damage_dice=damage,
         damage_type=damage_type,
+        equippable=True,
+        slot="hand",
         **kwargs
     )
 
@@ -235,6 +288,8 @@ def create_armor(name: str, ac_bonus: int, weight: float, **kwargs) -> Item:
         item_type="armor",
         weight=weight,
         ac_bonus=ac_bonus,
+        equippable=True,
+        slot="body",
         **kwargs
     )
 
@@ -246,6 +301,8 @@ def create_shield(name: str, ac_bonus: int, weight: float, **kwargs) -> Item:
         item_type="shield",
         weight=weight,
         ac_bonus=ac_bonus,
+        equippable=True,
+        slot="off_hand",
         **kwargs
     )
 

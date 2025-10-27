@@ -1,4 +1,21 @@
 {
+    "_comment": "AVAILABLE POOLS FOR RACIAL EQUIPMENT BONUSES",
+    "_equipment_pools": [
+        "human_gear",
+        "elf_gear",
+        "dwarf_gear",
+        "halfling_gear",
+        "versatile",
+        "finesse",
+        "artisan",
+        "natural",
+        "light",
+        "tools",
+        "weapons",
+        "armor",
+        "starting_gear"
+    ],
+    "_usage": "Races have 'equipment_bonuses' that provide additional starting items based on racial culture and preferences, supplementing class and background equipment.",
     "races": {
         "human": {
             "name": "Human",
@@ -20,7 +37,17 @@
                     "name": "Extra Skill",
                     "description": "Gain proficiency in one additional skill"
                 }
-            ]
+            ],
+            "equipment_bonuses": {
+                "pools": [
+                    "human_gear",
+                    "versatile",
+                    "starting_gear"
+                ],
+                "min": 1,
+                "max": 2,
+                "description": "Humans are adaptable and receive versatile equipment"
+            }
         },
         "elf": {
             "name": "Elf",
@@ -46,7 +73,18 @@
                     "name": "Trance",
                     "description": "You don't need to sleep and can't be forced to sleep by magic"
                 }
-            ]
+            ],
+            "equipment_bonuses": {
+                "pools": [
+                    "elf_gear",
+                    "finesse",
+                    "natural",
+                    "light"
+                ],
+                "min": 1,
+                "max": 2,
+                "description": "Elves favor graceful, natural equipment"
+            }
         },
         "dwarf": {
             "name": "Dwarf",
@@ -72,7 +110,18 @@
                     "name": "Stonecunning",
                     "description": "You have proficiency with mason's tools and double proficiency bonus on History checks related to stonework"
                 }
-            ]
+            ],
+            "equipment_bonuses": {
+                "pools": [
+                    "dwarf_gear",
+                    "artisan",
+                    "tools",
+                    "weapons"
+                ],
+                "min": 1,
+                "max": 2,
+                "description": "Dwarves receive quality crafted tools and weapons"
+            }
         },
         "halfling": {
             "name": "Halfling",
@@ -98,7 +147,18 @@
                     "name": "Halfling Nimbleness",
                     "description": "You can move through the space of any creature that is of a size larger than yours"
                 }
-            ]
+            ],
+            "equipment_bonuses": {
+                "pools": [
+                    "halfling_gear",
+                    "light",
+                    "tools",
+                    "starting_gear"
+                ],
+                "min": 1,
+                "max": 2,
+                "description": "Halflings receive practical, lightweight equipment"
+            }
         }
     }
 }

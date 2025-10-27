@@ -1,4 +1,24 @@
 {
+    "_comment": "AVAILABLE POOLS FOR BACKGROUND EQUIPMENT",
+    "_equipment_pools": [
+        "acolyte_gear",
+        "criminal_gear",
+        "folk_hero_gear",
+        "noble_gear",
+        "sage_gear",
+        "soldier_gear",
+        "religious",
+        "scholarly",
+        "artisan",
+        "military",
+        "noble_items",
+        "starting_gear",
+        "common",
+        "tools",
+        "utility",
+        "valuable"
+    ],
+    "_usage": "Backgrounds have 'equipment_pools' that determine starting items, with min/max quantities and guaranteed items for essential gear.",
     "backgrounds": {
         "acolyte": {
             "name": "Acolyte",
@@ -8,32 +28,27 @@
                 "Religion"
             ],
             "languages": 2,
-            "equipment": [
-                {
-                    "item": "holy_symbol",
-                    "quantity": 1
-                },
-                {
-                    "item": "prayer_book",
-                    "quantity": 1
-                },
-                {
-                    "item": "incense",
-                    "quantity": 5
-                },
-                {
-                    "item": "vestments",
-                    "quantity": 1
-                },
-                {
-                    "item": "common_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "belt_pouch",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "religious",
+                            "acolyte_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "holy_symbol"
+                    },
+                    {
+                        "pools": [
+                            "acolyte_gear",
+                            "starting_gear"
+                        ],
+                        "min": 3,
+                        "max": 5
+                    }
+                ]
+            },
             "feature": {
                 "name": "Shelter of the Faithful",
                 "description": "You and your companions can expect to receive free healing and care at a temple, shrine, or other established presence of your faith."
@@ -50,20 +65,27 @@
                 "thieves_tools",
                 "gaming_set"
             ],
-            "equipment": [
-                {
-                    "item": "crowbar",
-                    "quantity": 1
-                },
-                {
-                    "item": "dark_common_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "belt_pouch",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "criminal",
+                            "rogue_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "thieves_tools"
+                    },
+                    {
+                        "pools": [
+                            "criminal_gear",
+                            "utility"
+                        ],
+                        "min": 2,
+                        "max": 4
+                    }
+                ]
+            },
             "feature": {
                 "name": "Criminal Contact",
                 "description": "You have a reliable and trustworthy contact who acts as your liaison to a network of other criminals."
@@ -80,28 +102,28 @@
                 "artisan_tools",
                 "vehicles_land"
             ],
-            "equipment": [
-                {
-                    "item": "artisan_tools",
-                    "quantity": 1
-                },
-                {
-                    "item": "shovel",
-                    "quantity": 1
-                },
-                {
-                    "item": "iron_pot",
-                    "quantity": 1
-                },
-                {
-                    "item": "common_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "belt_pouch",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "artisan",
+                            "folk_hero_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "artisan_tools"
+                    },
+                    {
+                        "pools": [
+                            "folk_hero_gear",
+                            "common",
+                            "tools"
+                        ],
+                        "min": 3,
+                        "max": 5
+                    }
+                ]
+            },
             "feature": {
                 "name": "Rustic Hospitality",
                 "description": "Since you come from the ranks of the common folk, you fit in among them with ease."
@@ -118,24 +140,27 @@
                 "gaming_set"
             ],
             "languages": 1,
-            "equipment": [
-                {
-                    "item": "fine_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "signet_ring",
-                    "quantity": 1
-                },
-                {
-                    "item": "scroll_of_pedigree",
-                    "quantity": 1
-                },
-                {
-                    "item": "purse",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "noble_items",
+                            "noble_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "signet_ring"
+                    },
+                    {
+                        "pools": [
+                            "noble_gear",
+                            "valuable"
+                        ],
+                        "min": 2,
+                        "max": 4
+                    }
+                ]
+            },
             "feature": {
                 "name": "Position of Privilege",
                 "description": "Thanks to your noble birth, people are inclined to think the best of you."
@@ -149,32 +174,26 @@
                 "History"
             ],
             "languages": 2,
-            "equipment": [
-                {
-                    "item": "ink",
-                    "quantity": 1
-                },
-                {
-                    "item": "quill",
-                    "quantity": 1
-                },
-                {
-                    "item": "small_knife",
-                    "quantity": 1
-                },
-                {
-                    "item": "letter",
-                    "quantity": 1
-                },
-                {
-                    "item": "common_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "belt_pouch",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "scholarly",
+                            "sage_gear"
+                        ],
+                        "min": 3,
+                        "max": 5
+                    },
+                    {
+                        "pools": [
+                            "tools",
+                            "utility"
+                        ],
+                        "min": 1,
+                        "max": 2
+                    }
+                ]
+            },
             "feature": {
                 "name": "Researcher",
                 "description": "When you attempt to learn or recall a piece of lore, if you do not know that information, you often know where and from whom you can obtain it."
@@ -191,28 +210,26 @@
                 "gaming_set",
                 "vehicles_land"
             ],
-            "equipment": [
-                {
-                    "item": "insignia_of_rank",
-                    "quantity": 1
-                },
-                {
-                    "item": "trophy",
-                    "quantity": 1
-                },
-                {
-                    "item": "deck_of_cards",
-                    "quantity": 1
-                },
-                {
-                    "item": "common_clothes",
-                    "quantity": 1
-                },
-                {
-                    "item": "belt_pouch",
-                    "quantity": 1
-                }
-            ],
+            "equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "military",
+                            "soldier_gear"
+                        ],
+                        "min": 2,
+                        "max": 4
+                    },
+                    {
+                        "pools": [
+                            "starting_gear",
+                            "common"
+                        ],
+                        "min": 2,
+                        "max": 3
+                    }
+                ]
+            },
             "feature": {
                 "name": "Military Rank",
                 "description": "You have a military rank from your career as a soldier."

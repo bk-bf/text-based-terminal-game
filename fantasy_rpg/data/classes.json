@@ -1,4 +1,24 @@
 {
+    "_comment": "AVAILABLE POOLS FOR CLASS EQUIPMENT",
+    "_equipment_pools": [
+        "fighter_gear",
+        "rogue_gear",
+        "cleric_gear",
+        "wizard_gear",
+        "weapons",
+        "armor",
+        "defensive",
+        "melee",
+        "ranged",
+        "light",
+        "heavy",
+        "magical",
+        "scholarly",
+        "religious",
+        "starting_gear",
+        "tools"
+    ],
+    "_usage": "Classes have 'starting_equipment_pools' that determine starting gear, with guaranteed items for essential class features and optional pools for variety.",
     "classes": {
         "fighter": {
             "name": "Fighter",
@@ -21,20 +41,48 @@
                     "Survival"
                 ]
             },
-            "starting_equipment": [
-                {
-                    "item": "chain_mail",
-                    "quantity": 1
-                },
-                {
-                    "item": "longsword",
-                    "quantity": 1
-                },
-                {
-                    "item": "shield",
-                    "quantity": 1
-                }
-            ]
+            "starting_equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "armor",
+                            "fighter_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "chain_mail"
+                    },
+                    {
+                        "pools": [
+                            "weapons",
+                            "melee"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "longsword"
+                    },
+                    {
+                        "pools": [
+                            "defensive",
+                            "armor"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "shield"
+                    }
+                ],
+                "optional": [
+                    {
+                        "pools": [
+                            "fighter_gear",
+                            "weapons",
+                            "armor"
+                        ],
+                        "min": 1,
+                        "max": 2
+                    }
+                ]
+            }
         },
         "rogue": {
             "name": "Rogue",
@@ -60,20 +108,48 @@
                     "Stealth"
                 ]
             },
-            "starting_equipment": [
-                {
-                    "item": "leather_armor",
-                    "quantity": 1
-                },
-                {
-                    "item": "shortsword",
-                    "quantity": 2
-                },
-                {
-                    "item": "thieves_tools",
-                    "quantity": 1
-                }
-            ]
+            "starting_equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "armor",
+                            "light"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "leather_armor"
+                    },
+                    {
+                        "pools": [
+                            "weapons",
+                            "finesse"
+                        ],
+                        "min": 2,
+                        "max": 2,
+                        "filter": "shortsword"
+                    },
+                    {
+                        "pools": [
+                            "tools",
+                            "criminal"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "thieves_tools"
+                    }
+                ],
+                "optional": [
+                    {
+                        "pools": [
+                            "rogue_gear",
+                            "weapons",
+                            "tools"
+                        ],
+                        "min": 1,
+                        "max": 2
+                    }
+                ]
+            }
         },
         "cleric": {
             "name": "Cleric",
@@ -93,24 +169,56 @@
                     "Religion"
                 ]
             },
-            "starting_equipment": [
-                {
-                    "item": "scale_mail",
-                    "quantity": 1
-                },
-                {
-                    "item": "shield",
-                    "quantity": 1
-                },
-                {
-                    "item": "mace",
-                    "quantity": 1
-                },
-                {
-                    "item": "holy_symbol",
-                    "quantity": 1
-                }
-            ]
+            "starting_equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "armor",
+                            "cleric_gear"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "scale_mail"
+                    },
+                    {
+                        "pools": [
+                            "defensive",
+                            "armor"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "shield"
+                    },
+                    {
+                        "pools": [
+                            "weapons",
+                            "melee"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "mace"
+                    },
+                    {
+                        "pools": [
+                            "religious",
+                            "tools"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "holy_symbol"
+                    }
+                ],
+                "optional": [
+                    {
+                        "pools": [
+                            "cleric_gear",
+                            "religious"
+                        ],
+                        "min": 1,
+                        "max": 2
+                    }
+                ]
+            }
         },
         "wizard": {
             "name": "Wizard",
@@ -131,24 +239,57 @@
                     "Religion"
                 ]
             },
-            "starting_equipment": [
-                {
-                    "item": "quarterstaff",
-                    "quantity": 1
-                },
-                {
-                    "item": "dagger",
-                    "quantity": 1
-                },
-                {
-                    "item": "spellbook",
-                    "quantity": 1
-                },
-                {
-                    "item": "component_pouch",
-                    "quantity": 1
-                }
-            ]
+            "starting_equipment_pools": {
+                "guaranteed": [
+                    {
+                        "pools": [
+                            "weapons",
+                            "basic"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "quarterstaff"
+                    },
+                    {
+                        "pools": [
+                            "weapons",
+                            "thrown"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "dagger"
+                    },
+                    {
+                        "pools": [
+                            "scholarly",
+                            "magical"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "spellbook"
+                    },
+                    {
+                        "pools": [
+                            "scholarly",
+                            "tools"
+                        ],
+                        "min": 1,
+                        "max": 1,
+                        "filter": "component_pouch"
+                    }
+                ],
+                "optional": [
+                    {
+                        "pools": [
+                            "wizard_gear",
+                            "scholarly",
+                            "magical"
+                        ],
+                        "min": 1,
+                        "max": 2
+                    }
+                ]
+            }
         }
     }
 }

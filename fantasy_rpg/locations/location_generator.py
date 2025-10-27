@@ -46,6 +46,7 @@ class GameObject:
     description: str = ""
     interactive: bool = True
     properties: Dict[str, Any] = field(default_factory=dict)
+    item_drops: List['GameItem'] = field(default_factory=list)
 
 
 @dataclass
@@ -66,6 +67,7 @@ class GameEntity:
     description: str = ""
     hostile: bool = False
     stats: Dict[str, int] = field(default_factory=dict)
+    item_drops: List['GameItem'] = field(default_factory=list)
 
 
 @dataclass
@@ -133,6 +135,7 @@ class LocationGenerator:
         # Initialize pool storage
         self.object_pools = {}
         self.entity_pools = {}
+        self.item_pools = {}
         
         # Load location templates
         self.templates = self._load_location_templates()
@@ -143,6 +146,7 @@ class LocationGenerator:
         print(f"Loaded {len(self.locations)} location templates")
         print(f"Loaded {len(self.object_pools)} object pools")
         print(f"Loaded {len(self.entity_pools)} entity pools")
+        print(f"Loaded {len(self.item_pools)} item pools")
     
     def _load_location_templates(self) -> Dict[str, Any]:
         """Load location templates from JSON file"""
@@ -171,9 +175,10 @@ class LocationGenerator:
             return self._get_minimal_templates()
     
     def _load_content_pools(self):
-        """Load object and entity pools from JSON files"""
+        """Load object, entity, and item pools from JSON files"""
         self.object_pools = {}
         self.entity_pools = {}
+        self.item_pools = {}
         
         # Load objects
         try:
@@ -210,6 +215,24 @@ class LocationGenerator:
                     break
         except Exception as e:
             print(f"Warning: Could not load entities.json: {e}")
+        
+        # Load items
+        try:
+            possible_paths = [
+                "data/items.json",
+                "../data/items.json",
+                "../../data/items.json",
+                "fantasy_rpg/data/items.json"
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    with open(path, 'r') as f:
+                        items_data = json.load(f)
+                        self._build_item_pools(items_data.get("items", {}))
+                    break
+        except Exception as e:
+            print(f"Warning: Could not load items.json: {e}")
     
     def _build_object_pools(self, objects_data: Dict[str, Any]):
         """Build object pools from objects data"""
@@ -239,6 +262,21 @@ class LocationGenerator:
                     "id": entity_id,
                     "weight": spawn_weight,
                     "data": entity_data
+                })
+    
+    def _build_item_pools(self, items_data: Dict[str, Any]):
+        """Build item pools from items data"""
+        for item_id, item_data in items_data.items():
+            pools = item_data.get("pools", [])
+            drop_weight = item_data.get("drop_weight", 1)
+            
+            for pool in pools:
+                if pool not in self.item_pools:
+                    self.item_pools[pool] = []
+                self.item_pools[pool].append({
+                    "id": item_id,
+                    "weight": drop_weight,
+                    "data": item_data
                 })
     
     def _get_minimal_templates(self) -> Dict[str, Any]:
@@ -467,23 +505,83 @@ class LocationGenerator:
         data = spawn_item["data"]
         
         if item_class == GameObject:
-            return GameObject(
+            obj = GameObject(
                 id=item_id,
                 name=data.get("name", item_id.replace("_", " ").title()),
                 description=data.get("description", ""),
                 interactive=data.get("interactive", True),
                 properties=data.get("properties", {})
             )
+            # Add item drops if object has them
+            if "item_drops" in data:
+                obj.item_drops = self._generate_item_drops(data["item_drops"])
+            return obj
         elif item_class == GameEntity:
-            return GameEntity(
+            entity = GameEntity(
                 id=item_id,
                 name=data.get("name", item_id.replace("_", " ").title()),
                 description=data.get("description", ""),
                 hostile=data.get("hostile", False),
                 stats=data.get("stats", {})
             )
+            # Add item drops if entity has them
+            if "item_drops" in data:
+                entity.item_drops = self._generate_item_drops(data["item_drops"])
+            return entity
+        elif item_class == GameItem:
+            return GameItem(
+                id=item_id,
+                name=data.get("name", item_id.replace("_", " ").title()),
+                description=data.get("description", ""),
+                value=data.get("value", 0),
+                weight=data.get("weight", 0.0)
+            )
         
         return None
+    
+    def _generate_item_drops(self, drop_config: Dict) -> List[GameItem]:
+        """Generate items that can be dropped from objects/entities"""
+        if not drop_config:
+            return []
+        
+        pools = drop_config.get("pools", [])
+        min_drops = drop_config.get("min_drops", 0)
+        max_drops = drop_config.get("max_drops", 1)
+        drop_chance = drop_config.get("drop_chance", 50)
+        
+        # Check if drops occur
+        if self.rng.randint(1, 100) > drop_chance:
+            return []
+        
+        # Collect possible items from pools
+        possible_items = []
+        for pool_name in pools:
+            if pool_name in self.item_pools:
+                possible_items.extend(self.item_pools[pool_name])
+        
+        if not possible_items:
+            return []
+        
+        # Generate drops
+        num_drops = self.rng.randint(min_drops, max_drops)
+        drops = []
+        
+        for _ in range(num_drops):
+            # Weighted selection
+            total_weight = sum(item["weight"] for item in possible_items)
+            if total_weight == 0:
+                continue
+                
+            roll = self.rng.randint(1, total_weight)
+            current = 0
+            
+            for item_data in possible_items:
+                current += item_data["weight"]
+                if roll <= current:
+                    drops.append(self._create_from_pool_data(item_data, GameItem))
+                    break
+        
+        return drops
     
 
 

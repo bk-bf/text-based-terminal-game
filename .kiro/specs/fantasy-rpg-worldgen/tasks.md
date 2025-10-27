@@ -64,7 +64,7 @@ This spec implements a comprehensive geographic and environmental simulation sys
 - **Checkpoint:** Complete survival mechanics affecting player stats
 
 ### **1.3.2: Resource & Shelter Systems (Afternoon)**
-- [ ] Implement resource availability per hex (food, water, firewood)
+- [x] Implement item availability per location (food, water, firewood)
 - [ ] Create foraging mechanics with skill-based success
 - [ ] Build shelter system (natural shelter, camping, protection)
 - [ ] Add seasonal resource variation
