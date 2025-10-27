@@ -59,8 +59,8 @@ This spec implements a comprehensive geographic and environmental simulation sys
 - [x] Implement PlayerState with CDDA-style survival tracking
 - [x] Create hunger, thirst, and temperature regulation systems
 - [x] Build environmental exposure mechanics (wetness, wind chill)
-- [ ] Implement survival condition system (hypothermia, dehydration, etc.)
-- [ ] Add environmental damage and status effect calculations
+- [x] Implement survival condition system (hypothermia, dehydration, etc.)
+- [x] Add environmental damage and condition effect calculations
 - **Checkpoint:** Complete survival mechanics affecting player stats
 
 ### **1.3.2: Resource & Shelter Systems (Afternoon)**
