@@ -125,6 +125,16 @@ class TimeSystem:
             "Rest for an hour", weather_affected=True
         )
         
+        activities["chop_wood"] = ActivityDefinition(
+            "chop_wood", ActivityType.MEDIUM, 1.0, "active",
+            "Chop wood from trees or objects", weather_affected=True
+        )
+        
+        activities["lockpick"] = ActivityDefinition(
+            "lockpick", ActivityType.MEDIUM, 1.0, "normal",
+            "Pick locks on containers", skill_can_reduce=True
+        )
+        
         # Medium actions (1 hour base, modified by speed)
         activities["travel"] = ActivityDefinition(
             "travel", ActivityType.MEDIUM, 1.0, "active",

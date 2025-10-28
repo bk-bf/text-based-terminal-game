@@ -1,0 +1,61 @@
+============================================================
+FANTASY RPG - ADVENTURE LOG
+============================================================
+
+Log saved: 2025-10-28 05:54:40
+Total messages: 43
+
+============================================================
+
+Initializing GameEngine...
+Creating GameEngine...
+Creating test character...
+Starting new game...
+Updating UI character...
+Creating InputController...
+✓ GameEngine integration complete!
+
+The adventure begins...
+
+You find yourself in a forest clearing.
+Ancient oak trees tower above you, their branches swaying gently in the breeze.
+Sunlight filters through the canopy, casting dappled shadows on the forest floor.
+
+You are Aldric, a Human Fighter
+Starting location: Forest 1010
+
+Type 'help' for available commands.
+Type 'look' to examine your surroundings.
+Type 'survival' to check your condition.
+
+> help
+Available commands:
+
+Character:
+  inventory, i - View inventory and equipment
+  character, c, sheet - View character sheet
+
+System:
+  heal - Heal 10 HP (debug)
+  xp - Gain 100 XP (debug)
+  save [filename] - Save game log to file (optional custom filename)
+  clear - Clear game log
+  quit, exit - Quit game
+  help - Show this help text
+
+> enter
+You enter Farmyard.
+
+Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.
+
+You notice Root Cellar, Stone Fireplace, Underground Pool, and more.
+
+> safe
+Unknown command: safe. Type 'help' for available commands.
+
+> save
+> save
+
+============================================================
+End of Adventure Log
+============================================================

@@ -332,10 +332,15 @@ class FantasyRPGApp(App):
     
     def show_help(self):
         """Show available commands"""
+        # Process help command through the normal command system
         if self.input_controller:
-            help_text = self.input_controller.get_help_text()
-            for line in help_text.split('\n'):
-                self.log_message(line)
+            response = self.input_controller.process_input("help")
+            if response.get('success', True):
+                message = response.get('message', 'Help not available.')
+                for line in message.split('\n'):
+                    self.log_message(line)
+            else:
+                self.log_message(response.get('message', 'Help system not available.'))
         else:
             self.log_message("Help system not available.")
     

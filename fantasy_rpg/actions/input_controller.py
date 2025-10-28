@@ -126,7 +126,8 @@ class InputController:
             response['modal_type'] = modal_type
             
         elif result.get('action_type') == 'help':
-            response['type'] = 'show_help'
+            # Help should just return the message normally
+            response['type'] = 'action_result'
             
         # Handle location updates
         elif result.get('movement_type') == 'overworld':
@@ -207,22 +208,7 @@ class InputController:
             'command': command_text
         }
     
-    def get_help_text(self) -> str:
-        """Get help text for display"""
-        return """Available commands:
 
-Character:
-  inventory, i - View inventory and equipment
-  character, c, sheet - View character sheet
-
-System:
-  heal - Heal 10 HP (debug)
-  xp - Gain 100 XP (debug)
-  save [filename] - Save game log to file (optional custom filename)
-  clear - Clear game log
-  quit, exit - Quit game
-  help - Show this help text
-"""
     
     def update_systems(self, character=None, player_state=None, time_system=None):
         """Update system references"""

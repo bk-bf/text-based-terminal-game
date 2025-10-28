@@ -50,6 +50,18 @@ class ActionHandler:
             "take": self.handle_take,
             "use": self.handle_use,
             
+            # Resource Gathering Actions (location only)
+            "forage": self.handle_forage,
+            "harvest": self.handle_forage,  # Alias for forage
+            "gather": self.handle_forage,   # Alias for forage
+            "pick": self.handle_forage,     # Alias for forage
+            "chop": self.handle_chop,
+            "cut": self.handle_chop,        # Alias for chop
+            "drink": self.handle_drink,
+            "water": self.handle_drink,     # Alias for drink
+            "unlock": self.handle_unlock,
+            "pick_lock": self.handle_unlock, # Alias for unlock
+            
             # Rest and Recovery (location only)
             # TODO: might get scrapped for a separate Fatigue and Sleep tracker, 
             # Rest restores Fatigue but can be manually interupted, 
@@ -141,6 +153,12 @@ Object Interaction (location only):
   take <item> - Take an item and add to inventory
   use <object> - Use an object (context-specific)
   
+Resource Gathering (location only):
+  forage/harvest/gather/pick <object> - Gather food or materials (e.g., 'forage berry bush')
+  chop/cut <object> - Chop wood from trees or objects (e.g., 'chop tree')
+  drink/water <object> - Drink from water sources (e.g., 'drink well')
+  unlock/pick_lock <object> - Pick locks on containers (e.g., 'unlock chest')
+  
 Rest & Recovery (location only):
   rest, sleep - Rest in current location (duration depends on fatigue)
   
@@ -152,7 +170,11 @@ Character:
   character, c - View character sheet
   
 System:
-  save - Save game log to text file
+  heal - Heal 10 HP (debug)
+  xp - Gain 100 XP (debug)
+  save [filename] - Save game log to file (optional custom filename)
+  clear - Clear game log
+  quit, exit - Quit game
   debug - Show debug information
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
@@ -395,7 +417,7 @@ Type any command to try it."""
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.examine_object(object_name)
+            success, message = self.game_engine.interact_with_object(object_name, "examine")
             return ActionResult(
                 success=success,
                 message=message,
@@ -416,7 +438,7 @@ Type any command to try it."""
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.search_object(object_name)
+            success, message = self.game_engine.interact_with_object(object_name, "search")
             return ActionResult(
                 success=success,
                 message=message,
@@ -437,7 +459,7 @@ Type any command to try it."""
         item_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.take_item(item_name)
+            success, message = self.game_engine.interact_with_object(item_name, "take")
             return ActionResult(
                 success=success,
                 message=message,
@@ -458,7 +480,8 @@ Type any command to try it."""
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.use_object(object_name)
+            # For now, map "use" to examine - can be expanded later
+            success, message = self.game_engine.interact_with_object(object_name, "examine")
             return ActionResult(
                 success=success,
                 message=message,
@@ -478,6 +501,70 @@ Type any command to try it."""
             return ActionResult(success, message)
         except Exception as e:
             return ActionResult(False, f"Failed to rest: {str(e)}")
+    
+    def handle_forage(self, *args) -> ActionResult:
+        """Handle foraging/harvesting from objects"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Forage what? Specify an object name (e.g., 'forage berry bush')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            success, message = self.game_engine.interact_with_object(object_name, "forage")
+            return ActionResult(success, message)
+        except Exception as e:
+            return ActionResult(False, f"Failed to forage: {str(e)}")
+    
+    def handle_chop(self, *args) -> ActionResult:
+        """Handle chopping wood from objects"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Chop what? Specify an object name (e.g., 'chop tree')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            success, message = self.game_engine.interact_with_object(object_name, "chop")
+            return ActionResult(success, message)
+        except Exception as e:
+            return ActionResult(False, f"Failed to chop: {str(e)}")
+    
+    def handle_drink(self, *args) -> ActionResult:
+        """Handle drinking from water sources"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Drink from what? Specify a water source (e.g., 'drink well')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            success, message = self.game_engine.interact_with_object(object_name, "drink")
+            return ActionResult(success, message)
+        except Exception as e:
+            return ActionResult(False, f"Failed to drink: {str(e)}")
+    
+    def handle_unlock(self, *args) -> ActionResult:
+        """Handle unlocking/lockpicking objects"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Unlock what? Specify an object name (e.g., 'unlock chest')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            success, message = self.game_engine.interact_with_object(object_name, "unlock")
+            return ActionResult(success, message)
+        except Exception as e:
+            return ActionResult(False, f"Failed to unlock: {str(e)}")
     
     def handle_dump_world(self, *args) -> ActionResult:
         """Handle dumping world data to JSON file"""

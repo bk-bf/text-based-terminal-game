@@ -65,7 +65,7 @@ Connect location exploration to existing location generation and foraging system
 
 - [ ] 3.2 Connect object interaction system
   - Link to existing action system
-  - Implement context-specific object commands
+  - Implement context-specific object commands //TODO: extend commands result, eg. many different outcomes for harvest, cut, unlock
   - Connect to existing inventory system for resource gathering
   - _Requirements: 3.3, 3.4, 3.5_
 

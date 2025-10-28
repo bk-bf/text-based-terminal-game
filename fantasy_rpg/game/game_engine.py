@@ -44,6 +44,7 @@ class WorldPosition:
     available_locations: List[Dict[str, Any]] = field(default_factory=list)
     current_location_id: Optional[str] = None
     current_location_data: Optional[Dict[str, Any]] = None
+    current_area_id: str = "entrance"  # Current area within location
     coords: Optional[Tuple[int, int]] = None  # Tuple coordinates for movement calculations
 
 
@@ -347,6 +348,7 @@ class GameEngine:
         if gs.world_position.current_location_id:
             gs.world_position.current_location_id = None
             gs.world_position.current_location_data = None
+            gs.world_position.current_area_id = "entrance"  # Reset to default
         
         # Get current coordinates and calculate target coordinates
         current_coords = gs.world_position.coords
@@ -465,6 +467,7 @@ class GameEngine:
         # Enter the location
         gs.world_position.current_location_id = target_location.get("id")
         gs.world_position.current_location_data = location_data
+        gs.world_position.current_area_id = location_data.get("starting_area", "entrance")
         
         # Build entry message
         location_name = location_data.get("name", "Unknown Location")
@@ -512,6 +515,7 @@ class GameEngine:
         location_name = location_data.get("name", "the location") if location_data else "the location"
         gs.world_position.current_location_id = None
         gs.world_position.current_location_data = None
+        gs.world_position.current_area_id = "entrance"  # Reset to default
         
         # Get current hex description for context
         hex_name = gs.world_position.hex_data.get("name", "the area")
@@ -722,6 +726,312 @@ class GameEngine:
         result_message += f"\n\nYou wake up at {current_time}."
         
         return True, result_message
+    
+    def interact_with_object(self, object_name: str, action: str) -> Tuple[bool, str]:
+        """
+        Interact with an object in current area based on its properties
+        
+        Args:
+            object_name: Name of object to interact with
+            action: Type of interaction (forage, search, examine, etc.)
+        
+        Returns:
+            (success, message)
+        """
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is inside a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to interact with objects."
+        
+        # Get current area objects
+        current_area_id = gs.world_position.current_area_id
+        location_data = gs.world_position.current_location_data
+        
+        if not location_data or "areas" not in location_data:
+            return False, "No objects available in this area."
+        
+        areas = location_data.get("areas", {})
+        if current_area_id not in areas:
+            return False, "Current area not found."
+        
+        area_data = areas[current_area_id]
+        objects = area_data.get("objects", [])
+        
+        # Find the target object
+        target_object = None
+        for obj in objects:
+            if obj.get("name", "").lower() == object_name.lower():
+                target_object = obj
+                break
+        
+        if not target_object:
+            return False, f"You don't see any '{object_name}' here."
+        
+        # Route to appropriate handler based on action and object properties
+        properties = target_object.get("properties", {})
+        
+        if action in ["forage", "harvest", "gather", "pick"]:
+            return self._handle_forage(target_object, properties)
+        elif action in ["search", "loot"]:
+            return self._handle_search(target_object, properties)
+        elif action in ["examine", "inspect", "look"]:
+            return self._handle_examine(target_object, properties)
+        elif action in ["unlock", "pick_lock"]:
+            return self._handle_unlock(target_object, properties)
+        elif action in ["chop", "cut"]:
+            return self._handle_chop(target_object, properties)
+        elif action in ["take", "get"]:
+            return self._handle_take(target_object, properties)
+        elif action in ["drink", "water"]:
+            return self._handle_drink(target_object, properties)
+        else:
+            return False, f"You can't {action} the {target_object.get('name', 'object')}."
+    
+    def _handle_forage(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle foraging/harvesting from objects"""
+        if not properties.get("can_forage"):
+            return False, f"You can't forage from the {obj.get('name', 'object')}."
+        
+        # Check if already depleted
+        if obj.get("depleted", False):
+            return False, f"The {obj.get('name')} has already been foraged recently."
+        
+        # Make a survival skill check (simplified for now)
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus("survival")
+        dc = properties.get("forage_dc", 10)
+        total = roll + skill_bonus
+        
+        # Use time system for foraging activity
+        if self.time_system:
+            time_result = self.time_system.perform_activity("forage", duration_override=0.25)  # 15 minutes
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Foraging failed.")
+        
+        if total >= dc:
+            # Success - get items from item_drops
+            item_drops = obj.get("item_drops", {})
+            if item_drops:
+                # Mark as depleted
+                obj["depleted"] = True
+                
+                # TODO: Connect to actual inventory system
+                food_value = properties.get("food_value", 1)
+                
+                return True, (
+                    f"You successfully forage from the {obj.get('name')}.\n"
+                    f"You gather some nutritious food (food value: {food_value})."
+                )
+            else:
+                return True, f"You forage from the {obj.get('name')} but don't find much."
+        else:
+            return False, f"You search the {obj.get('name')} but don't find anything useful."
+    
+    def _handle_search(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle searching containers/objects"""
+        if not properties.get("can_search"):
+            return False, f"There's nothing to search in the {obj.get('name')}."
+        
+        # Check if already searched
+        if obj.get("searched", False):
+            return False, f"You have already searched the {obj.get('name')}."
+        
+        # Make investigation check
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus("investigation")
+        dc = properties.get("search_dc", 12)
+        total = roll + skill_bonus
+        
+        # Use time system for searching
+        if self.time_system:
+            time_result = self.time_system.perform_activity("search", duration_override=0.5)  # 30 minutes
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Search failed.")
+        
+        # Mark as searched regardless of success
+        obj["searched"] = True
+        
+        if total >= dc:
+            # Success - found items
+            item_drops = obj.get("item_drops", {})
+            if item_drops:
+                # TODO: Connect to actual inventory system
+                return True, f"You search the {obj.get('name')} and find some useful items!"
+            else:
+                return True, f"You search the {obj.get('name')} thoroughly but find nothing of value."
+        else:
+            return False, f"You search the {obj.get('name')} but don't find anything."
+    
+    def _handle_examine(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle examining objects closely"""
+        base_description = obj.get("description", "An unremarkable object.")
+        
+        if not properties.get("can_examine"):
+            return True, base_description
+        
+        # Make investigation check for detailed examination
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus("investigation")
+        dc = properties.get("examine_dc", 10)
+        total = roll + skill_bonus
+        
+        # Examining takes a little time
+        if self.time_system:
+            time_result = self.time_system.perform_activity("quick", duration_override=0.083)  # 5 minutes
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Examination failed.")
+        
+        if total >= dc:
+            # Success - reveal additional information
+            examination_text = properties.get("examination_text", "")
+            if examination_text:
+                return True, f"{base_description}\n\nUpon closer examination: {examination_text}"
+            else:
+                return True, f"{base_description}\n\nYou notice some interesting details about the {obj.get('name')}."
+        else:
+            return True, base_description
+    
+    def _handle_unlock(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle unlocking/lockpicking objects"""
+        if not properties.get("can_unlock"):
+            return False, f"The {obj.get('name')} cannot be unlocked."
+        
+        # Check if already unlocked
+        if obj.get("unlocked", False):
+            return False, f"The {obj.get('name')} is already unlocked."
+        
+        # Make lockpicking check
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus("sleight_of_hand")
+        dc = properties.get("dc_lockpick", 15)
+        total = roll + skill_bonus
+        
+        # Lockpicking takes time
+        if self.time_system:
+            time_result = self.time_system.perform_activity("lockpick", duration_override=1.0)  # 1 hour
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Lockpicking failed.")
+        
+        if total >= dc:
+            # Success
+            obj["unlocked"] = True
+            return True, f"You successfully pick the lock on the {obj.get('name')}!"
+        else:
+            return False, f"You fail to pick the lock on the {obj.get('name')}."
+    
+    def _handle_chop(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle chopping wood from objects"""
+        if not properties.get("can_chop_wood"):
+            return False, f"You can't chop wood from the {obj.get('name')}."
+        
+        # Check if tool is required
+        tool_required = properties.get("tool_required", True)
+        if tool_required:
+            # TODO: Check inventory for axe or similar tool
+            pass
+        
+        # Check if already chopped
+        if obj.get("chopped", False):
+            return False, f"You have already chopped wood from the {obj.get('name')}."
+        
+        # Make athletics check
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus("athletics")
+        dc = properties.get("chop_dc", 12)
+        total = roll + skill_bonus
+        
+        # Chopping takes time
+        if self.time_system:
+            time_result = self.time_system.perform_activity("chop_wood", duration_override=1.0)  # 1 hour
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Chopping failed.")
+        
+        if total >= dc:
+            # Success
+            obj["chopped"] = True
+            # TODO: Add wood to inventory
+            return True, f"You chop some useful wood from the {obj.get('name')}."
+        else:
+            return False, f"You attempt to chop the {obj.get('name')} but don't get much usable wood."
+    
+    def _handle_take(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle taking wood or other materials from objects"""
+        if properties.get("can_take_wood"):
+            # Check if already taken
+            if obj.get("wood_taken", False):
+                return False, f"You have already taken wood from the {obj.get('name')}."
+            
+            # Take wood
+            obj["wood_taken"] = True
+            fuel_value = properties.get("fuel_value", 5)
+            
+            # Quick action
+            if self.time_system:
+                time_result = self.time_system.perform_activity("quick", duration_override=0.25)  # 15 minutes
+                if not time_result.get("success", True):
+                    return False, time_result.get("message", "Taking wood failed.")
+            
+            # TODO: Add to inventory
+            return True, f"You take some wood from the {obj.get('name')} (fuel value: {fuel_value})."
+        
+        return False, f"You can't take anything from the {obj.get('name')}."
+    
+    def _handle_drink(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle drinking water from objects"""
+        if not properties.get("provides_water"):
+            return False, f"You can't drink from the {obj.get('name')}."
+        
+        water_quality = properties.get("water_quality", "poor")
+        
+        # Drinking is quick
+        if self.time_system:
+            time_result = self.time_system.perform_activity("quick", duration_override=0.083)  # 5 minutes
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Drinking failed.")
+        
+        # Apply thirst relief based on water quality
+        gs = self.game_state
+        if water_quality == "excellent":
+            thirst_relief = 200
+        elif water_quality == "good":
+            thirst_relief = 150
+        elif water_quality == "fair":
+            thirst_relief = 100
+        else:  # poor
+            thirst_relief = 50
+        
+        old_thirst = gs.player_state.survival.thirst
+        gs.player_state.survival.thirst = min(1000, gs.player_state.survival.thirst + thirst_relief)
+        
+        return True, (
+            f"You drink from the {obj.get('name')}. The water is {water_quality}.\n"
+            f"Thirst relief: +{thirst_relief} ({old_thirst} → {gs.player_state.survival.thirst})"
+        )
+    
+    def _get_skill_bonus(self, skill_name: str) -> int:
+        """Get character's skill bonus (placeholder implementation)"""
+        # TODO: Connect to actual character skill system
+        # For now, return a basic bonus based on character stats
+        gs = self.game_state
+        if skill_name == "survival":
+            return (gs.character.wisdom - 10) // 2
+        elif skill_name == "investigation":
+            return (gs.character.intelligence - 10) // 2
+        elif skill_name == "athletics":
+            return (gs.character.strength - 10) // 2
+        elif skill_name == "sleight_of_hand":
+            return (gs.character.dexterity - 10) // 2
+        else:
+            return 0
     
     def _create_location_graph(self, locations: List[Dict], current_index: int) -> Dict[str, Dict]:
         """Create a persistent bidirectional graph of locations"""
