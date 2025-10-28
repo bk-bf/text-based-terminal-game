@@ -592,19 +592,9 @@ class GameLogPanel(ScrollableContainer):
         yield Static(self._render_log(), id="game-log", markup=False)
     
     def _add_initial_messages(self):
-        """Add some initial demo messages"""
-        initial_messages = [
-            "You find yourself in a forest clearing.",
-            "Ancient oak trees tower above you, their branches swaying gently in the breeze.",
-            "Sunlight filters through the canopy, casting dappled shadows on the forest floor.",
-            "",
-            "Type 'help' for available commands.",
-            "Type 'look' to examine your surroundings.",
-            "Type 'survival' to check your condition."
-        ]
-        
-        for message in initial_messages:
-            self.messages.append(message)
+        """Add initial messages - now handled by GameEngine initialization"""
+        # Initial messages are now added by the GameEngine initialization process
+        pass
     
     def add_message(self, message: str, message_type: str = "normal"):
         """Add a new message to the log"""
@@ -672,7 +662,7 @@ class GameLogPanel(ScrollableContainer):
             time_str = self._get_natural_time_description()
             header = f"{time_str}\n\n"
         else:
-            header = f"The adventure begins...\n\n"
+            header = ""  # No header when no player state
         
         # Join all messages
         content = "\n".join(self.messages)
@@ -921,6 +911,90 @@ class POIPanel(Static):
         info_widget = self.query_one("#poi-info")
         info_widget.update(self._render_poi_info())
     
+    def update_with_game_engine(self, game_engine):
+        """Update POI panel with real GameEngine world data"""
+        if not game_engine or not game_engine.is_initialized:
+            return
+            
+        gs = game_engine.game_state
+        self.current_hex = gs.world_position.hex_id
+        
+        # Get current location name
+        if gs.world_position.current_location_id:
+            location_data = gs.world_position.current_location_data
+            if location_data:
+                self.current_location = f"{location_data.get('name', 'Unknown Location')} ({gs.world_position.hex_data['name']})"
+            else:
+                self.current_location = f"Inside Location ({gs.world_position.hex_data['name']})"
+        else:
+            self.current_location = gs.world_position.hex_data['name']
+        
+        # Get available locations in current hex
+        self.available_locations = []
+        self.current_location_id = gs.world_position.current_location_id
+        self.location_connections = {}
+        
+        try:
+            hex_locations = game_engine.world_coordinator.get_hex_locations(self.current_hex)
+            for loc in hex_locations:
+                self.available_locations.append(loc.get('name', 'Unknown Location'))
+            
+            # If player is inside a location, get connections from GameEngine
+            if self.current_location_id and len(hex_locations) > 1:
+                current_index = None
+                for i, loc in enumerate(hex_locations):
+                    if loc.get("id") == self.current_location_id:
+                        current_index = i
+                        break
+                
+                if current_index is not None:
+                    # Use GameEngine's location graph logic for consistency
+                    location_graph = game_engine._create_location_graph(hex_locations, current_index)
+                    
+                    # Convert to display format
+                    for direction, location_data in location_graph.items():
+                        self.location_connections[direction] = location_data.get('name', 'Unknown Location')
+        except:
+            self.available_locations = []
+        
+        # Get adjacent hex information
+        self.adjacent_hexes = {}
+        try:
+            coords = gs.world_position.coords
+            x, y = coords
+            
+            # Get adjacent coordinates
+            adjacent_coords = {
+                'North': (x, y-1),
+                'South': (x, y+1), 
+                'East': (x+1, y),
+                'West': (x-1, y)
+            }
+            
+            # Get hex data for each direction
+            for direction, (adj_x, adj_y) in adjacent_coords.items():
+                try:
+                    # Check if coordinates are valid
+                    if 0 <= adj_x < 20 and 0 <= adj_y < 20:  # Assuming 20x20 world
+                        adj_hex_id = f"{adj_x:02d}{adj_y:02d}"
+                        adj_hex_data = game_engine.world_coordinator.get_hex_info(adj_hex_id)
+                        if adj_hex_data:
+                            self.adjacent_hexes[direction] = {
+                                'name': adj_hex_data.get('name', f'Hex {adj_hex_id}'),
+                                'biome': adj_hex_data.get('type', 'unknown'),
+                                'hex_id': adj_hex_id
+                            }
+                        else:
+                            self.adjacent_hexes[direction] = {'name': 'Unknown', 'biome': 'unknown', 'hex_id': adj_hex_id}
+                    else:
+                        self.adjacent_hexes[direction] = {'name': 'Edge of World', 'biome': 'void', 'hex_id': 'N/A'}
+                except:
+                    self.adjacent_hexes[direction] = {'name': 'Unknown', 'biome': 'unknown', 'hex_id': 'N/A'}
+        except:
+            self.adjacent_hexes = {}
+        
+        self.refresh_display()
+    
     def get_nearby_locations(self):
         """Get locations connected to current hex"""
         current_location = self.world_map.get(self.current_hex, {})
@@ -970,39 +1044,68 @@ class POIPanel(Static):
     
     def _render_poi_info(self) -> str:
         """Render POI and command information"""
-        # Current location info
-        current_info = self.get_current_location_info()
-        current_symbol = self._get_location_symbol(current_info["type"])
-        
         poi_text = f"""current location:
-{current_symbol} {current_info["name"]}
+[#] {self.current_location}
 Hex: {self.current_hex}
-{current_info["description"]}
 
-nearby locations:"""
+locations in this hex:"""
         
-        # Get and display nearby locations
-        nearby = self.get_nearby_locations()
-        if nearby:
-            for location in nearby:
-                symbol = self._get_location_symbol(location["type"])
-                direction = location["direction"].upper()
-                poi_text += f"""
-{symbol} {location["name"]} ({direction})
-    {location["distance"]} - {location["type"]}"""
+        # Show available locations in current hex
+        if hasattr(self, 'available_locations') and self.available_locations:
+            if hasattr(self, 'current_location_id') and self.current_location_id:
+                # Player is inside a location - show connections to other locations
+                poi_text += f"\nConnected locations:"
+                if hasattr(self, 'location_connections') and self.location_connections:
+                    for direction, location_name in self.location_connections.items():
+                        poi_text += f"\n  {direction.title()}: {location_name}"
+                else:
+                    poi_text += "\n  No connections from here"
+            else:
+                # Player is in overworld - show locations to enter
+                poi_text += f"\nYou can enter: {', '.join(self.available_locations)}"
         else:
-            poi_text += "\nNo nearby locations discovered"
+            poi_text += "\nNo locations to enter here"
+        
+        poi_text += "\n\nadjacent hexes:"
+        
+        # Show adjacent hexes with real world data
+        if hasattr(self, 'adjacent_hexes') and self.adjacent_hexes:
+            for direction, hex_info in self.adjacent_hexes.items():
+                biome_symbol = self._get_biome_symbol(hex_info.get('biome', 'unknown'))
+                poi_text += f"\n{biome_symbol} {direction}: {hex_info['name']}"
+        else:
+            poi_text += "\nNorth: Unknown"
+            poi_text += "\nSouth: Unknown" 
+            poi_text += "\nEast: Unknown"
+            poi_text += "\nWest: Unknown"
         
         poi_text += "\n\navailable commands:"
-        
-        # Display commands
-        for cmd in self.commands:
-            poi_text += f"\n[{cmd['key']}] {cmd['name']}"
+        poi_text += "\n[i] inventory"
+        poi_text += "\n[c] character"
+        poi_text += "\n[look] examine area"
+        poi_text += "\n[enter] enter location"
+        poi_text += "\n[exit] exit to overworld"
+        poi_text += "\n[help] show all commands"
         
         poi_text += "\n\nmovement:"
         poi_text += "\nType: n/s/e/w or north/south/east/west"
         
         return poi_text
+    
+    def _get_biome_symbol(self, biome: str) -> str:
+        """Get symbol for biome type"""
+        symbols = {
+            'forest': '[T]',
+            'plains': '[~]', 
+            'mountain': '[^]',
+            'desert': '[.]',
+            'swamp': '[S]',
+            'tundra': '[*]',
+            'coast': '[~]',
+            'unknown': '[?]',
+            'void': '[ ]'
+        }
+        return symbols.get(biome, '[?]')
     
     def get_travel_options(self):
         """Get available travel destinations"""

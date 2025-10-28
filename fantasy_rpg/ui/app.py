@@ -193,7 +193,7 @@ class FantasyRPGApp(App):
         self.player_state = None
         self.time_system = None
         self.input_controller = None
-        self.world_coordinator = None
+        self.game_engine = None  # Add GameEngine alongside InputController
     
     def on_mount(self) -> None:
         """Initialize the app"""
@@ -205,8 +205,8 @@ class FantasyRPGApp(App):
         
         self.push_screen(main_screen)
         
-        # Initialize survival system first, then action handler
-        self.call_after_refresh(self._initialize_survival_system)
+        # Initialize GameEngine and InputController
+        self.call_after_refresh(self._initialize_game_systems)
     
     def process_command(self, command: str):
         """Process a typed command through the input controller"""
@@ -214,7 +214,10 @@ class FantasyRPGApp(App):
             self.log_message("Input system not initialized.")
             return
         
-        # Process input through the input controller
+        # Log the command first
+        self.log_command(command)
+        
+        # Process input through the input controller (which now uses GameEngine)
         response = self.input_controller.process_input(command)
         
         # Handle the response based on type
@@ -226,6 +229,16 @@ class FantasyRPGApp(App):
         
         if response_type == 'error':
             self.log_message(response.get('message', 'Unknown error'))
+            
+        elif response_type == 'action_result':
+            # Handle general GameEngine action results
+            message = response.get('message', '')
+            if message:
+                self.log_message(message)
+                self.log_message("")  # Add line break after command output
+            
+            # Update UI state from GameEngine
+            self._refresh_ui_from_game_state()
             
         elif response_type == 'show_modal':
             modal_type = response.get('modal_type')
@@ -282,6 +295,40 @@ class FantasyRPGApp(App):
         # Always refresh display after processing input
         if self.character_panel:
             self.character_panel.refresh_display()
+
+    def _handle_action_result(self, result):
+        """Handle result from GameEngine action handler"""
+        if result.success:
+            # Log the action message
+            self.log_message(result.message)
+            
+            # Handle special action types
+            action_type = result.get('action_type')
+            
+            if action_type == 'ui_modal':
+                modal_type = result.get('modal_type')
+                if modal_type == 'inventory':
+                    self.push_screen(InventoryScreen(self.character))
+                elif modal_type == 'character':
+                    self.push_screen(CharacterScreen(self.character))
+            
+            elif action_type == 'help':
+                # Help message already logged above
+                pass
+                
+            elif action_type == 'movement':
+                # Update location display
+                self._update_location_from_game_state()
+                
+            elif action_type == 'location_entry' or action_type == 'location_exit':
+                # Update location display
+                self._update_location_from_game_state()
+        else:
+            # Log error message
+            self.log_message(f"❌ {result.message}")
+        
+        # Always refresh display and update UI state
+        self._refresh_ui_from_game_state()
     
     def show_help(self):
         """Show available commands"""
@@ -380,9 +427,9 @@ class FantasyRPGApp(App):
                 elevation=elevation
             )
         
-        # Update POI panel with new location
-        if self.poi_panel:
-            self.poi_panel.update_location(hex_id, location)
+        # Update POI panel with GameEngine data
+        if self.poi_panel and self.game_engine:
+            self.poi_panel.update_with_game_engine(self.game_engine)
     
     # look_around is now handled by ActionHandler
     
@@ -437,6 +484,89 @@ class FantasyRPGApp(App):
         if self.game_log_panel:
             self.game_log_panel.add_level_up_message(message)
     
+    def _initialize_game_systems(self):
+        """Initialize GameEngine and InputController"""
+        try:
+            self.log_system_message("Initializing GameEngine...")
+            
+            # Import GameEngine and create test character
+            from ..game.game_engine import GameEngine
+            from ..core.character_creation import create_character_quick
+            
+            self.log_system_message("Creating GameEngine...")
+            # Create GameEngine
+            self.game_engine = GameEngine()
+            
+            self.log_system_message("Creating test character...")
+            # Create test character (skip character creation UI for now)
+            test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
+            
+            self.log_system_message("Starting new game...")
+            # Initialize game with test character using consistent seed
+            game_state = self.game_engine.new_game(test_character, world_seed=12345)
+            
+            self.log_system_message("Updating UI character...")
+            # Update UI character reference
+            self.character = test_character
+            self.character_panel.character = test_character
+            
+            # Get player state and time system from GameEngine
+            self.player_state = game_state.player_state
+            self.time_system = game_state.game_time
+            
+            # Link player_state to character for UI display
+            self.character.player_state = self.player_state
+            
+            self.log_system_message("Creating InputController...")
+            # Initialize InputController with GameEngine
+            self.input_controller = InputController(
+                character=self.character,
+                player_state=self.player_state,
+                time_system=self.time_system,
+                game_engine=self.game_engine  # Pass GameEngine to InputController
+            )
+            
+            # Set up UI callbacks for the input controller
+            self._setup_input_controller_callbacks()
+            
+            # Update UI with initial game state
+            self._update_ui_from_game_state()
+            
+            # Update POI panel with GameEngine data
+            if self.poi_panel:
+                self.poi_panel.update_with_game_engine(self.game_engine)
+            
+            self.log_system_message("✓ GameEngine integration complete!")
+            self.log_message("")  # Line break
+            
+            # Add adventure beginning
+            self.log_message("The adventure begins...")
+            self.log_message("")  # Line break
+            
+            # Add atmospheric intro
+            self.log_message("You find yourself in a forest clearing.")
+            self.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
+            self.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
+            self.log_message("")  # Line break
+            
+            # Character and location info
+            self.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
+            self.log_system_message(f"Starting location: {game_state.world_position.hex_data['name']}")
+            self.log_message("")  # Line break
+            
+            # Help text
+            self.log_message("Type 'help' for available commands.")
+            self.log_message("Type 'look' to examine your surroundings.")
+            self.log_message("Type 'survival' to check your condition.\n")
+            
+        except Exception as e:
+            import traceback
+            self.log_system_message(f"❌ Error initializing GameEngine: {e}")
+            self.log_system_message(f"Traceback: {traceback.format_exc()}")
+            self.log_system_message("Falling back to old system...")
+            # Fallback to old system
+            self._initialize_survival_system()
+
     def _initialize_survival_system(self):
         """Initialize survival system after UI is mounted"""
         try:
@@ -496,8 +626,7 @@ class FantasyRPGApp(App):
                 time_system=self.time_system
             )
             
-            # Initialize the input controller
-            self.input_controller.initialize(self.world_coordinator)
+            # InputController is already initialized with GameEngine
             
             # Set up UI callbacks for the input controller
             self._setup_input_controller_callbacks()
@@ -556,6 +685,66 @@ class FantasyRPGApp(App):
             weather_desc = new_weather.get_description().split('\n')[0]  # First line only
             self.update_weather(weather_desc)
             # Weather change logging is now handled by ActionLogger
+    
+    def _update_ui_from_game_state(self):
+        """Update UI panels from current GameEngine state"""
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return
+            
+        gs = self.game_engine.game_state
+        
+        # Update character panel
+        if self.character_panel:
+            # Update location info
+            hex_name = gs.world_position.hex_data.get('name', 'Unknown')
+            location_name = hex_name
+            if gs.world_position.current_location_id:
+                location_data = gs.world_position.current_location_data
+                if location_data:
+                    location_name = f"{location_data.get('name', 'Unknown Location')} ({hex_name})"
+            
+            self.character_panel.update_world_data(
+                hex_id=gs.world_position.hex_id,
+                location=location_name,
+                weather=gs.current_weather.get_description().split('\n')[0]
+            )
+            self.character_panel.refresh_display()
+        
+        # Update POI panel with GameEngine data
+        if self.poi_panel:
+            self.poi_panel.update_with_game_engine(self.game_engine)
+        
+        # Update title bar
+        current_screen = self.screen
+        if hasattr(current_screen, 'update_title_bar') and self.player_state:
+            current_screen.update_title_bar(self.player_state)
+    
+    def _update_location_from_game_state(self):
+        """Update location display from GameEngine state"""
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return
+            
+        gs = self.game_engine.game_state
+        hex_name = gs.world_position.hex_data.get('name', 'Unknown')
+        
+        if gs.world_position.current_location_id:
+            location_data = gs.world_position.current_location_data
+            if location_data:
+                location_name = f"{location_data.get('name', 'Unknown Location')} ({hex_name})"
+            else:
+                location_name = f"Inside Location ({hex_name})"
+        else:
+            location_name = hex_name
+        
+        self.update_location(gs.world_position.hex_id, location_name)
+    
+    def _refresh_ui_from_game_state(self):
+        """Refresh all UI elements from GameEngine state"""
+        self._update_ui_from_game_state()
+        
+        # Refresh character panel
+        if self.character_panel:
+            self.character_panel.refresh_display()
     
     # _format_duration is now handled by the time system
     

@@ -16,10 +16,11 @@ class InputController:
     The UI only needs to call process_input() and handle the response.
     """
     
-    def __init__(self, character=None, player_state=None, time_system=None):
+    def __init__(self, character=None, player_state=None, time_system=None, game_engine=None):
         self.character = character
         self.player_state = player_state
         self.time_system = time_system
+        self.game_engine = game_engine  # Use GameEngine instead of ActionHandler
         self.action_handler = None
         self.action_logger = get_action_logger()
         
@@ -50,22 +51,14 @@ class InputController:
             'experience': self._handle_debug_xp,
             'save': self._handle_save_log,
             'clear': self._handle_clear_log,
-            'quit': self._handle_quit,
-            'exit': self._handle_quit
+            'quit': self._handle_quit
+            # Note: 'exit' removed to allow GameEngine to handle location exits
         }
     
     def initialize(self, world_coordinator=None):
         """Initialize the input controller with game systems"""
-        # Initialize action handler
-        self.action_handler = ActionHandler(
-            character=self.character,
-            player_state=self.player_state,
-            time_system=self.time_system
-        )
-        
-        # Set world coordinator if available
-        if world_coordinator:
-            self.action_handler.set_world_coordinator(world_coordinator)
+        # GameEngine is already initialized and passed in constructor
+        # No additional initialization needed since GameEngine handles everything
         
         # Set up action logger
         self.action_logger = get_action_logger()
@@ -96,21 +89,16 @@ class InputController:
         if cmd in self.debug_commands:
             return self.debug_commands[cmd](command_text)
         
-        # Handle game actions through action system
-        if not self.action_handler:
-            return {'type': 'error', 'message': 'Action system not initialized.'}
+        # Handle game actions through GameEngine
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return {'type': 'error', 'message': 'Game system not initialized.'}
         
         try:
-            # Process through action handler
-            result = self.action_handler.process_command(command_text)
+            # Get GameEngine's action handler
+            action_handler = self.game_engine.get_action_handler()
             
-            # Log the action result
-            self.action_logger.log_action_result(
-                result,
-                character=self.character,
-                command_text=command_text,
-                player_state=self.player_state
-            )
+            # Process through GameEngine's action handler
+            result = action_handler.process_command(command_text)
             
             # Convert action result to UI response
             return self._convert_action_result_to_ui_response(result, command_text)

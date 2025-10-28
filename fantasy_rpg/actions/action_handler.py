@@ -39,7 +39,9 @@ class ActionHandler:
             "enter": self.handle_enter_location,
             "exit": self.handle_exit_location,
             "inventory": self.handle_inventory,
+            "i": self.handle_inventory,  # Shortcut for inventory
             "character": self.handle_character,
+            "c": self.handle_character,  # Shortcut for character
             "save": self.handle_save_log,
             
             # Object Interaction Actions (location only)
@@ -62,6 +64,7 @@ class ActionHandler:
             "debug": self.handle_debug,
             "dump_location": self.handle_dump_location,
             "dump_hex": self.handle_dump_hex,
+            "dump_world": self.handle_dump_world,
             "help": self.handle_help,
         }
     
@@ -135,14 +138,15 @@ Movement (overworld only):
   north, south, east, west (or n, s, e, w) - Move in that direction
   
 Character:
-  inventory - View your inventory
-  character - View character sheet
+  inventory, i - View your inventory
+  character, c - View character sheet
   
 System:
   save - Save game log to text file
   debug - Show debug information
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
+  dump_world - Dump entire world data to JSON file
   help - Show this help
   
 Type any command to try it."""
@@ -186,7 +190,27 @@ Type any command to try it."""
         else:
             return ActionResult(False, "Please specify a direction (north, south, east, west, etc.)")
         
-        # Route movement through GameEngine
+        # Check if player is inside a location
+        gs = self.game_engine.game_state
+        if gs.world_position.current_location_id:
+            # Player is inside a location - try location-to-location movement
+            try:
+                success, message = self.game_engine.move_between_locations(direction)
+                
+                if success:
+                    return ActionResult(
+                        success=True,
+                        message=message,
+                        time_passed=0.5,  # Moving between locations takes some time
+                        action_type="location_movement"
+                    )
+                else:
+                    return ActionResult(False, message)
+                    
+            except Exception as e:
+                return ActionResult(False, f"Movement failed: {str(e)}")
+        
+        # Route movement through GameEngine (overworld movement)
         try:
             success, message = self.game_engine.move_player(direction)
             
@@ -433,6 +457,44 @@ Type any command to try it."""
             )
         except Exception as e:
             return ActionResult(False, f"Failed to use object: {str(e)}")
+    
+    def handle_dump_world(self, *args) -> ActionResult:
+        """Handle dumping world data to JSON file"""
+        if not self.game_engine:
+            return ActionResult(False, "Debug system not available.")
+        
+        try:
+            # Dump world data (convert tuple keys to strings for JSON compatibility)
+            import json
+            
+            # Convert climate_zones (has tuple keys) to string keys
+            climate_zones_str = {}
+            for key, value in self.game_engine.world_coordinator.climate_zones.items():
+                if isinstance(key, tuple):
+                    climate_zones_str[f"{key[0]:02d}{key[1]:02d}"] = value
+                else:
+                    climate_zones_str[str(key)] = value
+            
+            world_data = {
+                "world_size": self.game_engine.world_coordinator.world_size,
+                "seed": self.game_engine.world_coordinator.seed,
+                "hex_data": self.game_engine.world_coordinator.hex_data,
+                "climate_zones": climate_zones_str,
+                "loaded_locations": self.game_engine.world_coordinator.loaded_locations
+            }
+            
+            filename = "debug_world_data.json"
+            with open(filename, 'w') as f:
+                json.dump(world_data, f, indent=2, default=str)
+            
+            return ActionResult(
+                success=True,
+                message=f"World data dumped to {filename}",
+                time_passed=0.0,
+                action_type="debug"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to dump world data: {str(e)}")
     
     def handle_dump_location(self, *args) -> ActionResult:
         """Handle dumping current location data to JSON file"""

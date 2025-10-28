@@ -511,6 +511,172 @@ class GameEngine:
         
         return True, f"You exit {location_name} and return to {hex_name}."
     
+    def move_between_locations(self, direction: str) -> Tuple[bool, str]:
+        """Move between different locations within the same hex"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is inside a location
+        if not gs.world_position.current_location_id:
+            return False, "You are not inside a location."
+        
+        # Get all locations in current hex
+        hex_id = gs.world_position.hex_id
+        available_locations = gs.world_position.available_locations
+        
+        if not available_locations or len(available_locations) < 2:
+            return False, "There are no other locations to travel to from here."
+        
+        # Find current location in the list
+        current_location_id = gs.world_position.current_location_id
+        current_location_index = None
+        
+        for i, loc in enumerate(available_locations):
+            if loc.get("id") == current_location_id:
+                current_location_index = i
+                break
+        
+        if current_location_index is None:
+            return False, "Current location not found in available locations."
+        
+        # Create a simple location graph - arrange locations in cardinal directions
+        location_graph = self._create_location_graph(available_locations, current_location_index)
+        
+        # Check if movement in requested direction is possible
+        if direction not in location_graph:
+            available_directions = list(location_graph.keys())
+            if available_directions:
+                return False, f"You cannot go {direction} from here. Available directions: {', '.join(available_directions)}"
+            else:
+                return False, "There are no exits from this location. Use 'exit' to return to the overworld."
+        
+        # Get target location
+        target_location = location_graph[direction]
+        
+        # Check if character is capable of movement
+        if gs.character.hp <= 0:
+            return False, "You are unconscious and cannot move."
+        
+        # Calculate travel time for location movement (base 15 minutes = 0.25 hours)
+        travel_time = self._calculate_location_travel_time()
+        
+        # Use existing time system to advance time (which handles survival effects)
+        if self.time_system:
+            time_result = self.time_system.perform_activity("travel", duration_override=travel_time)
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Travel failed.")
+        else:
+            # Fallback: just advance game time
+            self._advance_game_time(travel_time)
+        
+        # Move to target location
+        target_location_data = self._get_or_generate_location_data(target_location)
+        
+        # Update player position
+        gs.world_position.current_location_id = target_location.get("id")
+        gs.world_position.current_location_data = target_location_data
+        gs.world_position.current_area_id = target_location_data.get("starting_area", "entrance")
+        
+        # Build movement message
+        target_name = target_location.get("name", "Unknown Location")
+        target_desc = target_location_data.get("description", "An unremarkable area.")
+        
+        # Add time indication to message
+        time_desc = self._get_location_travel_description(travel_time)
+        message = f"You travel {direction} to {target_name}.{time_desc}\n\n{target_desc}"
+        
+        # Check if character died during travel
+        if gs.character.hp <= 0:
+            return False, f"{message}\n\n💀 You collapsed and died during the journey!"
+        
+        # Show objects in new location
+        areas = target_location_data.get("areas", {})
+        starting_area_id = target_location_data.get("starting_area", "entrance")
+        if starting_area_id in areas:
+            area_data = areas[starting_area_id]
+            objects = area_data.get("objects", [])
+            if objects:
+                object_names = [obj.get("name", "something") for obj in objects[:3]]
+                if len(objects) > 3:
+                    message += f"\n\nYou notice {', '.join(object_names)}, and more."
+                else:
+                    message += f"\n\nYou notice {', '.join(object_names)}."
+        
+        return True, message
+    
+    def _create_location_graph(self, locations: List[Dict], current_index: int) -> Dict[str, Dict]:
+        """Create a persistent bidirectional graph of locations"""
+        gs = self.game_state
+        hex_id = gs.world_position.hex_id
+        
+        # Create unique key for this hex's location graph
+        graph_key = f"location_graph_{hex_id}"
+        
+        # Initialize persistent location graphs if not exists
+        if not hasattr(gs, 'persistent_location_graphs'):
+            gs.persistent_location_graphs = {}
+        
+        # If we already have a graph for this hex, use it
+        if graph_key in gs.persistent_location_graphs:
+            full_graph = gs.persistent_location_graphs[graph_key]
+            current_location_id = locations[current_index].get("id")
+            return full_graph.get(current_location_id, {})
+        
+        # Create new persistent bidirectional graph for this hex
+        full_graph = {}
+        
+        # Create a stable arrangement of locations in a grid pattern
+        # This ensures consistent directional relationships
+        location_positions = {}
+        
+        # Arrange locations in a simple grid pattern based on their IDs (for consistency)
+        sorted_locations = sorted(locations, key=lambda x: x.get("id", ""))
+        
+        # Calculate grid dimensions
+        num_locations = len(sorted_locations)
+        grid_size = max(2, int(num_locations ** 0.5) + 1)
+        
+        # Assign grid positions
+        for i, location in enumerate(sorted_locations):
+            row = i // grid_size
+            col = i % grid_size
+            location_positions[location.get("id")] = (row, col)
+        
+        # Build bidirectional connections based on grid positions
+        for location in sorted_locations:
+            location_id = location.get("id")
+            current_pos = location_positions[location_id]
+            connections = {}
+            
+            # Check all four directions
+            directions = {
+                "north": (-1, 0),
+                "south": (1, 0),
+                "east": (0, 1),
+                "west": (0, -1)
+            }
+            
+            for direction, (row_offset, col_offset) in directions.items():
+                target_pos = (current_pos[0] + row_offset, current_pos[1] + col_offset)
+                
+                # Find location at target position
+                for other_location in sorted_locations:
+                    other_id = other_location.get("id")
+                    if other_id != location_id and location_positions[other_id] == target_pos:
+                        connections[direction] = other_location
+                        break
+            
+            full_graph[location_id] = connections
+        
+        # Store the persistent graph
+        gs.persistent_location_graphs[graph_key] = full_graph
+        
+        # Return connections for current location
+        current_location_id = locations[current_index].get("id")
+        return full_graph.get(current_location_id, {})
+    
     def _get_or_generate_location_data(self, location_template: Dict[str, Any]) -> Dict[str, Any]:
         """Get persistent location data or generate it if first visit"""
         gs = self.game_state
@@ -1041,8 +1207,49 @@ class GameEngine:
         # Cap between 1-4 hours as per steering guide
         return max(1.0, min(4.0, final_time))
     
-
+    def _calculate_location_travel_time(self) -> float:
+        """Calculate travel time between locations (base 15 minutes = 0.25 hours)"""
+        base_time = 0.25  # 15 minutes base
+        
+        # Character speed effects
+        character = self.game_state.character
+        speed_modifier = 1.0
+        if hasattr(character, 'get_effective_speed'):
+            effective_speed = character.get_effective_speed()
+            base_speed = getattr(character, 'base_speed', 30)
+            if effective_speed > 0:
+                speed_modifier = base_speed / max(5, effective_speed)
+        
+        # Weather effects (lighter than overworld travel)
+        weather = self.game_state.current_weather
+        weather_modifier = 1.0
+        
+        if weather.precipitation > 30:  # Heavy precipitation
+            weather_modifier += 0.2
+        elif weather.precipitation > 10:  # Light precipitation
+            weather_modifier += 0.1
+        
+        if weather.wind_speed > 20:  # Very strong winds
+            weather_modifier += 0.1
+        
+        final_time = base_time * weather_modifier * speed_modifier
+        
+        # Cap between 5 minutes and 1 hour for location travel
+        return max(0.083, min(1.0, final_time))  # 0.083 = 5 minutes
     
+    def _get_location_travel_description(self, travel_time: float) -> str:
+        """Get natural language description of location travel time"""
+        minutes = int(travel_time * 60)
+        
+        if minutes < 5:
+            return " You quickly make your way there."
+        elif minutes < 15:
+            return f" After a short time of walking, you arrive."
+        elif minutes < 30:
+            return f" After a good walk, you reach your destination."
+        else:
+            return f" After a longer time of travel, you arrive."
+
     def _advance_game_time(self, hours: float):
         """Advance game time and update weather"""
         gs = self.game_state

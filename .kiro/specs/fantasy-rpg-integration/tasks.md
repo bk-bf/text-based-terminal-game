@@ -69,8 +69,9 @@ Connect location exploration to existing location generation and foraging system
   - Connect to existing inventory system for resource gathering
   - _Requirements: 3.3, 3.4, 3.5_
 
-- [ ] 3.3 Test location exploration flow
+- [x] 3.3 Test location exploration flow
   - Verify location persistence across entry/exit
+  - Ensure movement between locations is functional
   - Test object discovery and interaction
   - Validate resource gathering integration
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
@@ -78,9 +79,9 @@ Connect location exploration to existing location generation and foraging system
 ### 4. UI System Integration
 Connect GameEngine to existing UI framework for state synchronization.
 
-- [ ] 4.1 Update UI to use GameEngine
+- [x] 4.1 Update UI to use GameEngine
   - Modify existing app.py to initialize GameEngine
-  - Connect character creation completion to game start
+  - Launch game with debug seed and debug character 
   - Update UI panels to display GameEngine state
   - _Requirements: 5.1, 5.2, 5.3_
 
