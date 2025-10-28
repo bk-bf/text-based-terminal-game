@@ -217,11 +217,31 @@ class WorldCoordinator:
                     starting_area_id = getattr(location, 'starting_area', 'entrance')
                     description = getattr(location, 'description', 'An unremarkable area.')
                     
+                    # Convert areas to dictionaries
+                    areas_dict = {}
+                    for area_id, area in areas.items():
+                        if hasattr(area, '__dict__'):
+                            # Convert Area object to dictionary
+                            area_dict = {
+                                "id": getattr(area, 'id', area_id),
+                                "name": getattr(area, 'name', 'Unknown Area'),
+                                "description": getattr(area, 'description', 'An unremarkable area.'),
+                                "size": getattr(area, 'size', 'medium'),
+                                "terrain": getattr(area, 'terrain', 'open'),
+                                "exits": getattr(area, 'exits', {}),
+                                "objects": self._convert_objects_to_dict(getattr(area, 'objects', [])),
+                                "items": self._convert_items_to_dict(getattr(area, 'items', [])),
+                                "entities": self._convert_entities_to_dict(getattr(area, 'entities', []))
+                            }
+                            areas_dict[area_id] = area_dict
+                        else:
+                            # Already a dictionary
+                            areas_dict[area_id] = area
+                    
                     # Try to get description from starting area
-                    if areas and starting_area_id in areas:
-                        starting_area = areas[starting_area_id]
-                        if hasattr(starting_area, 'description'):
-                            description = starting_area.description
+                    if areas_dict and starting_area_id in areas_dict:
+                        starting_area = areas_dict[starting_area_id]
+                        description = starting_area.get('description', description)
                     
                     location_dict = {
                         "id": getattr(location, 'id', f"loc_{coords[0]}_{coords[1]}_{len(location_dicts)}"),
@@ -231,7 +251,7 @@ class WorldCoordinator:
                         "exit_flag": getattr(location, 'exit_flag', True),
                         "size": getattr(location, 'size', 'medium'),
                         "terrain": getattr(location, 'terrain', 'open'),
-                        "areas": areas,
+                        "areas": areas_dict,
                         "starting_area": starting_area_id
                     }
                 else:
@@ -247,6 +267,65 @@ class WorldCoordinator:
             # Return basic fallback locations
             return self._get_fallback_locations(biome, coords)
     
+    def _convert_objects_to_dict(self, objects: List) -> List[Dict]:
+        """Convert GameObject objects to dictionaries"""
+        objects_dict = []
+        for obj in objects:
+            if hasattr(obj, '__dict__'):
+                # Convert GameObject to dictionary
+                obj_dict = {
+                    "id": getattr(obj, 'id', 'unknown'),
+                    "name": getattr(obj, 'name', 'Unknown Object'),
+                    "description": getattr(obj, 'description', ''),
+                    "interactive": getattr(obj, 'interactive', True),
+                    "properties": getattr(obj, 'properties', {}),
+                    "item_drops": self._convert_items_to_dict(getattr(obj, 'item_drops', []))
+                }
+                objects_dict.append(obj_dict)
+            else:
+                # Already a dictionary
+                objects_dict.append(obj)
+        return objects_dict
+    
+    def _convert_items_to_dict(self, items: List) -> List[Dict]:
+        """Convert GameItem objects to dictionaries"""
+        items_dict = []
+        for item in items:
+            if hasattr(item, '__dict__'):
+                # Convert GameItem to dictionary
+                item_dict = {
+                    "id": getattr(item, 'id', 'unknown'),
+                    "name": getattr(item, 'name', 'Unknown Item'),
+                    "description": getattr(item, 'description', ''),
+                    "value": getattr(item, 'value', 0),
+                    "weight": getattr(item, 'weight', 0.0)
+                }
+                items_dict.append(item_dict)
+            else:
+                # Already a dictionary
+                items_dict.append(item)
+        return items_dict
+    
+    def _convert_entities_to_dict(self, entities: List) -> List[Dict]:
+        """Convert GameEntity objects to dictionaries"""
+        entities_dict = []
+        for entity in entities:
+            if hasattr(entity, '__dict__'):
+                # Convert GameEntity to dictionary
+                entity_dict = {
+                    "id": getattr(entity, 'id', 'unknown'),
+                    "name": getattr(entity, 'name', 'Unknown Entity'),
+                    "description": getattr(entity, 'description', ''),
+                    "hostile": getattr(entity, 'hostile', False),
+                    "stats": getattr(entity, 'stats', {}),
+                    "item_drops": self._convert_items_to_dict(getattr(entity, 'item_drops', []))
+                }
+                entities_dict.append(entity_dict)
+            else:
+                # Already a dictionary
+                entities_dict.append(entity)
+        return entities_dict
+
     def _get_terrain_type(self, elevation: float) -> str:
         """Determine terrain type from elevation"""
         if elevation > 0.7:

@@ -1,0 +1,206 @@
+{
+  "id": "farmyard_10_10_0",
+  "name": "Farmyard",
+  "type": "wilderness",
+  "description": "Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.",
+  "exit_flag": true,
+  "size": "medium",
+  "terrain": "open",
+  "areas": {
+    "area_0": {
+      "id": "area_0",
+      "name": "Farmyard",
+      "description": "Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.",
+      "size": "AreaSize.LARGE",
+      "terrain": "TerrainType.OPEN",
+      "exits": {},
+      "objects": [
+        {
+          "id": "root_cellar",
+          "name": "Root Cellar",
+          "description": "A small underground storage area accessed by a wooden trapdoor.",
+          "interactive": true,
+          "properties": {
+            "can_enter": true,
+            "storage_space": "large",
+            "preserves_food": true,
+            "hidden": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "fireplace",
+          "name": "Stone Fireplace",
+          "description": "A well-built stone fireplace with a chimney. Cold ashes remain from old fires.",
+          "interactive": true,
+          "properties": {
+            "can_light_fire": true,
+            "provides_warmth": true,
+            "provides_light": true,
+            "fuel_required": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "cave_pool",
+          "name": "Underground Pool",
+          "description": "A clear pool of water fed by underground springs. The water looks fresh and clean.",
+          "interactive": true,
+          "properties": {
+            "provides_water": true,
+            "water_quality": "excellent",
+            "depth": "shallow",
+            "temperature": "cool"
+          },
+          "item_drops": []
+        },
+        {
+          "id": "broken_fence",
+          "name": "Broken Fence",
+          "description": "Sections of wooden fencing that have fallen into disrepair.",
+          "interactive": false,
+          "properties": {
+            "blocks_movement": false,
+            "provides_cover": "partial",
+            "can_repair": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "old_furniture",
+          "name": "Old Furniture",
+          "description": "Various pieces of household furniture covered in dust and cobwebs.",
+          "interactive": true,
+          "properties": {
+            "can_search": true,
+            "search_dc": 12,
+            "may_contain_items": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "fireplace",
+          "name": "Stone Fireplace",
+          "description": "A well-built stone fireplace with a chimney. Cold ashes remain from old fires.",
+          "interactive": true,
+          "properties": {
+            "can_light_fire": true,
+            "provides_warmth": true,
+            "provides_light": true,
+            "fuel_required": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "broken_fence",
+          "name": "Broken Fence",
+          "description": "Sections of wooden fencing that have fallen into disrepair.",
+          "interactive": false,
+          "properties": {
+            "blocks_movement": false,
+            "provides_cover": "partial",
+            "can_repair": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "fireplace",
+          "name": "Stone Fireplace",
+          "description": "A well-built stone fireplace with a chimney. Cold ashes remain from old fires.",
+          "interactive": true,
+          "properties": {
+            "can_light_fire": true,
+            "provides_warmth": true,
+            "provides_light": true,
+            "fuel_required": true
+          },
+          "item_drops": []
+        },
+        {
+          "id": "old_well",
+          "name": "Old Well",
+          "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
+          "interactive": true,
+          "properties": {
+            "provides_water": true,
+            "water_quality": "good",
+            "requires_bucket": false,
+            "depth": "deep"
+          },
+          "item_drops": []
+        },
+        {
+          "id": "old_well",
+          "name": "Old Well",
+          "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
+          "interactive": true,
+          "properties": {
+            "provides_water": true,
+            "water_quality": "good",
+            "requires_bucket": false,
+            "depth": "deep"
+          },
+          "item_drops": []
+        }
+      ],
+      "items": [],
+      "entities": [
+        {
+          "id": "wild_dog",
+          "name": "Wild Dog",
+          "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
+          "hostile": true,
+          "stats": {
+            "hp": 5,
+            "ac": 12,
+            "speed": 40,
+            "str": 10,
+            "dex": 14,
+            "con": 10,
+            "int": 3,
+            "wis": 12,
+            "cha": 6
+          },
+          "item_drops": []
+        },
+        {
+          "id": "wild_dog",
+          "name": "Wild Dog",
+          "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
+          "hostile": true,
+          "stats": {
+            "hp": 5,
+            "ac": 12,
+            "speed": 40,
+            "str": 10,
+            "dex": 14,
+            "con": 10,
+            "int": 3,
+            "wis": 12,
+            "cha": 6
+          },
+          "item_drops": []
+        },
+        {
+          "id": "wild_dog",
+          "name": "Wild Dog",
+          "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
+          "hostile": true,
+          "stats": {
+            "hp": 5,
+            "ac": 12,
+            "speed": 40,
+            "str": 10,
+            "dex": 14,
+            "con": 10,
+            "int": 3,
+            "wis": 12,
+            "cha": 6
+          },
+          "item_drops": []
+        }
+      ]
+    }
+  },
+  "starting_area": "area_0"
+}

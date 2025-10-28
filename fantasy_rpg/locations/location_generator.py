@@ -12,6 +12,10 @@ from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 import os
 
+# Configuration constants
+MIN_OBJECTS_PER_LOCATION = 10  # Minimum number of objects to spawn per location
+MAX_OBJECTS_PER_LOCATION = 10  # Maximum number of objects to spawn per location
+
 
 class LocationType(Enum):
     """Types of locations"""
@@ -477,8 +481,10 @@ class LocationGenerator:
         if not possible_spawns:
             return []
         
-        # Simple spawning: 1-4 items based on pool availability
-        num_spawns = self.rng.randint(1, min(4, len(possible_spawns)))
+        # Simple spawning: MIN_OBJECTS_PER_LOCATION-MAX_OBJECTS_PER_LOCATION items based on pool availability
+        min_spawns = min(MIN_OBJECTS_PER_LOCATION, len(possible_spawns))
+        max_spawns = min(MAX_OBJECTS_PER_LOCATION, len(possible_spawns))
+        num_spawns = self.rng.randint(min_spawns, max_spawns)
         
         # Spawn items
         spawned = []

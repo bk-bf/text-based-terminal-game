@@ -466,13 +466,17 @@ class GameEngine:
         entry_message = f"You enter {location_name}.\n\n{location_desc}"
         
         # Add object information if available
-        objects = location_data.get("objects", [])
-        if objects:
-            object_names = [obj.get("name", "something") for obj in objects[:3]]  # Show first 3
-            if len(objects) > 3:
-                entry_message += f"\n\nYou notice {', '.join(object_names)}, and more."
-            else:
-                entry_message += f"\n\nYou notice {', '.join(object_names)}."
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        if starting_area_id in areas:
+            area_data = areas[starting_area_id]
+            objects = area_data.get("objects", [])
+            if objects:
+                object_names = [obj.get("name", "something") for obj in objects[:3]]  # Show first 3
+                if len(objects) > 3:
+                    entry_message += f"\n\nYou notice {', '.join(object_names)}, and more."
+                else:
+                    entry_message += f"\n\nYou notice {', '.join(object_names)}."
         
         return True, entry_message
     
@@ -579,6 +583,370 @@ class GameEngine:
         
         return objects[:2]  # Limit to 2 objects for simplicity
     
+    def examine_object(self, object_name: str) -> Tuple[bool, str]:
+        """Examine an object in the current location"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to examine objects."
+        
+        # Get current location data
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return False, "No location data available."
+        
+        # Get objects from the location's starting area
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        
+        if starting_area_id not in areas:
+            return False, "No objects available to examine."
+        
+        # Get area data (it's a dictionary now)
+        area_data = areas[starting_area_id]
+        objects = area_data.get("objects", [])
+        
+        # Find matching object by name
+        target_object = None
+        for obj in objects:
+            obj_name = obj.get('name', '').lower()
+            if object_name.lower() in obj_name or obj_name in object_name.lower():
+                target_object = obj
+                break
+        
+        if not target_object:
+            # List available objects
+            if objects:
+                object_names = [obj.get('name', 'Unknown') for obj in objects[:5]]
+                return False, f"Cannot find '{object_name}'. Available objects: {', '.join(object_names)}"
+            else:
+                return False, "There are no objects to examine here."
+        
+        # Examine the object
+        obj_name = target_object.get('name', 'Unknown Object')
+        obj_desc = target_object.get('description', 'An unremarkable object.')
+        
+        # Check for special examination properties
+        properties = target_object.get('properties', {})
+        examination_text = properties.get('examination_text', '')
+        
+        result = f"**{obj_name}**\n\n{obj_desc}"
+        
+        if examination_text:
+            result += f"\n\n{examination_text}"
+        
+        # Show interaction hints based on properties
+        hints = []
+        if properties.get('can_search'):
+            hints.append("You could search this object.")
+        if properties.get('can_take_wood'):
+            hints.append("You could take wood from this.")
+        if properties.get('can_light_fire'):
+            hints.append("You could light a fire here.")
+        if properties.get('provides_water'):
+            hints.append("This provides fresh water.")
+        
+        if hints:
+            result += f"\n\n{' '.join(hints)}"
+        
+        return True, result
+    
+    def search_object(self, object_name: str) -> Tuple[bool, str]:
+        """Search an object for items"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to search objects."
+        
+        # Get current location data and find object
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return False, "No location data available."
+        
+        # Get objects from the location's starting area
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        
+        if starting_area_id not in areas:
+            return False, "No objects available to search."
+        
+        area_data = areas[starting_area_id]
+        objects = area_data.get("objects", [])
+        
+        # Find matching object
+        target_object = None
+        for obj in objects:
+            obj_name = obj.get('name', '').lower()
+            if object_name.lower() in obj_name or obj_name in object_name.lower():
+                target_object = obj
+                break
+        
+        if not target_object:
+            return False, f"Cannot find '{object_name}' to search."
+        
+        # Check if object can be searched
+        properties = target_object.get('properties', {})
+        if not properties.get('can_search', False):
+            obj_name = target_object.get('name', 'the object')
+            return False, f"You cannot search {obj_name}."
+        
+        # Get items from the object
+        item_drops = target_object.get('item_drops', [])
+        
+        if not item_drops:
+            obj_name = target_object.get('name', 'the object')
+            return True, f"You search {obj_name} thoroughly but find nothing useful."
+        
+        # Show available items (for now, just list them)
+        obj_name = target_object.get('name', 'the object')
+        item_names = [item.get('name', 'Unknown Item') for item in item_drops[:3]]
+        
+        if len(item_drops) > 3:
+            return True, f"You search {obj_name} and find {', '.join(item_names)}, and more items."
+        else:
+            return True, f"You search {obj_name} and find {', '.join(item_names)}."
+    
+    def take_item(self, item_name: str) -> Tuple[bool, str]:
+        """Take an item and add it to inventory"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to take items."
+        
+        # Get current location data
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return False, "No location data available."
+        
+        # Get items from the location's starting area
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        
+        if starting_area_id not in areas:
+            return False, "No items available to take."
+        
+        area_data = areas[starting_area_id]
+        items = area_data.get("items", [])
+        
+        # Also check object item drops
+        objects = area_data.get("objects", [])
+        all_items = list(items)  # Start with loose items
+        
+        # Add items from object drops
+        for obj in objects:
+            item_drops = obj.get("item_drops", [])
+            all_items.extend(item_drops)
+        
+        # Find matching item by name
+        target_item = None
+        for item in all_items:
+            item_name_check = item.get('name', '').lower()
+            if item_name.lower() in item_name_check or item_name_check in item_name.lower():
+                target_item = item
+                break
+        
+        if not target_item:
+            if all_items:
+                item_names = [item.get('name', 'Unknown') for item in all_items[:5]]
+                return False, f"Cannot find '{item_name}'. Available items: {', '.join(item_names)}"
+            else:
+                return False, "There are no items to take here."
+        
+        # Try to add item to character inventory
+        item_id = target_item.get('id', item_name.lower().replace(' ', '_'))
+        item_display_name = target_item.get('name', item_name)
+        
+        try:
+            success = gs.character.add_item_to_inventory(item_id, 1)
+            
+            if success:
+                # Remove item from location (for now, just mark as taken)
+                # TODO: Implement proper item removal from location state
+                return True, f"You take the {item_display_name}."
+            else:
+                return False, f"You cannot carry the {item_display_name} - your inventory is full or too heavy."
+                
+        except Exception as e:
+            return False, f"Failed to take {item_display_name}: {str(e)}"
+    
+    def use_object(self, object_name: str) -> Tuple[bool, str]:
+        """Use an object (context-specific actions)"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to use objects."
+        
+        # Get current location data
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return False, "No location data available."
+        
+        # Get objects from the location's starting area
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        
+        if starting_area_id not in areas:
+            return False, "No objects available to use."
+        
+        area_data = areas[starting_area_id]
+        objects = area_data.get("objects", [])
+        
+        # Find matching object
+        target_object = None
+        for obj in objects:
+            obj_name = obj.get('name', '').lower()
+            if object_name.lower() in obj_name or obj_name in object_name.lower():
+                target_object = obj
+                break
+        
+        if not target_object:
+            return False, f"Cannot find '{object_name}' to use."
+        
+        # Check object properties for usage options
+        properties = target_object.get('properties', {})
+        obj_name = target_object.get('name', 'the object')
+        
+        # Implement basic usage based on properties
+        if properties.get('can_light_fire'):
+            if properties.get('fuel_required'):
+                return True, f"You would need fuel to light a fire in {obj_name}. Try finding some wood first."
+            else:
+                return True, f"You light a fire in {obj_name}. Warmth spreads through the area."
+        
+        elif properties.get('provides_water'):
+            return True, f"You drink fresh water from {obj_name}. Your thirst is quenched."
+        
+        elif properties.get('can_take_wood'):
+            # This should probably be handled by 'take' command instead
+            return False, f"You should 'take' wood from {obj_name} instead of using it."
+        
+        elif properties.get('provides_warmth'):
+            return True, f"You warm yourself near {obj_name}."
+        
+        else:
+            return False, f"You're not sure how to use {obj_name}."
+    
+    def dump_location_data(self, filename: str = None) -> Tuple[bool, str]:
+        """Dump current location data to JSON file for analysis"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to dump location data."
+        
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return False, "No location data available."
+        
+        # Generate filename if not provided
+        if not filename:
+            location_name = location_data.get("name", "unknown_location").lower().replace(" ", "_")
+            hex_id = gs.world_position.hex_id
+            filename = f"debug_location_{location_name}_{hex_id}.json"
+        
+        try:
+            import json
+            with open(filename, 'w') as f:
+                json.dump(location_data, f, indent=2, default=str)
+            
+            return True, f"Location data dumped to {filename}"
+        except Exception as e:
+            return False, f"Failed to dump location data: {str(e)}"
+    
+    def dump_hex_data(self, filename: str = None) -> Tuple[bool, str]:
+        """Dump current hex data including all locations to JSON file for analysis"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        hex_id = gs.world_position.hex_id
+        
+        # Get all locations in current hex
+        try:
+            hex_locations = self.world_coordinator.get_hex_locations(hex_id)
+            hex_data = {
+                "hex_id": hex_id,
+                "coordinates": gs.world_position.coords,
+                "hex_info": gs.world_position.hex_data,
+                "weather": {
+                    "temperature": gs.current_weather.temperature,
+                    "precipitation": gs.current_weather.precipitation,
+                    "wind_speed": gs.current_weather.wind_speed,
+                    "description": gs.current_weather.get_description()
+                },
+                "locations": hex_locations,
+                "current_location_id": gs.world_position.current_location_id
+            }
+            
+            # Generate filename if not provided
+            if not filename:
+                filename = f"debug_hex_{hex_id}.json"
+            
+            import json
+            with open(filename, 'w') as f:
+                json.dump(hex_data, f, indent=2, default=str)
+            
+            return True, f"Hex data dumped to {filename}"
+        except Exception as e:
+            return False, f"Failed to dump hex data: {str(e)}"
+
+    def get_location_contents(self) -> str:
+        """Get a description of objects and items in the current location"""
+        if not self.is_initialized or not self.game_state:
+            return ""
+        
+        gs = self.game_state
+        
+        # Check if player is in a location
+        if not gs.world_position.current_location_id:
+            return ""
+        
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return ""
+        
+        # Get objects from the location's starting area
+        areas = location_data.get("areas", {})
+        starting_area_id = location_data.get("starting_area", "entrance")
+        
+        if starting_area_id not in areas:
+            return ""
+        
+        area_data = areas[starting_area_id]
+        objects = area_data.get("objects", [])
+        items = area_data.get("items", [])
+        
+        content_parts = []
+        
+        if objects:
+            object_names = [obj.get("name", "Unknown") for obj in objects]
+            content_parts.append(f"Objects: {', '.join(object_names)}")
+        
+        if items:
+            item_names = [item.get("name", "Unknown") for item in items]
+            content_parts.append(f"Items: {', '.join(item_names)}")
+        
+        return "\n".join(content_parts) if content_parts else ""
+
     def get_action_handler(self):
         """Get an ActionHandler connected to this GameEngine"""
         # Late import to avoid circular dependencies
@@ -857,7 +1225,7 @@ def test_movement_system():
             print(f"✓ New position: {engine.game_state.world_position.hex_id}")
             print(f"✓ New location: {engine.game_state.world_position.hex_data['name']}")
             print(f"✓ New time: {engine.game_state.game_time.get_time_string()}")
-            print(f"✓ Message: {message[:100]}...")
+            print(f"✓ Message: {message}")
             break  # Only test one successful movement
         else:
             print(f"✗ Movement {direction} failed: {message}")
@@ -903,7 +1271,7 @@ def test_action_handler_integration():
         
         if result.success:
             print(f"✓ Command successful")
-            print(f"✓ Message: {result.message[:100]}...")
+            print(f"✓ Message: {result.message}")
             if result.time_passed > 0:
                 print(f"✓ Time passed: {result.time_passed} hours")
             if hasattr(result, 'data') and result.data.get('direction'):
@@ -929,15 +1297,30 @@ def test_location_system():
     print(f"\nStarting position: {engine.game_state.world_position.hex_id}")
     print(f"Available locations: {len(engine.game_state.world_position.available_locations)}")
     
+    # Configuration for debug dumps
+    ENABLE_DEBUG_DUMPS = False  # Set to True to enable location data dumps
+    
     # Test location commands
     location_commands = [
         "look",           # Check current area
         "enter",          # Enter first available location
         "look",           # Look around inside location
+    ]
+    
+    # Add debug dump if enabled
+    if ENABLE_DEBUG_DUMPS:
+        location_commands.append("dump_location")  # Dump location data for analysis
+    
+    # Continue with regular test commands
+    location_commands.extend([
+        "examine fireplace", # Test object examination
+        "search old furniture", # Test object searching
+        "take firewood",     # Test item taking
+        "use fireplace",     # Test object usage
         "exit",           # Exit back to overworld
         "look",           # Confirm back in overworld
         "debug",          # Test debug command
-    ]
+    ])
     
     for command in location_commands:
         print(f"\n--- Testing location command: '{command}' ---")
@@ -945,7 +1328,7 @@ def test_location_system():
         
         if result.success:
             print(f"✓ Command successful")
-            print(f"✓ Message: {result.message[:150]}...")
+            print(f"✓ Message: {result.message}")
             if result.time_passed > 0:
                 print(f"✓ Time passed: {result.time_passed} hours")
             

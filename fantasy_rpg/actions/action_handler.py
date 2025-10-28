@@ -42,6 +42,12 @@ class ActionHandler:
             "character": self.handle_character,
             "save": self.handle_save_log,
             
+            # Object Interaction Actions (location only)
+            "examine": self.handle_examine,
+            "search": self.handle_search,
+            "take": self.handle_take,
+            "use": self.handle_use,
+            
             # Movement Actions (overworld only)
             "north": self.handle_movement,
             "south": self.handle_movement,
@@ -54,6 +60,8 @@ class ActionHandler:
             
             # Debug Commands
             "debug": self.handle_debug,
+            "dump_location": self.handle_dump_location,
+            "dump_hex": self.handle_dump_hex,
             "help": self.handle_help,
         }
     
@@ -117,6 +125,12 @@ Core Actions:
   enter - Enter a location in this hex
   exit - Exit current location to overworld
   
+Object Interaction (location only):
+  examine <object> - Examine an object closely
+  search <object> - Search an object for items
+  take <item> - Take an item and add to inventory
+  use <object> - Use an object (context-specific)
+  
 Movement (overworld only):
   north, south, east, west (or n, s, e, w) - Move in that direction
   
@@ -127,6 +141,8 @@ Character:
 System:
   save - Save game log to text file
   debug - Show debug information
+  dump_location - Dump current location data to JSON file
+  dump_hex - Dump current hex data to JSON file
   help - Show this help
   
 Type any command to try it."""
@@ -199,14 +215,17 @@ Type any command to try it."""
             
             # Check if player is inside a location
             if gs.world_position.current_location_id:
-                # Inside a location - show location description
-                # TODO: Rethink the functionality of the "look" command for locations
-                # For now, just show basic location info as placeholder
+                # Inside a location - show location description and contents
                 location_data = gs.world_position.current_location_data
                 if location_data:
                     location_name = location_data.get("name", "Unknown Location")
                     location_desc = location_data.get("description", "An unremarkable area.")
                     description = f"**{location_name}**\n\n{location_desc}"
+                    
+                    # Add location contents
+                    contents = self.game_engine.get_location_contents()
+                    if contents:
+                        description += f"\n\n{contents}"
                 else:
                     description = "You are inside a location, but cannot see much."
             else:
@@ -295,6 +314,32 @@ Type any command to try it."""
             debug_info.append(f"Time: {gs.game_time.get_time_string()}, {gs.game_time.get_date_string()}")
             debug_info.append(f"Weather: {gs.current_weather.temperature:.0f}°F")
             debug_info.append(f"Character HP: {gs.character.hp}/{gs.character.max_hp}")
+            
+            # Add location content debug info
+            if gs.world_position.current_location_id:
+                location_data = gs.world_position.current_location_data
+                if location_data:
+                    areas = location_data.get("areas", {})
+                    starting_area_id = location_data.get("starting_area", "entrance")
+                    debug_info.append(f"Location: {location_data.get('name', 'Unknown')}")
+                    debug_info.append(f"Starting area: {starting_area_id}")
+                    
+                    if starting_area_id in areas:
+                        area_data = areas[starting_area_id]
+                        objects = area_data.get("objects", [])
+                        items = area_data.get("items", [])
+                        
+                        debug_info.append(f"Objects in area: {len(objects)}")
+                        for i, obj in enumerate(objects[:5]):  # Show first 5
+                            obj_name = obj.get('name', 'Unknown')
+                            obj_id = obj.get('id', 'unknown')
+                            debug_info.append(f"  {i+1}. {obj_name} (id: {obj_id})")
+                        
+                        debug_info.append(f"Items in area: {len(items)}")
+                        for i, item in enumerate(items[:5]):  # Show first 5
+                            item_name = item.get('name', 'Unknown')
+                            item_id = item.get('id', 'unknown')
+                            debug_info.append(f"  {i+1}. {item_name} (id: {item_id})")
         else:
             debug_info.append("No game state available")
         
@@ -304,3 +349,119 @@ Type any command to try it."""
             time_passed=0.0,
             action_type="debug"
         )
+    
+    def handle_examine(self, *args) -> ActionResult:
+        """Handle examining objects in current location"""
+        if not self.game_engine:
+            return ActionResult(False, "Object interaction system not available.")
+        
+        if not args:
+            return ActionResult(False, "Examine what? Specify an object name.")
+        
+        object_name = " ".join(args).lower()
+        
+        try:
+            success, message = self.game_engine.examine_object(object_name)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.1 if success else 0.0,  # Examining takes a little time
+                action_type="object_interaction"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to examine object: {str(e)}")
+    
+    def handle_search(self, *args) -> ActionResult:
+        """Handle searching objects in current location"""
+        if not self.game_engine:
+            return ActionResult(False, "Object interaction system not available.")
+        
+        if not args:
+            return ActionResult(False, "Search what? Specify an object name.")
+        
+        object_name = " ".join(args).lower()
+        
+        try:
+            success, message = self.game_engine.search_object(object_name)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.25 if success else 0.0,  # Searching takes time
+                action_type="object_interaction"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to search object: {str(e)}")
+    
+    def handle_take(self, *args) -> ActionResult:
+        """Handle taking items from objects"""
+        if not self.game_engine:
+            return ActionResult(False, "Object interaction system not available.")
+        
+        if not args:
+            return ActionResult(False, "Take what? Specify an item name.")
+        
+        item_name = " ".join(args).lower()
+        
+        try:
+            success, message = self.game_engine.take_item(item_name)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.1 if success else 0.0,  # Taking items is quick
+                action_type="object_interaction"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to take item: {str(e)}")
+    
+    def handle_use(self, *args) -> ActionResult:
+        """Handle using objects in current location"""
+        if not self.game_engine:
+            return ActionResult(False, "Object interaction system not available.")
+        
+        if not args:
+            return ActionResult(False, "Use what? Specify an object name.")
+        
+        object_name = " ".join(args).lower()
+        
+        try:
+            success, message = self.game_engine.use_object(object_name)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.25 if success else 0.0,  # Using objects takes time
+                action_type="object_interaction"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to use object: {str(e)}")
+    
+    def handle_dump_location(self, *args) -> ActionResult:
+        """Handle dumping current location data to JSON file"""
+        if not self.game_engine:
+            return ActionResult(False, "Debug system not available.")
+        
+        try:
+            success, message = self.game_engine.dump_location_data()
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.0,
+                action_type="debug"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to dump location data: {str(e)}")
+    
+    def handle_dump_hex(self, *args) -> ActionResult:
+        """Handle dumping current hex data to JSON file"""
+        if not self.game_engine:
+            return ActionResult(False, "Debug system not available.")
+        
+        try:
+            success, message = self.game_engine.dump_hex_data()
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.0,
+                action_type="debug"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to dump hex data: {str(e)}")
