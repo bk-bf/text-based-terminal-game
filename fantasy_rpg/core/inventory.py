@@ -52,8 +52,8 @@ class InventoryItem:
     
     def is_stackable(self) -> bool:
         """Check if this item type can be stacked"""
-        # Consumables, ammunition, and tools can typically stack
-        stackable_types = ['consumable', 'ammunition', 'tool', 'component']
+        # Consumables, ammunition, tools, and materials can typically stack
+        stackable_types = ['consumable', 'ammunition', 'tool', 'component', 'material']
         return self.item_type in stackable_types
     
     def split(self, quantity: int) -> Optional['InventoryItem']:
@@ -194,6 +194,15 @@ class Inventory:
                     existing_item.quantity += item.quantity
                     print(f"Stacked {item.quantity} {item.name} (total: {existing_item.quantity})")
                     return True
+            # Debug: Why didn't it stack?
+            for existing_item in self.items:
+                if existing_item.item_id == item.item_id:
+                    print(f"DEBUG: Found matching item_id '{item.item_id}' but couldn't stack:")
+                    print(f"  New item stackable: {item.is_stackable()} (type: {item.item_type})")
+                    print(f"  Existing item stackable: {existing_item.is_stackable()} (type: {existing_item.item_type})")
+                    break
+        else:
+            print(f"DEBUG: Item '{item.name}' is not stackable (type: {item.item_type})")
         
         # Add as new item
         self.items.append(item)

@@ -502,6 +502,9 @@ class FantasyRPGApp(App):
             # Create GameEngine
             self.game_engine = GameEngine()
             
+            # Register for UI state change notifications
+            self.game_engine.register_ui_update_callback(self._on_game_state_change)
+            
             self.log_system_message("Creating test character...")
             # Create test character (skip character creation UI for now)
             test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
@@ -750,6 +753,21 @@ class FantasyRPGApp(App):
         # Refresh character panel
         if self.character_panel:
             self.character_panel.refresh_display()
+    
+    def _on_game_state_change(self, change_type: str):
+        """Handle GameEngine state change notifications"""
+        # Always refresh UI when state changes
+        self._refresh_ui_from_game_state()
+        
+        # Handle specific change types if needed
+        if change_type == "character_death":
+            self.log_message("💀 CHARACTER DIED!")
+        elif change_type == "inventory_change":
+            # Could trigger inventory panel refresh if open
+            pass
+        elif change_type in ["location_change", "location_entry", "location_exit", "location_movement"]:
+            # Location changes are already handled by general refresh
+            pass
     
     # _format_duration is now handled by the time system
     

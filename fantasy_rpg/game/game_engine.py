@@ -105,7 +105,28 @@ class GameEngine:
         self.game_state: Optional[GameState] = None
         self.is_initialized = False
         
+        # UI state change notification system
+        self.ui_update_callbacks = []
+        
         print("GameEngine initialized")
+    
+    def register_ui_update_callback(self, callback):
+        """Register a callback function to be called when game state changes"""
+        if callback not in self.ui_update_callbacks:
+            self.ui_update_callbacks.append(callback)
+    
+    def unregister_ui_update_callback(self, callback):
+        """Unregister a UI update callback"""
+        if callback in self.ui_update_callbacks:
+            self.ui_update_callbacks.remove(callback)
+    
+    def _notify_ui_state_change(self, change_type: str = "general"):
+        """Notify all registered UI callbacks of state changes"""
+        for callback in self.ui_update_callbacks:
+            try:
+                callback(change_type)
+            except Exception as e:
+                print(f"Error in UI callback: {e}")
     
     def new_game(self, character: Any, world_seed: Optional[int] = None) -> GameState:
         """
@@ -418,7 +439,11 @@ class GameEngine:
         
         # Check if character died during travel
         if gs.character.hp <= 0:
+            self._notify_ui_state_change("character_death")
             return False, f"{travel_desc}\n\n💀 You collapsed and died during the journey!"
+        
+        # Notify UI of location change
+        self._notify_ui_state_change("location_change")
         
         return True, travel_desc
     
@@ -488,6 +513,9 @@ class GameEngine:
                 else:
                     entry_message += f"\n\nYou notice {', '.join(object_names)}."
         
+        # Notify UI of location entry
+        self._notify_ui_state_change("location_entry")
+        
         return True, entry_message
     
     def exit_location(self) -> Tuple[bool, str]:
@@ -519,6 +547,9 @@ class GameEngine:
         
         # Get current hex description for context
         hex_name = gs.world_position.hex_data.get("name", "the area")
+        
+        # Notify UI of location exit
+        self._notify_ui_state_change("location_exit")
         
         return True, f"You exit {location_name} and return to {hex_name}."
     
@@ -600,6 +631,7 @@ class GameEngine:
         
         # Check if character died during travel
         if gs.character.hp <= 0:
+            self._notify_ui_state_change("character_death")
             return False, f"{message}\n\n💀 You collapsed and died during the journey!"
         
         # Show objects in new location
@@ -614,6 +646,9 @@ class GameEngine:
                     message += f"\n\nYou notice {', '.join(object_names)}, and more."
                 else:
                     message += f"\n\nYou notice {', '.join(object_names)}."
+        
+        # Notify UI of location movement
+        self._notify_ui_state_change("location_movement")
         
         return True, message
     
@@ -788,6 +823,8 @@ class GameEngine:
             return self._handle_take(target_object, properties)
         elif action in ["drink", "water"]:
             return self._handle_drink(target_object, properties)
+        elif action in ["use"]:
+            return self._handle_use(target_object, properties)
         else:
             return False, f"You can't {action} the {target_object.get('name', 'object')}."
     
@@ -800,40 +837,12 @@ class GameEngine:
         if obj.get("depleted", False):
             return False, f"The {obj.get('name')} has already been foraged recently."
         
-        # Make a survival skill check (simplified for now)
-        import random
-        roll = random.randint(1, 20)
-        skill_bonus = self._get_skill_bonus("survival")
-        dc = properties.get("forage_dc", 10)
-        total = roll + skill_bonus
-        
-        # Use time system for foraging activity
-        if self.time_system:
-            time_result = self.time_system.perform_activity("forage", duration_override=0.25)  # 15 minutes
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Foraging failed.")
-        
-        if total >= dc:
-            # Success - get items from item_drops
-            item_drops = obj.get("item_drops", {})
-            if item_drops:
-                # Mark as depleted
-                obj["depleted"] = True
-                
-                # TODO: Connect to actual inventory system
-                food_value = properties.get("food_value", 1)
-                
-                return True, (
-                    f"You successfully forage from the {obj.get('name')}.\n"
-                    f"You gather some nutritious food (food value: {food_value})."
-                )
-            else:
-                return True, f"You forage from the {obj.get('name')} but don't find much."
-        else:
-            return False, f"You search the {obj.get('name')} but don't find anything useful."
+        # Simple success for now - ActionHandler will implement the multi-skill system
+        obj["depleted"] = True
+        return True, f"You successfully forage from the {obj.get('name')} and find some berries."
     
     def _handle_search(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
-        """Handle searching containers/objects"""
+        """Handle searching containers/objects - COORDINATOR ONLY"""
         if not properties.get("can_search"):
             return False, f"There's nothing to search in the {obj.get('name')}."
         
@@ -841,60 +850,18 @@ class GameEngine:
         if obj.get("searched", False):
             return False, f"You have already searched the {obj.get('name')}."
         
-        # Make investigation check
-        import random
-        roll = random.randint(1, 20)
-        skill_bonus = self._get_skill_bonus("investigation")
-        dc = properties.get("search_dc", 12)
-        total = roll + skill_bonus
-        
-        # Use time system for searching
-        if self.time_system:
-            time_result = self.time_system.perform_activity("search", duration_override=0.5)  # 30 minutes
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Search failed.")
-        
-        # Mark as searched regardless of success
+        # Simple success for now - ActionHandler implements the multi-skill system
         obj["searched"] = True
-        
-        if total >= dc:
-            # Success - found items
-            item_drops = obj.get("item_drops", {})
-            if item_drops:
-                # TODO: Connect to actual inventory system
-                return True, f"You search the {obj.get('name')} and find some useful items!"
-            else:
-                return True, f"You search the {obj.get('name')} thoroughly but find nothing of value."
-        else:
-            return False, f"You search the {obj.get('name')} but don't find anything."
+        return True, f"You search the {obj.get('name')} and find some items."
     
     def _handle_examine(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
-        """Handle examining objects closely"""
+        """Handle examining objects closely - COORDINATOR ONLY"""
         base_description = obj.get("description", "An unremarkable object.")
         
-        if not properties.get("can_examine"):
-            return True, base_description
-        
-        # Make investigation check for detailed examination
-        import random
-        roll = random.randint(1, 20)
-        skill_bonus = self._get_skill_bonus("investigation")
-        dc = properties.get("examine_dc", 10)
-        total = roll + skill_bonus
-        
-        # Examining takes a little time
-        if self.time_system:
-            time_result = self.time_system.perform_activity("quick", duration_override=0.083)  # 5 minutes
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Examination failed.")
-        
-        if total >= dc:
-            # Success - reveal additional information
-            examination_text = properties.get("examination_text", "")
-            if examination_text:
-                return True, f"{base_description}\n\nUpon closer examination: {examination_text}"
-            else:
-                return True, f"{base_description}\n\nYou notice some interesting details about the {obj.get('name')}."
+        # Simple examination - ActionHandler implements the multi-skill system
+        examination_text = properties.get("examination_text", "")
+        if examination_text:
+            return True, f"{base_description}\n\nUpon closer examination: {examination_text}"
         else:
             return True, base_description
     
@@ -928,60 +895,28 @@ class GameEngine:
             return False, f"You fail to pick the lock on the {obj.get('name')}."
     
     def _handle_chop(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
-        """Handle chopping wood from objects"""
+        """Handle chopping wood from objects - COORDINATOR ONLY"""
         if not properties.get("can_chop_wood"):
             return False, f"You can't chop wood from the {obj.get('name')}."
-        
-        # Check if tool is required
-        tool_required = properties.get("tool_required", True)
-        if tool_required:
-            # TODO: Check inventory for axe or similar tool
-            pass
         
         # Check if already chopped
         if obj.get("chopped", False):
             return False, f"You have already chopped wood from the {obj.get('name')}."
         
-        # Make athletics check
-        import random
-        roll = random.randint(1, 20)
-        skill_bonus = self._get_skill_bonus("athletics")
-        dc = properties.get("chop_dc", 12)
-        total = roll + skill_bonus
-        
-        # Chopping takes time
-        if self.time_system:
-            time_result = self.time_system.perform_activity("chop_wood", duration_override=1.0)  # 1 hour
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Chopping failed.")
-        
-        if total >= dc:
-            # Success
-            obj["chopped"] = True
-            # TODO: Add wood to inventory
-            return True, f"You chop some useful wood from the {obj.get('name')}."
-        else:
-            return False, f"You attempt to chop the {obj.get('name')} but don't get much usable wood."
+        # Simple success for now - ActionHandler implements the multi-skill system
+        obj["chopped"] = True
+        return True, f"You chop wood from the {obj.get('name')} and gather some firewood."
     
     def _handle_take(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
-        """Handle taking wood or other materials from objects"""
+        """Handle taking wood or other materials from objects - COORDINATOR ONLY"""
         if properties.get("can_take_wood"):
             # Check if already taken
             if obj.get("wood_taken", False):
                 return False, f"You have already taken wood from the {obj.get('name')}."
             
-            # Take wood
+            # Simple success for now - ActionHandler implements the multi-skill system
             obj["wood_taken"] = True
-            fuel_value = properties.get("fuel_value", 5)
-            
-            # Quick action
-            if self.time_system:
-                time_result = self.time_system.perform_activity("quick", duration_override=0.25)  # 15 minutes
-                if not time_result.get("success", True):
-                    return False, time_result.get("message", "Taking wood failed.")
-            
-            # TODO: Add to inventory
-            return True, f"You take some wood from the {obj.get('name')} (fuel value: {fuel_value})."
+            return True, f"You take materials from the {obj.get('name')}."
         
         return False, f"You can't take anything from the {obj.get('name')}."
     
@@ -1017,12 +952,19 @@ class GameEngine:
             f"Thirst relief: +{thirst_relief} ({old_thirst} → {gs.player_state.survival.thirst})"
         )
     
+    def _handle_use(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+        """Handle using objects (generic interaction)"""
+        # For now, 'use' defaults to examine behavior
+        return self._handle_examine(obj, properties)
+    
     def _get_skill_bonus(self, skill_name: str) -> int:
         """Get character's skill bonus (placeholder implementation)"""
         # TODO: Connect to actual character skill system
         # For now, return a basic bonus based on character stats
         gs = self.game_state
-        if skill_name == "survival":
+        if skill_name == "nature":
+            return (gs.character.wisdom - 10) // 2
+        elif skill_name == "perception":
             return (gs.character.wisdom - 10) // 2
         elif skill_name == "investigation":
             return (gs.character.intelligence - 10) // 2
@@ -1030,8 +972,71 @@ class GameEngine:
             return (gs.character.strength - 10) // 2
         elif skill_name == "sleight_of_hand":
             return (gs.character.dexterity - 10) // 2
+        elif skill_name == "survival":
+            return (gs.character.wisdom - 10) // 2
         else:
             return 0
+    
+    def _calculate_quality_multiplier(self, success_margin: int) -> float:
+        """
+        Calculate quality multiplier based on how much the skill check exceeded the DC.
+        
+        Args:
+            success_margin: How much the roll exceeded the DC (can be negative)
+        
+        Returns:
+            Multiplier for item quantity (0.5 to 2.0)
+        """
+        if success_margin >= 15:      # Exceptional success (nat 20 + good stats)
+            return 2.0
+        elif success_margin >= 10:    # Great success
+            return 1.5
+        elif success_margin >= 5:     # Good success
+            return 1.2
+        elif success_margin >= 0:     # Bare success
+            return 1.0
+        elif success_margin >= -3:    # Near miss (shouldn't happen since we only call this on success)
+            return 0.8
+        else:                         # Poor performance
+            return 0.5
+    
+    def _generate_from_item_drops(self, item_drops: Dict, quality_multiplier: float = 1.0) -> Dict[str, int]:
+        """Generate items from item_drops configuration with quality scaling"""
+        import random
+        
+        items = {}
+        
+        # Get drop parameters
+        min_drops = item_drops.get("min_drops", 0)
+        max_drops = item_drops.get("max_drops", 1)
+        base_drop_chance = item_drops.get("drop_chance", 50)
+        
+        # Scale drop chance with quality (better rolls = higher chance)
+        scaled_drop_chance = min(95, int(base_drop_chance * quality_multiplier))
+        
+        # Check if we get any drops
+        if random.randint(1, 100) <= scaled_drop_chance:
+            base_num_drops = random.randint(min_drops, max_drops)
+            # Scale number of drops with quality
+            num_drops = max(1, int(base_num_drops * quality_multiplier))
+            
+            # For now, generate generic items based on pools
+            pools = item_drops.get("pools", [])
+            
+            for _ in range(num_drops):
+                if "food" in pools:
+                    items["wild_berries"] = items.get("wild_berries", 0) + 1
+                elif "treasure" in pools:
+                    base_coins = random.randint(1, 10)
+                    scaled_coins = max(1, int(base_coins * quality_multiplier))
+                    items["gold_coins"] = items.get("gold_coins", 0) + scaled_coins
+                elif "materials" in pools or "wood" in pools:
+                    items["firewood"] = items.get("firewood", 0) + 1
+                else:
+                    # Generic material
+                    items["bone_fragments"] = items.get("bone_fragments", 0) + 1
+        
+        return items
     
     def _create_location_graph(self, locations: List[Dict], current_index: int) -> Dict[str, Dict]:
         """Create a persistent bidirectional graph of locations"""
@@ -1551,7 +1556,6 @@ class GameEngine:
         return ActionHandler(
             character=self.game_state.character,
             player_state=self.game_state.player_state,
-            time_system=self.time_system,
             game_engine=self  # Connect to this GameEngine
         )
     

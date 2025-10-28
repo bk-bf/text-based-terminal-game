@@ -63,7 +63,7 @@ Connect location exploration to existing location generation and foraging system
   - Add location state management for re-entry
   - _Requirements: 3.1, 3.2, 3.5_
 
-- [ ] 3.2 Connect object interaction system
+- [x] 3.2 Connect object interaction system
   - Link to existing action system
   - Implement context-specific object commands //TODO: extend commands result, eg. many different outcomes for harvest, cut, unlock
   - Connect to existing inventory system for resource gathering
@@ -76,6 +76,8 @@ Connect location exploration to existing location generation and foraging system
   - Validate resource gathering integration
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
+// TODO: action system isnt as sophisticated as desired, should be improved
+
 ### 4. UI System Integration
 Connect GameEngine to existing UI framework for state synchronization.
 
@@ -85,7 +87,7 @@ Connect GameEngine to existing UI framework for state synchronization.
   - Update UI panels to display GameEngine state
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 4.2 Implement UI state synchronization
+- [x] 4.2 Implement UI state synchronization
   - Add GameEngine state change notifications
   - Update existing panels when game state changes
   - Ensure all displays show current information

@@ -190,7 +190,11 @@
             "spawn_weight": 100,
             "properties": {
                 "can_unlock": true,
+                "can_search": true,
+                "can_examine": true,
                 "dc_lockpick": 15,
+                "search_dc": 14,
+                "examine_dc": 10,
                 "contains_treasure": true,
                 "trapped": true,
                 "trap_dc": 18
@@ -220,9 +224,14 @@
             "spawn_weight": 60,
             "properties": {
                 "can_forage": true,
+                "can_search": true,
+                "can_chop_wood": true,
                 "food_value": 2,
                 "seasonal": true,
-                "renewable": true
+                "renewable": true,
+                "generates_items": true,
+                "generated_item_id": "wild_berries",
+                "generated_quantity": 2
             },
             "item_drops": {
                 "pools": [
@@ -249,7 +258,11 @@
                 "can_sit": true,
                 "provides_cover": "partial",
                 "can_climb": true,
-                "blocks_movement": false
+                "blocks_movement": false,
+                "can_chop_wood": true,
+                "generates_items": true,
+                "generated_item_id": "firewood",
+                "generated_quantity": 2
             }
         },
         "fireplace": {
@@ -281,8 +294,21 @@
             "spawn_weight": 80,
             "properties": {
                 "can_sleep": true,
+                "can_search": true,
+                "can_examine": true,
                 "rest_bonus": 2,
-                "comfort_level": "basic"
+                "comfort_level": "basic",
+                "search_dc": 12,
+                "examine_dc": 8
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "common"
+                ],
+                "min_drops": 0,
+                "max_drops": 2,
+                "drop_chance": 25
             }
         },
         "table": {
@@ -297,8 +323,24 @@
             "spawn_weight": 80,
             "properties": {
                 "can_place_items": true,
+                "can_search": true,
+                "can_examine": true,
+                "can_chop_wood": true,
                 "storage_slots": 6,
-                "provides_work_surface": true
+                "provides_work_surface": true,
+                "search_dc": 11,
+                "examine_dc": 9,
+                "chop_dc": 14
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "common",
+                    "materials"
+                ],
+                "min_drops": 0,
+                "max_drops": 1,
+                "drop_chance": 30
             }
         },
         "chopping_block": {
@@ -329,8 +371,15 @@
             "spawn_weight": 100,
             "properties": {
                 "can_take_wood": true,
+                "can_search": true,
+                "can_examine": true,
                 "fuel_value": 10,
-                "renewable": false
+                "renewable": false,
+                "search_dc": 10,
+                "examine_dc": 8,
+                "generates_items": true,
+                "generated_item_id": "firewood",
+                "generated_quantity": 4
             },
             "item_drops": {
                 "pools": [
@@ -372,9 +421,22 @@
             "spawn_weight": 60,
             "properties": {
                 "provides_water": true,
+                "can_search": true,
+                "can_examine": true,
                 "water_quality": "good",
                 "requires_bucket": false,
-                "depth": "deep"
+                "depth": "deep",
+                "search_dc": 11,
+                "examine_dc": 9
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "common"
+                ],
+                "min_drops": 0,
+                "max_drops": 1,
+                "drop_chance": 20
             }
         },
         "old_furniture": {
@@ -389,7 +451,11 @@
             "spawn_weight": 90,
             "properties": {
                 "can_search": true,
+                "can_examine": true,
+                "can_chop_wood": true,
                 "search_dc": 12,
+                "examine_dc": 8,
+                "chop_dc": 13,
                 "may_contain_items": true
             },
             "item_drops": {
