@@ -402,6 +402,39 @@ class PlayerState:
             wetness_penalty = int(self.survival.wetness / 20 * hours)
             self.survival.body_temperature = max(0, self.survival.body_temperature - wetness_penalty)
     
+    def _apply_immediate_wetness_effects(self, new_weather: WeatherState, old_weather: WeatherState):
+        """Apply immediate wetness when entering precipitation"""
+        if not new_weather:
+            return
+        
+        # Check if we're entering precipitation from dry conditions
+        old_precipitation = old_weather.precipitation if old_weather else 0
+        new_precipitation = new_weather.precipitation
+        
+        # If entering precipitation or precipitation increased significantly
+        if new_precipitation > old_precipitation:
+            # Apply immediate wetness based on precipitation intensity
+            if new_precipitation > 50:  # Heavy precipitation
+                immediate_wetness = 50  # Get quite wet immediately
+            elif new_precipitation > 20:  # Moderate precipitation
+                immediate_wetness = 25  # Get moderately wet
+            elif new_precipitation > 5:  # Light precipitation
+                immediate_wetness = 10  # Get slightly wet
+            else:
+                immediate_wetness = 5   # Very light wetness
+            
+            # Apply the wetness
+            old_wetness = self.survival.wetness
+            self.survival.wetness = min(400, self.survival.wetness + immediate_wetness)
+            
+            # Debug output to show wetness change
+            if self.survival.wetness > old_wetness:
+                wetness_level = self.survival.get_wetness_level()
+                print(f"🌧️ You are getting wet from the {new_weather.precipitation_type}! Wetness: {old_wetness} → {self.survival.wetness} ({wetness_level.name})")
+        
+        # Update health effects immediately to reflect new wetness
+        self._update_health_effects()
+
     def _update_health_effects(self):
         """Update health effects based on survival status"""
         # Clear old survival-related status effects
@@ -555,7 +588,12 @@ Wetness: {wetness_level.name.title()}"""
     
     def update_weather(self, weather: WeatherState):
         """Update current weather conditions"""
+        old_weather = self.current_weather
         self.current_weather = weather
+        
+        # Apply immediate wetness effects when entering precipitation
+        if weather and weather.precipitation > 0:
+            self._apply_immediate_wetness_effects(weather, old_weather)
     
     def update_location(self, hex_id: str, location_name: str):
         """Update current location"""

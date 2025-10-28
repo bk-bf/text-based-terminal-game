@@ -120,6 +120,11 @@ class TimeSystem:
             "Take a brief rest", weather_affected=True
         )
         
+        activities["rest"] = ActivityDefinition(
+            "rest", ActivityType.MEDIUM, 1.0, "resting",
+            "Rest for an hour", weather_affected=True
+        )
+        
         # Medium actions (1 hour base, modified by speed)
         activities["travel"] = ActivityDefinition(
             "travel", ActivityType.MEDIUM, 1.0, "active",

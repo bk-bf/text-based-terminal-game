@@ -48,10 +48,10 @@ Connect movement commands to existing world and survival systems.
   - Implement proper error handling for invalid moves
   - _Requirements: 2.4, 2.5_
 
-- [ ] 2.3 Test movement with environmental effects
+- [x] 2.3 Test movement with environmental effects
   - Verify survival stats change during travel
   - Test weather effects on movement
-  - Validate natural language feedback
+  - Validate natural language feedback   // TODO: could be improved
   - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
 ### 3. Location System Integration
@@ -64,7 +64,7 @@ Connect location exploration to existing location generation and foraging system
   - _Requirements: 3.1, 3.2, 3.5_
 
 - [ ] 3.2 Connect object interaction system
-  - Link to existing foraging system
+  - Link to existing action system
   - Implement context-specific object commands
   - Connect to existing inventory system for resource gathering
   - _Requirements: 3.3, 3.4, 3.5_

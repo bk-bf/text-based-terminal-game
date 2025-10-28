@@ -226,7 +226,7 @@
             "severity": "mild",
             "category": "temperature"
         },
-        "Freezing": {
+        "Icy": {
             "description": "Dangerously cold, risking hypothermia",
             "trigger": "body_temperature <= 200 or hypothermia_risk >= 80",
             "hierarchy": "temperature",
@@ -362,7 +362,7 @@
             "severity": "moderate",
             "category": "weather"
         },
-        "Icy": {
+        "Freezing": {
             "description": "Body temperature dangerously low",
             "trigger": "body_temperature <= 100 or hypothermia_risk >= 90",
             "hierarchy": "temperature",
@@ -375,7 +375,7 @@
                 "damage_over_time": {
                     "type": "cold",
                     "amount": 2,
-                    "interval": "5_minutes"
+                    "interval": "15_minutes"
                 },
                 "faint_chance": 0.2
             },
@@ -395,7 +395,7 @@
                 "damage_over_time": {
                     "type": "heat",
                     "amount": 2,
-                    "interval": "5_minutes"
+                    "interval": "15_minutes"
                 },
                 "faint_chance": 0.2
             },

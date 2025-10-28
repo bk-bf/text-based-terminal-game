@@ -175,6 +175,9 @@ class GameEngine:
             climate_type
         )
         
+        # Update PlayerState weather so survival effects work from the start
+        player_state.update_weather(current_weather)
+        
         # Create complete game state
         self.game_state = GameState(
             character=character,
@@ -398,11 +401,15 @@ class GameEngine:
             climate_type = "temperate"
         
         from world.weather_core import generate_weather_state
-        gs.current_weather = generate_weather_state(
+        new_weather = generate_weather_state(
             base_temp, 
             gs.game_time.season, 
             climate_type
         )
+        gs.current_weather = new_weather
+        
+        # Update PlayerState weather so survival effects work properly
+        gs.player_state.update_weather(new_weather)
         
         # Build natural language response
         travel_desc = self._get_travel_description(direction, new_hex_data, travel_time)
@@ -605,6 +612,116 @@ class GameEngine:
                     message += f"\n\nYou notice {', '.join(object_names)}."
         
         return True, message
+    
+    def rest_in_location(self) -> Tuple[bool, str]:
+        """Handle resting/sleeping in current location with fatigue-based wake-up checks"""
+        if not self.is_initialized or not self.game_state:
+            return False, "Game not initialized."
+        
+        gs = self.game_state
+        
+        # Check if player is inside a location
+        if not gs.world_position.current_location_id:
+            return False, "You must be inside a location to rest safely. Use 'enter' to enter a location first."
+        
+        # Check if character is capable of resting
+        if gs.character.hp <= 0:
+            return False, "You are unconscious and cannot rest voluntarily."
+        
+        # Get current fatigue level to determine initial wake-up DC
+        current_fatigue = gs.player_state.survival.fatigue
+        
+        # If not fatigued enough, they won't sleep long
+        if current_fatigue > 700:  # Well rested
+            return False, "You are not tired enough to sleep. Try resting when you're more fatigued."
+        
+        # Calculate initial wake-up DC based on fatigue (lower fatigue = higher DC = longer sleep)
+        # Fatigue 0-200 (exhausted): DC 18-20 (long sleep)
+        # Fatigue 200-400 (tired): DC 15-17 (medium sleep)  
+        # Fatigue 400-600 (somewhat tired): DC 12-14 (short sleep)
+        # Fatigue 600-700 (slightly tired): DC 8-11 (very short sleep)
+        
+        if current_fatigue <= 200:
+            base_dc = 18
+        elif current_fatigue <= 400:
+            base_dc = 15
+        elif current_fatigue <= 600:
+            base_dc = 12
+        else:
+            base_dc = 8
+        
+        # Start resting
+        location_name = gs.world_position.current_location_data.get("name", "this location")
+        rest_messages = [f"You settle down to rest in {location_name}..."]
+        
+        hours_slept = 0
+        current_dc = base_dc
+        
+        # Rest loop - check each hour for wake up
+        import random
+        while hours_slept < 12:  # Maximum 12 hours of sleep
+            hours_slept += 1
+            
+            # Use time system to advance 1 hour of rest
+            if self.time_system:
+                time_result = self.time_system.perform_activity("rest", duration_override=1.0)
+                if not time_result.get("success", True):
+                    return False, time_result.get("message", "Rest was interrupted.")
+            else:
+                # Fallback: advance time manually
+                self._advance_game_time(1.0)
+            
+            # Check if character died during rest
+            if gs.character.hp <= 0:
+                return False, f"💀 You died in your sleep after {hours_slept} hours of rest!"
+            
+            # Roll wake-up check (d20 + constitution modifier)
+            constitution_mod = (gs.character.constitution - 10) // 2
+            wake_roll = random.randint(1, 20) + constitution_mod
+            
+            # DC decreases each hour to ensure eventual wake-up
+            effective_dc = max(5, current_dc - (hours_slept - 1))
+            
+            if wake_roll >= effective_dc:
+                # Wake up naturally
+                break
+        
+        # Calculate rest quality and fatigue recovery
+        if hours_slept >= 8:
+            fatigue_recovery = 400  # Full rest
+            quality = "excellent"
+        elif hours_slept >= 6:
+            fatigue_recovery = 300  # Good rest
+            quality = "good"
+        elif hours_slept >= 4:
+            fatigue_recovery = 200  # Decent rest
+            quality = "decent"
+        elif hours_slept >= 2:
+            fatigue_recovery = 100  # Poor rest
+            quality = "poor"
+        else:
+            fatigue_recovery = 50   # Minimal rest
+            quality = "restless"
+        
+        # Apply fatigue recovery
+        old_fatigue = gs.player_state.survival.fatigue
+        gs.player_state.survival.fatigue = min(1000, gs.player_state.survival.fatigue + fatigue_recovery)
+        
+        # Update last sleep time
+        gs.player_state.last_sleep_hours = 0
+        
+        # Build result message
+        time_desc = f"{hours_slept} hour{'s' if hours_slept != 1 else ''}"
+        fatigue_change = gs.player_state.survival.fatigue - old_fatigue
+        
+        result_message = f"You slept for {time_desc} and had a {quality} rest.\n"
+        result_message += f"Fatigue recovered: +{fatigue_change} ({old_fatigue} → {gs.player_state.survival.fatigue})"
+        
+        # Add time information
+        current_time = gs.game_time.get_time_string()
+        result_message += f"\n\nYou wake up at {current_time}."
+        
+        return True, result_message
     
     def _create_location_graph(self, locations: List[Dict], current_index: int) -> Dict[str, Dict]:
         """Create a persistent bidirectional graph of locations"""

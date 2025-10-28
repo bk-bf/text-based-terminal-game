@@ -50,6 +50,13 @@ class ActionHandler:
             "take": self.handle_take,
             "use": self.handle_use,
             
+            # Rest and Recovery (location only)
+            # TODO: might get scrapped for a separate Fatigue and Sleep tracker, 
+            # Rest restores Fatigue but can be manually interupted, 
+            # Sleep is random and Fatige/Sleep dependent, but recovers both 
+            "rest": self.handle_rest,
+            "sleep": self.handle_rest,  # Alias for rest
+            
             # Movement Actions (overworld only)
             "north": self.handle_movement,
             "south": self.handle_movement,
@@ -133,6 +140,9 @@ Object Interaction (location only):
   search <object> - Search an object for items
   take <item> - Take an item and add to inventory
   use <object> - Use an object (context-specific)
+  
+Rest & Recovery (location only):
+  rest, sleep - Rest in current location (duration depends on fatigue)
   
 Movement (overworld only):
   north, south, east, west (or n, s, e, w) - Move in that direction
@@ -457,6 +467,17 @@ Type any command to try it."""
             )
         except Exception as e:
             return ActionResult(False, f"Failed to use object: {str(e)}")
+    
+    def handle_rest(self, *args) -> ActionResult:
+        """Handle resting/sleeping in current location"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        try:
+            success, message = self.game_engine.rest_in_location()
+            return ActionResult(success, message)
+        except Exception as e:
+            return ActionResult(False, f"Failed to rest: {str(e)}")
     
     def handle_dump_world(self, *args) -> ActionResult:
         """Handle dumping world data to JSON file"""
