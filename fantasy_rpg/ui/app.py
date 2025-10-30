@@ -332,17 +332,18 @@ class FantasyRPGApp(App):
     
     def show_help(self):
         """Show available commands"""
+        action_logger = get_action_logger()
         # Process help command through the normal command system
         if self.input_controller:
             response = self.input_controller.process_input("help")
             if response.get('success', True):
                 message = response.get('message', 'Help not available.')
                 for line in message.split('\n'):
-                    self.log_message(line)
+                    action_logger.log_message(line)
             else:
-                self.log_message(response.get('message', 'Help system not available.'))
+                action_logger.log_message(response.get('message', 'Help system not available.'))
         else:
-            self.log_message("Help system not available.")
+            action_logger.log_message("Help system not available.")
     
     # Character actions
     def heal_character(self, amount: int, source: str = "unknown"):
@@ -353,7 +354,6 @@ class FantasyRPGApp(App):
             healed = self.character.hp - old_hp
             if healed > 0:
                 # Use action logger for consistent healing logging
-                from ..actions.action_logger import get_action_logger
                 action_logger = get_action_logger()
                 action_logger.log_healing_received(
                     heal_amount=healed,
@@ -363,10 +363,13 @@ class FantasyRPGApp(App):
                 )
                 
                 if self.character.hp == self.character.max_hp:
-                    self.log_message("💚 You are now at full health!")
+                    action_logger.log_message("💚 You are now at full health!")
             else:
-                self.log_message("Already at full health.")
-            self.log_message("")  # Add separator
+                action_logger = get_action_logger()
+                action_logger.log_message("Already at full health.")
+            
+            action_logger = get_action_logger()
+            action_logger.log_separator()  # Add separator
             self.character_panel.refresh_display()
     
     def damage_character(self, amount: int, source: str = "unknown"):
@@ -377,7 +380,6 @@ class FantasyRPGApp(App):
             damage_taken = old_hp - self.character.hp
             if damage_taken > 0:
                 # Use action logger for consistent damage logging
-                from ..actions.action_logger import get_action_logger
                 action_logger = get_action_logger()
                 action_logger.log_damage_taken(
                     damage_amount=damage_taken,
@@ -388,35 +390,38 @@ class FantasyRPGApp(App):
                 )
                 
                 if self.character.hp == 0:
-                    self.log_combat_message("💀 You have fallen unconscious!")
+                    action_logger.log_combat_message("💀 You have fallen unconscious!")
                 elif self.character.hp <= self.character.max_hp * 0.25:
-                    self.log_message("[!] You are badly wounded!")
-            self.log_message("")  # Add separator
+                    action_logger.log_message("[!] You are badly wounded!")
+            
+            action_logger = get_action_logger()
+            action_logger.log_separator()  # Add separator
             self.character_panel.refresh_display()
     
     def add_experience(self, xp: int):
         """Add experience points to character"""
         if self.character:
+            action_logger = get_action_logger()
             old_level = self.character.level
             try:
                 leveled_up = self.character.add_experience(xp)
                 if leveled_up:
-                    self.log_level_up_message(f"{self.character.name} leveled up to level {self.character.level}!")
-                    self.log_message(f"New HP: {self.character.hp}/{self.character.max_hp}")
-                    self.log_message(f"New AC: {self.character.armor_class}")
+                    action_logger.log_level_up_message(f"{self.character.name} leveled up to level {self.character.level}!")
+                    action_logger.log_message(f"New HP: {self.character.hp}/{self.character.max_hp}")
+                    action_logger.log_message(f"New AC: {self.character.armor_class}")
                 else:
-                    self.log_message(f"[*] {self.character.name} gains {xp} XP")
+                    action_logger.log_message(f"[*] {self.character.name} gains {xp} XP")
                     try:
                         xp_needed = self.character.get_xp_to_next_level()
-                        self.log_message(f"({xp_needed} XP needed for level {self.character.level + 1})")
+                        action_logger.log_message(f"({xp_needed} XP needed for level {self.character.level + 1})")
                     except:
                         pass
-                self.log_message("")  # Add separator
+                action_logger.log_separator()  # Add separator
                 self.character_panel.refresh_display()
             except:
                 self.character.experience_points += xp
-                self.log_message(f"[*] {self.character.name} gains {xp} XP")
-                self.log_message("")  # Add separator
+                action_logger.log_message(f"[*] {self.character.name} gains {xp} XP")
+                action_logger.log_separator()  # Add separator
                 self.character_panel.refresh_display()
     
     # rest_character is now handled by ActionHandler
@@ -453,67 +458,72 @@ class FantasyRPGApp(App):
                 self.game_log_panel.save_log_to_file(filename)
             else:
                 self.game_log_panel.save_log_to_file()
-            self.log_message("")
+            action_logger = get_action_logger()
+            action_logger.log_separator()
     
     def clear_log(self):
         """Clear game log"""
-        self.log_command("clear log")
-        if self.game_log_panel:
-            self.game_log_panel.clear_log()
-            self.log_system_message("Game log cleared")
-            self.log_message("")
+        action_logger = get_action_logger()
+        action_logger.log_command("clear log")
+        action_logger.clear_log()
+        action_logger.log_system_message("Game log cleared")
+        action_logger.log_separator()
     
-    # Simple logging methods (for debug commands only)
+    # Centralized logging methods - all route through ActionLogger
     def log_message(self, message: str, message_type: str = "normal"):
-        """Add a message to the game log (for debug commands only)"""
-        if self.game_log_panel:
-            self.game_log_panel.add_message(message, message_type)
+        """Add a message to the game log through centralized logger"""
+        action_logger = get_action_logger()
+        action_logger.log_message(message, message_type)
     
     def log_command(self, command: str):
-        """Log a player command (for debug commands only)"""
-        if self.game_log_panel:
-            self.game_log_panel.add_command(command)
+        """Log a player command through centralized logger"""
+        action_logger = get_action_logger()
+        action_logger.log_command(command)
     
     def log_system_message(self, message: str):
-        """Log a system message (for system initialization only)"""
-        if self.game_log_panel:
-            self.game_log_panel.add_system_message(message)
+        """Log a system message through centralized logger"""
+        action_logger = get_action_logger()
+        action_logger.log_system_message(message)
     
     def log_combat_message(self, message: str):
-        """Log a combat message (for debug commands only)"""
-        if self.game_log_panel:
-            self.game_log_panel.add_combat_message(message)
+        """Log a combat message through centralized logger"""
+        action_logger = get_action_logger()
+        action_logger.log_combat_message(message)
     
     def log_level_up_message(self, message: str):
-        """Log a level up message (for debug commands only)"""
-        if self.game_log_panel:
-            self.game_log_panel.add_level_up_message(message)
+        """Log a level up message through centralized logger"""
+        action_logger = get_action_logger()
+        action_logger.log_level_up_message(message)
     
     def _initialize_game_systems(self):
         """Initialize GameEngine and InputController"""
         try:
-            self.log_system_message("Initializing GameEngine...")
+            # Set up ActionLogger with GameLogPanel first
+            action_logger = get_action_logger()
+            action_logger.set_game_log(self.game_log_panel)
+            
+            action_logger.log_system_message("Initializing GameEngine...")
             
             # Import GameEngine and create test character
             from ..game.game_engine import GameEngine
             from ..core.character_creation import create_character_quick
             
-            self.log_system_message("Creating GameEngine...")
+            action_logger.log_system_message("Creating GameEngine...")
             # Create GameEngine
             self.game_engine = GameEngine()
             
             # Register for UI state change notifications
             self.game_engine.register_ui_update_callback(self._on_game_state_change)
             
-            self.log_system_message("Creating test character...")
+            action_logger.log_system_message("Creating test character...")
             # Create test character (skip character creation UI for now)
             test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
             
-            self.log_system_message("Starting new game...")
+            action_logger.log_system_message("Starting new game...")
             # Initialize game with test character using consistent seed
             game_state = self.game_engine.new_game(test_character, world_seed=12345)
             
-            self.log_system_message("Updating UI character...")
+            action_logger.log_system_message("Updating UI character...")
             # Update UI character reference
             self.character = test_character
             self.character_panel.character = test_character
@@ -525,7 +535,7 @@ class FantasyRPGApp(App):
             # Link player_state to character for UI display
             self.character.player_state = self.player_state
             
-            self.log_system_message("Creating InputController...")
+            action_logger.log_system_message("Creating InputController...")
             # Initialize InputController with GameEngine
             self.input_controller = InputController(
                 character=self.character,
@@ -544,34 +554,40 @@ class FantasyRPGApp(App):
             if self.poi_panel:
                 self.poi_panel.update_with_game_engine(self.game_engine)
             
-            self.log_system_message("✓ GameEngine integration complete!")
-            self.log_message("")  # Line break
+            action_logger.log_system_message("✓ GameEngine integration complete!")
+            action_logger.log_separator()  # Line break
             
             # Add adventure beginning
-            self.log_message("The adventure begins...")
-            self.log_message("")  # Line break
+            action_logger.log_message("The adventure begins...")
+            action_logger.log_separator()  # Line break
             
             # Add atmospheric intro
-            self.log_message("You find yourself in a forest clearing.")
-            self.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
-            self.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
-            self.log_message("")  # Line break
+            action_logger.log_message("You find yourself in a forest clearing.")
+            action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
+            action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
+            action_logger.log_separator()  # Line break
             
             # Character and location info
-            self.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
-            self.log_system_message(f"Starting location: {game_state.world_position.hex_data['name']}")
-            self.log_message("")  # Line break
+            action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
+            action_logger.log_system_message(f"Starting location: {game_state.world_position.hex_data['name']}")
+            action_logger.log_separator()  # Line break
             
             # Help text
-            self.log_message("Type 'help' for available commands.")
-            self.log_message("Type 'look' to examine your surroundings.")
-            self.log_message("Type 'survival' to check your condition.\n")
+            action_logger.log_message("Type 'help' for available commands.")
+            action_logger.log_message("Type 'look' to examine your surroundings.")
+            action_logger.log_message("Type 'survival' to check your condition.")
+            action_logger.log_separator()
             
         except Exception as e:
             import traceback
-            self.log_system_message(f"❌ Error initializing GameEngine: {e}")
-            self.log_system_message(f"Traceback: {traceback.format_exc()}")
-            self.log_system_message("Falling back to old system...")
+            # Ensure ActionLogger is set up even in error case
+            action_logger = get_action_logger()
+            if not action_logger.game_log:
+                action_logger.set_game_log(self.game_log_panel)
+            
+            action_logger.log_system_message(f"❌ Error initializing GameEngine: {e}")
+            action_logger.log_system_message(f"Traceback: {traceback.format_exc()}")
+            action_logger.log_system_message("Falling back to old system...")
             # Fallback to old system
             self._initialize_survival_system()
 
@@ -639,7 +655,9 @@ class FantasyRPGApp(App):
             # Set up UI callbacks for the input controller
             self._setup_input_controller_callbacks()
             
-            self.log_system_message("Welcome to your adventure!\n")
+            action_logger = get_action_logger()
+            action_logger.log_system_message("Welcome to your adventure!")
+            action_logger.log_separator()
             
         except ImportError as e:
             self.log_system_message(f"Could not initialize survival system: {e}")

@@ -10,15 +10,40 @@ import random
 
 
 class ActionLogger:
-    """Centralized logging system for all game actions"""
+    """Centralized logging system for all game messages and actions"""
     
     def __init__(self):
         self.game_log = None
         self.last_weather = None
+        self.message_queue = []  # Queue messages when game_log not available
         
     def set_game_log(self, game_log):
-        """Set the game log panel for output"""
+        """Set the game log panel for output and flush queued messages"""
         self.game_log = game_log
+        
+        # Debug: Print connection info
+        print(f"ActionLogger: Connected to game_log panel: {game_log}")
+        print(f"ActionLogger: Queued messages to flush: {len(self.message_queue)}")
+        
+        # Flush any queued messages
+        if self.message_queue and self.game_log:
+            for message_data in self.message_queue:
+                message_type = message_data.get('type', 'normal')
+                message = message_data.get('message', '')
+                
+                if message_type == 'command':
+                    self.game_log.add_command(message)
+                elif message_type == 'system':
+                    self.game_log.add_system_message(message)
+                elif message_type == 'combat':
+                    self.game_log.add_combat_message(message)
+                elif message_type == 'level_up':
+                    self.game_log.add_level_up_message(message)
+                else:
+                    self.game_log.add_message(message, message_type)
+            
+            self.message_queue.clear()
+            print(f"ActionLogger: Flushed {len(self.message_queue)} messages")
     
     def log_action_result(self, action_result, character=None, **kwargs):
         """
@@ -421,7 +446,7 @@ class ActionLogger:
     
     def log_healing_received(self, heal_amount: int, source: str, old_hp: int, new_hp: int):
         """Log healing received from various sources"""
-        if not self.game_log or heal_amount <= 0:
+        if heal_amount <= 0:
             return
         
         # Format source for display
@@ -432,7 +457,64 @@ class ActionLogger:
             "potion": "a healing potion"
         }.get(source, source)
         
-        self.game_log.add_message(f"💚 You recover {heal_amount} HP from {source_display}. ({old_hp} → {new_hp} HP)")
+        message = f"💚 You recover {heal_amount} HP from {source_display}. ({old_hp} → {new_hp} HP)"
+        self._log_message(message, "normal")
+    
+    # Centralized logging methods for all message types
+    def log_message(self, message: str, message_type: str = "normal"):
+        """Log any message through the centralized system"""
+        self._log_message(message, message_type)
+    
+    def log_command(self, command: str):
+        """Log a player command"""
+        self._log_message(command, "command")
+    
+    def log_system_message(self, message: str):
+        """Log a system message"""
+        self._log_message(message, "system")
+    
+    def log_combat_message(self, message: str):
+        """Log a combat message"""
+        self._log_message(message, "combat")
+    
+    def log_level_up_message(self, message: str):
+        """Log a level up message"""
+        self._log_message(message, "level_up")
+    
+    def log_separator(self):
+        """Log a separator line"""
+        self._log_message("", "normal")
+    
+    def clear_log(self):
+        """Clear the game log"""
+        if self.game_log:
+            self.game_log.clear_log()
+        else:
+            self.message_queue.clear()
+    
+    def _log_message(self, message: str, message_type: str):
+        """Internal method to handle message logging with queuing"""
+        if self.game_log:
+            # Direct logging when game_log is available
+            print(f"ActionLogger: Logging '{message}' (type: {message_type}) to game_log")
+            if message_type == "command":
+                self.game_log.add_command(message)
+            elif message_type == "system":
+                self.game_log.add_system_message(message)
+            elif message_type == "combat":
+                self.game_log.add_combat_message(message)
+            elif message_type == "level_up":
+                self.game_log.add_level_up_message(message)
+            else:
+                self.game_log.add_message(message, message_type)
+            print(f"ActionLogger: Game log now has {len(self.game_log.messages)} messages")
+        else:
+            # Queue message when game_log not available
+            print(f"ActionLogger: Queuing '{message}' (type: {message_type}) - no game_log connected")
+            self.message_queue.append({
+                'message': message,
+                'type': message_type
+            })
     
     def _format_time_passage(self, hours: float) -> str:
         """Format time passage in natural language"""

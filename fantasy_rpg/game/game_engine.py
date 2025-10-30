@@ -108,7 +108,7 @@ class GameEngine:
         # UI state change notification system
         self.ui_update_callbacks = []
         
-        print("GameEngine initialized")
+        # GameEngine initialized - no logging needed for internal initialization
     
     def register_ui_update_callback(self, callback):
         """Register a callback function to be called when game state changes"""
@@ -126,7 +126,13 @@ class GameEngine:
             try:
                 callback(change_type)
             except Exception as e:
-                print(f"Error in UI callback: {e}")
+                # Log UI callback errors through centralized logger if available
+                try:
+                    from actions.action_logger import get_action_logger
+                    logger = get_action_logger()
+                    logger.log_system_message(f"Error in UI callback: {e}")
+                except:
+                    pass  # Fallback: don't log if logger not available
     
     def new_game(self, character: Any, world_seed: Optional[int] = None) -> GameState:
         """
@@ -143,19 +149,14 @@ class GameEngine:
         from game.player_state import PlayerState
         from game.time_system import TimeSystem
         
-        print("Starting new game...")
-        
         # Generate world seed if not provided
         if world_seed is None:
             world_seed = random.randint(1, 1000000)
-        
-        print(f"Initializing world with seed {world_seed}")
         
         # Initialize world systems using WorldCoordinator (proper flow)
         self.world_coordinator = WorldCoordinator(world_size=self.world_size, seed=world_seed)
         
         # Generate the complete world through WorldCoordinator
-        print("Generating world through WorldCoordinator...")
         # Note: The WorldCoordinator should have a generate_world method that returns a World object
         # For now, we'll work with the existing hex_data system
         
@@ -211,11 +212,6 @@ class GameEngine:
         )
         
         self.is_initialized = True
-        
-        print(f"New game initialized successfully!")
-        print(f"Starting location: {hex_data['name']}")
-        print(f"Weather: {current_weather.temperature:.0f}°F, {current_weather.precipitation_type}")
-        print(f"Time: {game_time.get_time_string()}, {game_time.get_date_string()}")
         
         return self.game_state
     
@@ -1750,7 +1746,6 @@ class GameEngine:
             return False
         
         # For now, return a placeholder - this will be implemented in task 6.1
-        print(f"Save system not yet implemented. Save name: {save_name}")
         return False
     
     def load_game(self, save_name: str) -> bool:
@@ -1764,7 +1759,6 @@ class GameEngine:
             True if load successful, False otherwise
         """
         # For now, return a placeholder - this will be implemented in task 6.1
-        print(f"Load system not yet implemented. Save name: {save_name}")
         return False
 
 
