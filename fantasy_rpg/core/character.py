@@ -94,8 +94,7 @@ class Character:
     # Inventory - carried items not equipped (new Inventory class)
     inventory: Optional[Inventory] = None
     
-    # Legacy inventory for backward compatibility
-    _legacy_inventory: List[Dict[str, any]] = field(default_factory=list)
+
     
     # Skill proficiencies (will be initialized when needed)
     skill_proficiencies: Optional[object] = None
@@ -166,23 +165,9 @@ class Character:
         base_ac = 10 + self.ability_modifier('dexterity')
         shield_bonus = 0
         
-        # Check for armor and shield in legacy inventory
-        for item in self._legacy_inventory:
-            if item.get('type') == 'armor' and item.get('equipped', False):
-                # For armor, replace base AC calculation
-                if item.get('armor_type') == 'light':
-                    # Light armor: armor AC + DEX modifier
-                    base_ac = item.get('ac', 10) + self.ability_modifier('dexterity')
-                elif item.get('armor_type') == 'medium':
-                    # Medium armor: armor AC + DEX modifier (max 2)
-                    dex_bonus = min(2, self.ability_modifier('dexterity'))
-                    base_ac = item.get('ac', 10) + dex_bonus
-                elif item.get('armor_type') == 'heavy':
-                    # Heavy armor: armor AC only
-                    base_ac = item.get('ac', 10)
-            elif item.get('type') == 'shield' and item.get('equipped', False):
-                # Shield adds to AC
-                shield_bonus += item.get('ac_bonus', 2)
+        # Check for armor and shield in inventory (simplified for now)
+        # TODO: Implement proper equipment system for AC calculation
+        # For now, just use base AC calculation
         
         return base_ac + shield_bonus
     
@@ -602,13 +587,7 @@ class Character:
             self.inventory.update_carrying_capacity(self.strength)
             print(f"Initialized inventory with {self.inventory.max_weight} lb capacity (STR {self.strength})")
     
-    def migrate_legacy_inventory(self):
-        """Convert old inventory format to new Inventory class"""
-        if self._legacy_inventory and self.inventory is None:
-            manager = InventoryManager()
-            self.inventory = manager.convert_old_inventory(self._legacy_inventory)
-            self.inventory.update_carrying_capacity(self.strength)
-            print(f"Migrated legacy inventory to new system")
+
     
     def add_item_to_inventory(self, item_id: str, quantity: int = 1) -> bool:
         """Add an item to inventory by ID"""

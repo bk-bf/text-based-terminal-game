@@ -326,6 +326,68 @@ class InventoryScreen(ModalScreen):
             self.dismiss()
 
 
+class LoadGameConfirmationScreen(ModalScreen):
+    """Modal screen to confirm loading saved game"""
+    
+    def __init__(self):
+        super().__init__()
+        self.selected_option = 0  # 0 = No (default), 1 = Yes
+        self.options = ["No", "Yes"]
+        self.load_confirmed = False
+    
+    def compose(self) -> ComposeResult:
+        with Vertical(id="load-dialog"):
+            yield Static("Save file found! Load saved game?", id="load-message", markup=False)
+            yield Static("", id="load-spacer")
+            yield Static(self._render_options(), id="load-options", markup=False)
+            yield Static("", id="load-spacer2")
+            yield Static("Use TAB/Left/Right to select, ENTER to confirm, ESC to cancel", id="load-instruction", markup=False)
+    
+    def _render_options(self) -> str:
+        """Render the checkbox options with current selection side by side"""
+        no_option = ""
+        yes_option = ""
+        
+        # Render No option
+        if self.selected_option == 0:
+            no_option = "> [X] No (New Game)"
+        else:
+            no_option = "  [ ] No (New Game)"
+            
+        # Render Yes option  
+        if self.selected_option == 1:
+            yes_option = "> [X] Yes (Load Save)"
+        else:
+            yes_option = "  [ ] Yes (Load Save)"
+        
+        # Side by side layout with spacing
+        return f"{no_option}        {yes_option}"
+    
+    def _update_display(self):
+        """Update the options display"""
+        options_widget = self.query_one("#load-options")
+        options_widget.update(self._render_options())
+    
+    def on_key(self, event: events.Key) -> None:
+        """Handle key presses in the load dialog"""
+        if event.key == "tab" or event.key == "right" or event.key == "down":
+            # Move to next option
+            self.selected_option = (self.selected_option + 1) % len(self.options)
+            self._update_display()
+        elif event.key == "shift+tab" or event.key == "left" or event.key == "up":
+            # Move to previous option
+            self.selected_option = (self.selected_option - 1) % len(self.options)
+            self._update_display()
+        elif event.key == "enter":
+            # Confirm selection
+            if self.options[self.selected_option] == "Yes":
+                self.load_confirmed = True
+            self.dismiss(self.load_confirmed)
+        elif event.key == "escape":
+            # Cancel (default to new game)
+            self.dismiss(False)
+
+
 class QuitConfirmationScreen(ModalScreen):
     """Modal screen to confirm quitting the game"""
     
@@ -336,7 +398,7 @@ class QuitConfirmationScreen(ModalScreen):
     
     def compose(self) -> ComposeResult:
         with Vertical(id="quit-dialog"):
-            yield Static("Are you sure you want to quit?", id="quit-message", markup=False)
+            yield Static("Save game and quit?", id="quit-message", markup=False)
             yield Static("", id="quit-spacer")
             yield Static(self._render_options(), id="quit-options", markup=False)
             yield Static("", id="quit-spacer2")
@@ -380,7 +442,22 @@ class QuitConfirmationScreen(ModalScreen):
         elif event.key == "enter":
             # Confirm selection
             if self.options[self.selected_option] == "Yes":
-                self.app.exit()
+                # Save game before quitting
+                if hasattr(self.app, 'game_engine') and self.app.game_engine:
+                    success, message = self.app.game_engine.save_game("save")
+                    if success:
+                        # Show save confirmation briefly before quitting
+                        self.app.log_message(f"✓ {message}")
+                        self.app.log_message("Goodbye!")
+                    else:
+                        self.app.log_message(f"⚠ Save failed: {message}")
+                        self.app.log_message("Quitting without saving...")
+                else:
+                    self.app.log_message("⚠ No game engine available - quitting without saving...")
+                
+                # Small delay to show the message, then quit
+                self.app.set_timer(0.5, self.app.exit)
+                self.dismiss()
             else:
                 self.dismiss()
         elif event.key == "escape":

@@ -94,9 +94,10 @@ class GameEngine:
     between all backend systems (character, world, survival, locations, etc.).
     """
     
-    def __init__(self, world_size: Tuple[int, int] = (20, 20)):
+    def __init__(self, world_size: Tuple[int, int] = (20, 20), skip_world_gen: bool = False):
         """Initialize GameEngine with world parameters"""
         self.world_size = world_size
+        self.skip_world_gen = skip_world_gen
         self.world_coordinator = None
         self.location_generator = None
         self.time_system = None
@@ -180,8 +181,14 @@ class GameEngine:
             coords=starting_coords
         )
         
-        # Initialize game time
-        game_time = GameTime()
+        # Initialize game time from player state
+        game_time = GameTime(
+            year=1000,
+            day=player_state.game_day,
+            hour=int(player_state.game_hour),
+            minute=int((player_state.game_hour % 1) * 60),
+            season=player_state.game_season
+        )
         
         # Generate initial weather
         climate_info = self.world_coordinator.get_climate_info(starting_hex_id)
@@ -200,6 +207,10 @@ class GameEngine:
         
         # Update PlayerState weather so survival effects work from the start
         player_state.update_weather(current_weather)
+        
+        # Update player state location to match world position
+        player_state.current_hex = starting_hex_id
+        player_state.current_location = hex_data.get("name", "Unknown Location")
         
         # Create complete game state
         self.game_state = GameState(
@@ -429,6 +440,16 @@ class GameEngine:
         
         # Update PlayerState weather so survival effects work properly
         gs.player_state.update_weather(new_weather)
+        
+        # Update player state location to match new world position
+        gs.player_state.current_hex = target_hex_id
+        gs.player_state.current_location = new_hex_data.get("name", "Unknown Location")
+        
+        # Synchronize game time with player state time
+        gs.game_time.day = gs.player_state.game_day
+        gs.game_time.hour = int(gs.player_state.game_hour)
+        gs.game_time.minute = int((gs.player_state.game_hour % 1) * 60)
+        gs.game_time.season = gs.player_state.game_season
         
         # Build natural language response
         travel_desc = self._get_travel_description(direction, new_hex_data, travel_time)
@@ -1732,34 +1753,432 @@ class GameEngine:
     
 
     
-    def save_game(self, save_name: str) -> bool:
+    def save_game(self, save_name: str = "save") -> Tuple[bool, str]:
         """
-        Save current game state.
+        Save current game state to JSON file.
         
         Args:
-            save_name: Name for the save file
+            save_name: Name for the save file (without extension)
         
         Returns:
-            True if save successful, False otherwise
+            Tuple of (success: bool, message: str)
         """
         if not self.is_initialized or not self.game_state:
-            return False
+            return False, "Game not initialized - cannot save."
         
-        # For now, return a placeholder - this will be implemented in task 6.1
-        return False
+        try:
+            import json
+            from datetime import datetime
+            
+            gs = self.game_state
+            
+            # Create save data structure
+            save_data = {
+                "version": "1.0",
+                "saved_at": datetime.now().isoformat(),
+                "game_info": {
+                    "world_seed": gs.world_seed,
+                    "created_at": gs.created_at.isoformat(),
+                    "play_time_minutes": gs.play_time_minutes
+                },
+                "character": self._serialize_character(gs.character),
+                "player_state": self._serialize_player_state(gs.player_state),
+                "world_position": self._serialize_world_position(gs.world_position),
+                "game_time": self._serialize_game_time(gs.game_time),
+                "weather": self._serialize_weather(gs.current_weather),
+                "world_data": self._serialize_world_data()
+            }
+            
+            # Save to JSON file
+            filename = f"{save_name}.json"
+            with open(filename, 'w') as f:
+                json.dump(save_data, f, indent=2, default=str)
+            
+            # Update last saved time
+            gs.last_saved = datetime.now()
+            
+            return True, f"Game saved to {filename}"
+            
+        except Exception as e:
+            return False, f"Failed to save game: {str(e)}"
     
-    def load_game(self, save_name: str) -> bool:
+    def load_game(self, save_name: str = "save") -> Tuple[bool, str]:
         """
-        Load game state from save file.
+        Load game state from JSON save file.
         
         Args:
-            save_name: Name of save file to load
+            save_name: Name of save file to load (without extension)
         
         Returns:
-            True if load successful, False otherwise
+            Tuple of (success: bool, message: str)
         """
-        # For now, return a placeholder - this will be implemented in task 6.1
-        return False
+        try:
+            import json
+            from datetime import datetime
+            
+            filename = f"{save_name}.json"
+            
+            # Check if save file exists
+            if not os.path.exists(filename):
+                return False, f"Save file {filename} not found."
+            
+            # Load save data
+            with open(filename, 'r') as f:
+                save_data = json.load(f)
+            
+            # Validate save file version
+            if save_data.get("version") != "1.0":
+                return False, f"Incompatible save file version: {save_data.get('version', 'unknown')}"
+            
+            # Create world coordinator without generating new world
+            world_seed = save_data["game_info"]["world_seed"]
+            
+            # Initialize WorldCoordinator manually to avoid world generation
+            self.world_coordinator = WorldCoordinator.__new__(WorldCoordinator)
+            self.world_coordinator.world_size = self.world_size
+            self.world_coordinator.seed = world_seed
+            self.world_coordinator.hex_data = {}
+            self.world_coordinator.location_data = {}
+            self.world_coordinator.loaded_locations = {}
+            self.world_coordinator.climate_zones = {}
+            
+            # Initialize only the systems we need (without generating world)
+            self.world_coordinator.terrain_generator = None
+            self.world_coordinator.enhanced_biomes = None
+            self.world_coordinator.climate_system = None
+            
+            # Deserialize game state components
+            character = self._deserialize_character(save_data["character"])
+            player_state = self._deserialize_player_state(save_data["player_state"], character)
+            world_position = self._deserialize_world_position(save_data["world_position"])
+            game_time = self._deserialize_game_time(save_data["game_time"])
+            weather = self._deserialize_weather(save_data["weather"])
+            
+            # Initialize time system
+            from game.time_system import TimeSystem
+            self.time_system = TimeSystem(player_state)
+            
+            # Restore world data
+            self._deserialize_world_data(save_data["world_data"])
+            
+            # Create game state
+            self.game_state = GameState(
+                character=character,
+                player_state=player_state,
+                world_position=world_position,
+                game_time=game_time,
+                current_weather=weather,
+                world_seed=world_seed,
+                created_at=datetime.fromisoformat(save_data["game_info"]["created_at"]),
+                last_saved=datetime.fromisoformat(save_data["saved_at"]),
+                play_time_minutes=save_data["game_info"]["play_time_minutes"]
+            )
+            
+            self.is_initialized = True
+            
+            return True, f"Game loaded from {filename}"
+            
+        except Exception as e:
+            return False, f"Failed to load game: {str(e)}"
+
+
+    # Serialization helper methods for save/load
+    def _serialize_character(self, character) -> dict:
+        """Serialize character object to dictionary"""
+        # Properly serialize inventory using centralized system
+        inventory_data = []
+        if hasattr(character, 'inventory') and character.inventory:
+            if hasattr(character.inventory, 'items'):
+                inventory_data = [item.to_dict() for item in character.inventory.items]
+        
+        # Properly serialize equipment
+        equipment_data = {}
+        if hasattr(character, 'equipment') and character.equipment:
+            equipment_data = dict(character.equipment) if isinstance(character.equipment, dict) else {}
+        
+        return {
+            "name": character.name,
+            "race": character.race,
+            "character_class": character.character_class,
+            "background": getattr(character, 'background', 'Folk Hero'),
+            "level": character.level,
+            "experience_points": character.experience_points,
+            "hp": character.hp,
+            "max_hp": character.max_hp,
+            "armor_class": character.armor_class,
+            "proficiency_bonus": character.proficiency_bonus,
+            "strength": character.strength,
+            "dexterity": character.dexterity,
+            "constitution": character.constitution,
+            "intelligence": character.intelligence,
+            "wisdom": character.wisdom,
+            "charisma": character.charisma,
+            "inventory": inventory_data,
+            "equipment": equipment_data
+        }
+    
+    def _deserialize_character(self, data: dict):
+        """Deserialize character from dictionary"""
+        from core.character import Character
+        
+        character = Character(
+            name=data["name"],
+            race=data["race"],
+            character_class=data["character_class"],
+            background=data.get("background", "Folk Hero"),
+            level=data["level"],
+            experience_points=data["experience_points"],
+            hp=data["hp"],
+            max_hp=data["max_hp"],
+            armor_class=data["armor_class"],
+            proficiency_bonus=data["proficiency_bonus"],
+            strength=data["strength"],
+            dexterity=data["dexterity"],
+            constitution=data["constitution"],
+            intelligence=data["intelligence"],
+            wisdom=data["wisdom"],
+            charisma=data["charisma"]
+        )
+        
+        # Initialize inventory system
+        character.initialize_inventory()
+        
+        # Restore inventory items using centralized system
+        if "inventory" in data and data["inventory"]:
+            from core.inventory import InventoryItem
+            for item_data in data["inventory"]:
+                item = InventoryItem.from_dict(item_data)
+                character.inventory.items.append(item)
+        
+        # Restore equipment
+        if "equipment" in data:
+            character.equipment = data["equipment"]
+            
+        return character
+    
+    def _serialize_player_state(self, player_state) -> dict:
+        """Serialize player state to dictionary"""
+        # Safely get survival attributes with defaults
+        survival_data = {}
+        survival = player_state.survival
+        
+        # Core survival needs
+        survival_data["hunger"] = getattr(survival, "hunger", 500)
+        survival_data["thirst"] = getattr(survival, "thirst", 500)
+        survival_data["fatigue"] = getattr(survival, "fatigue", 500)
+        
+        # Temperature regulation
+        survival_data["body_temperature"] = getattr(survival, "body_temperature", 500)
+        survival_data["warmth"] = getattr(survival, "warmth", 500)
+        
+        # Environmental exposure
+        survival_data["wetness"] = getattr(survival, "wetness", 0)
+        survival_data["wind_chill"] = getattr(survival, "wind_chill", 0)
+        
+        # Health effects
+        survival_data["hypothermia_risk"] = getattr(survival, "hypothermia_risk", 0)
+        survival_data["hyperthermia_risk"] = getattr(survival, "hyperthermia_risk", 0)
+        survival_data["dehydration_effects"] = getattr(survival, "dehydration_effects", 0)
+        survival_data["starvation_effects"] = getattr(survival, "starvation_effects", 0)
+        
+        return {
+            "survival": survival_data,
+            "game_time": {
+                "game_hour": getattr(player_state, "game_hour", 12.0),
+                "game_day": getattr(player_state, "game_day", 1),
+                "game_season": getattr(player_state, "game_season", "spring")
+            },
+            "location": {
+                "current_hex": player_state.current_hex,
+                "current_location": player_state.current_location
+            },
+            "activity": {
+                "last_meal_hours": getattr(player_state, "last_meal_hours", 0),
+                "last_drink_hours": getattr(player_state, "last_drink_hours", 0),
+                "last_sleep_hours": getattr(player_state, "last_sleep_hours", 0),
+                "activity_level": getattr(player_state, "activity_level", "normal")
+            },
+            "status_effects": getattr(player_state, "status_effects", []),
+            "temporary_modifiers": getattr(player_state, "temporary_modifiers", {})
+        }
+    
+    def _deserialize_player_state(self, data: dict, character):
+        """Deserialize player state from dictionary"""
+        from game.player_state import PlayerState
+        
+        player_state = PlayerState(character=character)
+        
+        # Restore survival stats
+        survival_data = data["survival"]
+        player_state.survival.hunger = survival_data["hunger"]
+        player_state.survival.thirst = survival_data["thirst"]
+        player_state.survival.fatigue = survival_data["fatigue"]
+        player_state.survival.body_temperature = survival_data["body_temperature"]
+        player_state.survival.warmth = survival_data["warmth"]
+        player_state.survival.wetness = survival_data["wetness"]
+        player_state.survival.wind_chill = survival_data["wind_chill"]
+        player_state.survival.hypothermia_risk = survival_data["hypothermia_risk"]
+        player_state.survival.hyperthermia_risk = survival_data["hyperthermia_risk"]
+        player_state.survival.dehydration_effects = survival_data["dehydration_effects"]
+        player_state.survival.starvation_effects = survival_data["starvation_effects"]
+        
+        # Restore game time data
+        if "game_time" in data:
+            time_data = data["game_time"]
+            player_state.game_hour = time_data["game_hour"]
+            player_state.game_day = time_data["game_day"]
+            player_state.game_season = time_data["game_season"]
+            # Note: turn_counter removed as this is not a turn-based game
+        
+        # Restore location data
+        if "location" in data:
+            location_data = data["location"]
+            player_state.current_hex = location_data["current_hex"]
+            player_state.current_location = location_data["current_location"]
+        
+        # Restore activity data
+        if "activity" in data:
+            activity_data = data["activity"]
+            player_state.last_meal_hours = activity_data["last_meal_hours"]
+            player_state.last_drink_hours = activity_data["last_drink_hours"]
+            player_state.last_sleep_hours = activity_data["last_sleep_hours"]
+            player_state.activity_level = activity_data["activity_level"]
+        
+        # Restore status effects and modifiers
+        if "status_effects" in data:
+            player_state.status_effects = data["status_effects"]
+        if "temporary_modifiers" in data:
+            player_state.temporary_modifiers = data["temporary_modifiers"]
+        
+        return player_state
+    
+    def _serialize_world_position(self, world_position: WorldPosition) -> dict:
+        """Serialize world position to dictionary"""
+        return {
+            "hex_id": world_position.hex_id,
+            "hex_data": world_position.hex_data,
+            "available_locations": world_position.available_locations,
+            "current_location_id": world_position.current_location_id,
+            "current_location_data": world_position.current_location_data,
+            "current_area_id": world_position.current_area_id,
+            "coords": world_position.coords
+        }
+    
+    def _deserialize_world_position(self, data: dict) -> WorldPosition:
+        """Deserialize world position from dictionary"""
+        return WorldPosition(
+            hex_id=data["hex_id"],
+            hex_data=data["hex_data"],
+            available_locations=data["available_locations"],
+            current_location_id=data.get("current_location_id"),
+            current_location_data=data.get("current_location_data"),
+            current_area_id=data.get("current_area_id", "entrance"),
+            coords=tuple(data["coords"]) if data.get("coords") else None
+        )
+    
+    def _serialize_game_time(self, game_time: GameTime) -> dict:
+        """Serialize game time to dictionary"""
+        return {
+            "year": game_time.year,
+            "day": game_time.day,
+            "hour": game_time.hour,
+            "minute": game_time.minute,
+            "season": game_time.season
+        }
+    
+    def _deserialize_game_time(self, data: dict) -> GameTime:
+        """Deserialize game time from dictionary"""
+        return GameTime(
+            year=data["year"],
+            day=data["day"],
+            hour=data["hour"],
+            minute=data["minute"],
+            season=data["season"]
+        )
+    
+    def _serialize_weather(self, weather: WeatherState) -> dict:
+        """Serialize weather state to dictionary"""
+        return {
+            "temperature": getattr(weather, "temperature", 70.0),
+            "wind_speed": getattr(weather, "wind_speed", 0),
+            "wind_direction": getattr(weather, "wind_direction", "N"),
+            "precipitation": getattr(weather, "precipitation", 0),
+            "precipitation_type": getattr(weather, "precipitation_type", "rain"),
+            "cloud_cover": getattr(weather, "cloud_cover", 50),
+            "visibility": getattr(weather, "visibility", 10000),
+            "feels_like": getattr(weather, "feels_like", 70.0),
+            "is_storm": getattr(weather, "is_storm", False),
+            "lightning_risk": getattr(weather, "lightning_risk", 0.0)
+        }
+    
+    def _deserialize_weather(self, data: dict) -> WeatherState:
+        """Deserialize weather state from dictionary"""
+        return WeatherState(
+            temperature=data.get("temperature", 70.0),
+            wind_speed=data.get("wind_speed", 0),
+            wind_direction=data.get("wind_direction", "N"),
+            precipitation=data.get("precipitation", 0),
+            precipitation_type=data.get("precipitation_type", "rain"),
+            cloud_cover=data.get("cloud_cover", 50),
+            visibility=data.get("visibility", 10000),
+            feels_like=data.get("feels_like", 70.0),
+            is_storm=data.get("is_storm", False),
+            lightning_risk=data.get("lightning_risk", 0.0)
+        )
+    
+    def _serialize_world_data(self) -> dict:
+        """Serialize world coordinator data - save entire world like dump_world does"""
+        if not self.world_coordinator:
+            return {}
+        
+        # Get the complete world data (similar to dump_world action)
+        world_data = {}
+        
+        # Get all hex data
+        if hasattr(self.world_coordinator, 'hex_data'):
+            # Convert tuple keys to strings for JSON compatibility
+            for coords, hex_info in self.world_coordinator.hex_data.items():
+                if isinstance(coords, tuple):
+                    key = f"{coords[0]:02d}{coords[1]:02d}"
+                else:
+                    key = str(coords)
+                world_data[key] = hex_info
+        
+        # Get persistent location data
+        persistent_locations = {}
+        if hasattr(self.world_coordinator, 'persistent_locations'):
+            persistent_locations = self.world_coordinator.persistent_locations
+        
+        return {
+            "hex_data": world_data,
+            "persistent_locations": persistent_locations,
+            "world_size": self.world_size,
+            "world_seed": self.game_state.world_seed if self.game_state else None
+        }
+    
+    def _deserialize_world_data(self, data: dict):
+        """Deserialize world coordinator data"""
+        if not self.world_coordinator:
+            return
+        
+        # Restore hex data
+        if "hex_data" in data:
+            if not hasattr(self.world_coordinator, 'hex_data'):
+                self.world_coordinator.hex_data = {}
+            
+            # Convert string keys back to tuples for internal use
+            for hex_id, hex_info in data["hex_data"].items():
+                if len(hex_id) == 4:  # Format like "1010"
+                    coords = (int(hex_id[:2]), int(hex_id[2:]))
+                    self.world_coordinator.hex_data[coords] = hex_info
+                    # Also store with string key for compatibility
+                    self.world_coordinator.hex_data[hex_id] = hex_info
+        
+        # Restore persistent location data
+        if "persistent_locations" in data:
+            if not hasattr(self.world_coordinator, 'persistent_locations'):
+                self.world_coordinator.persistent_locations = {}
+            self.world_coordinator.persistent_locations.update(data["persistent_locations"])
 
 
 def test_game_engine():

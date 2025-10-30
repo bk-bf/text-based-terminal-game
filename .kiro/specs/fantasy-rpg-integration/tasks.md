@@ -114,7 +114,7 @@ Fix duplicate logging and ensure single source of truth for messages.
   - Fix weather and survival status displays
   - _Requirements: 6.3, 6.5_
 
-- [ ] 5.3 Test logging system
+- [x] 5.3 Test logging system
   - Verify no duplicate messages
   - Test message flow during gameplay
   - Validate natural language consistency
@@ -123,13 +123,13 @@ Fix duplicate logging and ensure single source of truth for messages.
 ### 6. Save/Load Integration
 Connect GameEngine to existing save system for complete game state persistence.
 
-- [ ] 6.1 Implement complete game state save/load
+- [x] 6.1 Implement complete game state save/load
   - Extend existing save system to include world state
   - Add GameEngine state serialization
   - Implement world persistence across sessions
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 6.2 Test save/load functionality
+- [x] 6.2 Test save/load functionality
   - Verify complete state preservation
   - Test world persistence after load
   - Validate seamless game continuation

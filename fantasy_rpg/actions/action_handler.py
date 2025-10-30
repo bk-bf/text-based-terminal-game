@@ -41,7 +41,7 @@ class ActionHandler:
             "i": self.handle_inventory,  # Shortcut for inventory
             "character": self.handle_character,
             "c": self.handle_character,  # Shortcut for character
-            "save": self.handle_save_log,
+            "dump_log": self.handle_save_log,
             
             # Object Interaction Actions (location only)
             "examine": self.handle_examine,
@@ -83,6 +83,8 @@ class ActionHandler:
             "dump_location": self.handle_dump_location,
             "dump_hex": self.handle_dump_hex,
             "dump_world": self.handle_dump_world,
+            "save": self.handle_save_game,
+            "load": self.handle_load_game,
             "help": self.handle_help,
         }
     
@@ -171,13 +173,17 @@ Character:
 System:
   heal - Heal 10 HP (debug)
   xp - Gain 100 XP (debug)
-  save [filename] - Save game log to file (optional custom filename)
+  save - Save game to save.json
+  load - Load game from save.json
+  dump_log [filename] - Save game log to file (optional custom filename)
   clear - Clear game log
   quit, exit - Quit game
   debug - Show debug information
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
   dump_world - Dump entire world data to JSON file
+  save - Save game to save.json
+  load - Load game from save.json
   help - Show this help
   
 Type any command to try it."""
@@ -1211,3 +1217,35 @@ Type any command to try it."""
             )
         except Exception as e:
             return ActionResult(False, f"Failed to dump hex data: {str(e)}")
+    
+    def handle_save_game(self, *args) -> ActionResult:
+        """Handle saving the game to save.json"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        try:
+            success, message = self.game_engine.save_game("save")
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.0,
+                action_type="system"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to save game: {str(e)}")
+    
+    def handle_load_game(self, *args) -> ActionResult:
+        """Handle loading the game from save.json"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        try:
+            success, message = self.game_engine.load_game("save")
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.0,
+                action_type="system"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to load game: {str(e)}")

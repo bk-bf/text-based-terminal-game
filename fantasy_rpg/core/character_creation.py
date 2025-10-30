@@ -475,14 +475,30 @@ def create_character_quick(name: str, race_name: str = "Human", class_name: str 
     character.armor_class = character.calculate_ac()
     character.proficiency_bonus = char_class.get_proficiency_bonus(1)
     
-    # Generate starting equipment
+    # Initialize inventory system
+    character.initialize_inventory()
+    
+    # Generate and add starting equipment directly to inventory
     creation_flow = CharacterCreationFlow()
     starting_equipment = creation_flow.generate_starting_equipment(character, char_class)
     
-    # Initialize proper inventory system and convert old format
-    character.initialize_inventory()
-    character._legacy_inventory = starting_equipment
-    character.migrate_legacy_inventory()
+    # Add items directly to the new inventory system
+    from core.inventory import InventoryItem
+    for item_data in starting_equipment:
+        item = InventoryItem(
+            item_id=item_data["item_id"],
+            name=item_data["name"],
+            item_type=item_data["type"],
+            weight=item_data["weight"],
+            value=0,  # Default value
+            quantity=item_data["quantity"],
+            description=item_data.get("description", ""),
+            equippable=item_data["type"] in ["weapon", "armor", "shield"],
+            ac_bonus=item_data.get("ac_bonus", 0),
+            damage_dice=item_data.get("damage"),
+            damage_type=item_data.get("damage_type")
+        )
+        character.inventory.items.append(item)
     
     print(f"Created {character.name}: Level {character.level} {character.race} {character.character_class}")
     print(f"  HP: {character.hp}/{character.max_hp}, AC: {character.armor_class}")

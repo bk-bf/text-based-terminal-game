@@ -15,11 +15,11 @@ except ImportError:
     exit(1)
 
 try:
-    from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
+    from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen, LoadGameConfirmationScreen
     from ..actions.input_controller import InputController
     from ..actions.action_logger import get_action_logger
 except ImportError:
-    from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen
+    from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen, LoadGameConfirmationScreen
     from fantasy_rpg.actions.input_controller import InputController
     from fantasy_rpg.actions.action_logger import get_action_logger
 
@@ -79,6 +79,11 @@ class FantasyRPGApp(App):
         padding: 0;
         border: none;
         background: $surface;
+    }
+    
+    /* Load game confirmation dialog styles */
+    LoadGameConfirmationScreen {
+        align: center middle;
     }
     
     /* Quit confirmation dialog styles */
@@ -288,6 +293,27 @@ class FantasyRPGApp(App):
             command = response.get('command', 'clear')
             self.log_command(command)
             self.clear_log()
+            
+        elif response_type == 'save_game':
+            command = response.get('command', 'save')
+            self.log_command(command)
+            if self.game_engine:
+                success, message = self.game_engine.save_game("save")
+                self.log_message(message)
+            else:
+                self.log_message("Game engine not available for saving.")
+            
+        elif response_type == 'load_game':
+            command = response.get('command', 'load')
+            self.log_command(command)
+            if self.game_engine:
+                success, message = self.game_engine.load_game("save")
+                self.log_message(message)
+                if success:
+                    # Update UI with loaded game state
+                    self._refresh_ui_from_game_state()
+            else:
+                self.log_message("Game engine not available for loading.")
             
         elif response_type == 'quit_game':
             self.push_screen(QuitConfirmationScreen())
@@ -515,13 +541,47 @@ class FantasyRPGApp(App):
             # Register for UI state change notifications
             self.game_engine.register_ui_update_callback(self._on_game_state_change)
             
-            action_logger.log_system_message("Creating test character...")
-            # Create test character (skip character creation UI for now)
-            test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
+            # Check for existing save file first
+            import os
+            save_file_exists = os.path.exists("save.json")
             
-            action_logger.log_system_message("Starting new game...")
-            # Initialize game with test character using consistent seed
-            game_state = self.game_engine.new_game(test_character, world_seed=12345)
+            if save_file_exists:
+                action_logger.log_system_message("Found save.json - asking player...")
+                
+                # Show load confirmation modal and wait for response
+                def handle_load_response(load_confirmed):
+                    if load_confirmed:
+                        action_logger.log_system_message("Player chose to load saved game...")
+                        success, message = self.game_engine.load_game("save")
+                        
+                        if success:
+                            action_logger.log_system_message(f"✓ {message}")
+                            game_state = self.game_engine.game_state
+                            test_character = game_state.character
+                            self._continue_initialization(test_character, game_state, action_logger, True)
+                        else:
+                            action_logger.log_system_message(f"✗ Failed to load save: {message}")
+                            action_logger.log_system_message("Creating new game instead...")
+                            self._continue_initialization(None, None, action_logger, False)
+                    else:
+                        action_logger.log_system_message("Player chose to start new game...")
+                        self._continue_initialization(None, None, action_logger, False)
+                
+                # Show the load confirmation modal
+                load_modal = LoadGameConfirmationScreen()
+                self.push_screen(load_modal, handle_load_response)
+                return  # Exit early, continuation happens in callback
+            else:
+                save_file_exists = False
+            
+            if not save_file_exists:
+                action_logger.log_system_message("Creating test character...")
+                # Create test character (skip character creation UI for now)
+                test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
+                
+                action_logger.log_system_message("Starting new game...")
+                # Initialize game with test character using consistent seed
+                game_state = self.game_engine.new_game(test_character, world_seed=12345)
             
             action_logger.log_system_message("Updating UI character...")
             # Update UI character reference
@@ -557,15 +617,24 @@ class FantasyRPGApp(App):
             action_logger.log_system_message("✓ GameEngine integration complete!")
             action_logger.log_separator()  # Line break
             
-            # Add adventure beginning
-            action_logger.log_message("The adventure begins...")
-            action_logger.log_separator()  # Line break
-            
-            # Add atmospheric intro
-            action_logger.log_message("You find yourself in a forest clearing.")
-            action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
-            action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
-            action_logger.log_separator()  # Line break
+            # Add adventure beginning or continuation
+            if save_file_exists:
+                action_logger.log_message("Your adventure continues...")
+                action_logger.log_separator()  # Line break
+                
+                # Show current location description
+                hex_description = self.game_engine.get_hex_description()
+                action_logger.log_message(hex_description)
+                action_logger.log_separator()  # Line break
+            else:
+                action_logger.log_message("The adventure begins...")
+                action_logger.log_separator()  # Line break
+                
+                # Add atmospheric intro
+                action_logger.log_message("You find yourself in a forest clearing.")
+                action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
+                action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
+                action_logger.log_separator()  # Line break
             
             # Character and location info
             action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
@@ -663,6 +732,91 @@ class FantasyRPGApp(App):
             self.log_system_message(f"Could not initialize survival system: {e}")
         except Exception as e:
             self.log_system_message(f"Error initializing survival system: {e}")
+    
+    def _continue_initialization(self, test_character, game_state, action_logger, loaded_from_save):
+        """Continue initialization after load/new game decision"""
+        try:
+            if not loaded_from_save:
+                # Create new game
+                action_logger.log_system_message("Creating test character...")
+                from ..core.character_creation import create_character_quick
+                test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
+                
+                action_logger.log_system_message("Starting new game...")
+                game_state = self.game_engine.new_game(test_character, world_seed=12345)
+            
+            action_logger.log_system_message("Updating UI character...")
+            # Update UI character reference
+            self.character = test_character
+            self.character_panel.character = test_character
+            
+            # Get player state and time system from GameEngine
+            self.player_state = game_state.player_state
+            self.time_system = game_state.game_time
+            
+            # Link player_state to character for UI display
+            self.character.player_state = self.player_state
+            
+            action_logger.log_system_message("Creating InputController...")
+            # Initialize InputController with GameEngine
+            self.input_controller = InputController(
+                character=self.character,
+                player_state=self.player_state,
+                time_system=self.time_system,
+                game_engine=self.game_engine  # Pass GameEngine to InputController
+            )
+            
+            # Set up UI callbacks for the input controller
+            self._setup_input_controller_callbacks()
+            
+            # Update UI with initial game state
+            self._update_ui_from_game_state()
+            
+            # Update POI panel with GameEngine data
+            if self.poi_panel:
+                self.poi_panel.update_with_game_engine(self.game_engine)
+            
+            action_logger.log_system_message("✓ GameEngine integration complete!")
+            action_logger.log_separator()  # Line break
+            
+            # Add adventure beginning or continuation
+            if loaded_from_save:
+                action_logger.log_message("Your adventure continues...")
+                action_logger.log_separator()  # Line break
+                
+                # Show current location description
+                hex_description = self.game_engine.get_hex_description()
+                action_logger.log_message(hex_description)
+                action_logger.log_separator()  # Line break
+            else:
+                action_logger.log_message("The adventure begins...")
+                action_logger.log_separator()  # Line break
+                
+                # Add atmospheric intro
+                action_logger.log_message("You find yourself in a forest clearing.")
+                action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
+                action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
+                action_logger.log_separator()  # Line break
+            
+            # Character and location info
+            action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
+            action_logger.log_system_message(f"Current location: {game_state.world_position.hex_data['name']}")
+            action_logger.log_separator()  # Line break
+            
+            # Help text
+            action_logger.log_message("Type 'help' for available commands.")
+            action_logger.log_message("Type 'look' to examine your surroundings.")
+            action_logger.log_message("Type 'survival' to check your condition.")
+            action_logger.log_separator()
+            
+        except Exception as e:
+            import traceback
+            action_logger.log_system_message(f"✗ Game initialization failed: {str(e)}")
+            action_logger.log_system_message("Traceback:")
+            for line in traceback.format_exc().split('\n'):
+                if line.strip():
+                    action_logger.log_system_message(f"  {line}")
+            action_logger.log_system_message("Game may not function properly.")
     
     def _setup_input_controller_callbacks(self):
         """Set up UI callbacks for the input controller"""

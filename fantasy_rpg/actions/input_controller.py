@@ -49,7 +49,9 @@ class InputController:
             'hurt': self._handle_debug_damage,
             'xp': self._handle_debug_xp,
             'experience': self._handle_debug_xp,
-            'save': self._handle_save_log,
+            'dump_log': self._handle_save_log,
+            'save': self._handle_save_game,
+            'load': self._handle_load_game,
             'clear': self._handle_clear_log,
             'quit': self._handle_quit
             # Note: 'exit' removed to allow GameEngine to handle location exits
@@ -198,6 +200,20 @@ class InputController:
         """Handle clear log command"""
         return {
             'type': 'clear_log',
+            'command': command_text
+        }
+    
+    def _handle_save_game(self, command_text: str) -> Dict[str, Any]:
+        """Handle save game command"""
+        return {
+            'type': 'save_game',
+            'command': command_text
+        }
+    
+    def _handle_load_game(self, command_text: str) -> Dict[str, Any]:
+        """Handle load game command"""
+        return {
+            'type': 'load_game',
             'command': command_text
         }
     
