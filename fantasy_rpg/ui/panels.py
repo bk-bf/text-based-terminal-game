@@ -238,9 +238,9 @@ condition:"""
                 active_conditions = conditions_manager.evaluate_conditions(player_state)
                 
                 if active_conditions:
-                    # Format conditions with severity colors
+                    # Format conditions with severity colors (show ALL conditions)
                     formatted_conditions = []
-                    for condition in active_conditions[:3]:  # Show max 3 conditions
+                    for condition in active_conditions:
                         # Use the conditions manager to format with colors
                         color = conditions_manager.get_condition_severity_color(condition)
                         formatted_conditions.append(f"[{color}]{condition}[/]")
@@ -254,8 +254,8 @@ condition:"""
                 # Fallback to old system if conditions system not available
                 print(f"Conditions system not available: {e}")
                 if hasattr(player_state, 'status_effects') and player_state.status_effects:
-                    # Remove duplicates and show first 3 unique effects
-                    unique_effects = list(dict.fromkeys(player_state.status_effects))[:3]
+                    # Remove duplicates and show all unique effects
+                    unique_effects = list(dict.fromkeys(player_state.status_effects))
                     formatted_conditions = [f"[{effect}]" for effect in unique_effects if effect and effect.strip()]
                     
                     if formatted_conditions:

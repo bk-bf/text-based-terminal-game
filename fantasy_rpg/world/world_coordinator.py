@@ -46,15 +46,16 @@ except ImportError:
 class WorldCoordinator:
     """Coordinates world-level and location-level interactions with full world generation"""
     
-    def __init__(self, world_size: Tuple[int, int] = (20, 20), seed: int = 12345):
-        # Debug logging for world generation
-        try:
-            from ..actions.action_logger import get_action_logger
-            action_logger = get_action_logger()
-            action_logger.log_system_message(f"🌍 WorldCoordinator.__init__() - size: {world_size}, seed: {seed}")
-        except ImportError:
-            print(f"DEBUG: WorldCoordinator.__init__() - size: {world_size}, seed: {seed}")
+    def __init__(self, world_size: Tuple[int, int] = (20, 20), seed: int = 12345, 
+                 skip_generation: bool = False):
+        """
+        Initialize WorldCoordinator.
         
+        Args:
+            world_size: Size of world grid (width, height)
+            seed: Random seed for world generation
+            skip_generation: If True, don't generate world (used for load_game)
+        """
         self.world_size = world_size
         self.seed = seed
         self.hex_data = {}
@@ -66,6 +67,20 @@ class WorldCoordinator:
         self.enhanced_biomes = None
         self.climate_system = None
         self.climate_zones = {}
+        
+        # Generate world unless explicitly skipped
+        if not skip_generation:
+            self.generate_world()
+    
+    def generate_world(self):
+        """Generate the complete world (terrain, biomes, climate, locations)"""
+        # Debug logging for world generation
+        try:
+            from ..actions.action_logger import get_action_logger
+            action_logger = get_action_logger()
+            action_logger.log_system_message(f"WorldCoordinator generating world - size: {self.world_size}, seed: {self.seed}")
+        except ImportError:
+            print(f"DEBUG: WorldCoordinator generating world - size: {self.world_size}, seed: {self.seed}")
         
         # Initialize all world systems
         self._initialize_world_systems()
@@ -260,7 +275,11 @@ class WorldCoordinator:
                         "size": getattr(location, 'size', 'medium'),
                         "terrain": getattr(location, 'terrain', 'open'),
                         "areas": areas_dict,
-                        "starting_area": starting_area_id
+                        "starting_area": starting_area_id,
+                        # Shelter flags for condition system
+                        "provides_some_shelter": getattr(location, 'provides_some_shelter', False),
+                        "provides_good_shelter": getattr(location, 'provides_good_shelter', False),
+                        "provides_excellent_shelter": getattr(location, 'provides_excellent_shelter', False)
                     }
                 else:
                     # Already a dictionary

@@ -158,28 +158,28 @@ class GameEngine:
         try:
             from ..actions.action_logger import get_action_logger
             action_logger = get_action_logger()
-            action_logger.log_system_message(f"🔧 GameEngine.new_game() called with seed {world_seed}")
+            action_logger.log_system_message(f"GameEngine.new_game() called with seed {world_seed}")
         except ImportError:
             print(f"DEBUG: GameEngine.new_game() called with seed {world_seed}")
         
         # Clear any existing cached data to ensure fresh generation
         if hasattr(self, 'world_coordinator'):
             try:
-                action_logger.log_system_message("🗑️ Clearing existing WorldCoordinator")
+                action_logger.log_system_message("Clearing existing WorldCoordinator")
             except:
                 print("DEBUG: Clearing existing WorldCoordinator")
             del self.world_coordinator
         
         # Initialize world systems using WorldCoordinator (proper flow)
         try:
-            action_logger.log_system_message("🏗️ Creating new WorldCoordinator...")
+            action_logger.log_system_message("Creating new WorldCoordinator...")
         except:
             print("DEBUG: Creating new WorldCoordinator...")
         
         self.world_coordinator = WorldCoordinator(world_size=self.world_size, seed=world_seed)
         
         try:
-            action_logger.log_system_message("✅ WorldCoordinator created successfully")
+            action_logger.log_system_message("WorldCoordinator created successfully")
         except:
             print("DEBUG: WorldCoordinator created successfully")
         
@@ -1888,19 +1888,12 @@ class GameEngine:
             # Create world coordinator without generating new world
             world_seed = save_data["game_info"]["world_seed"]
             
-            # Initialize WorldCoordinator manually to avoid world generation
-            self.world_coordinator = WorldCoordinator.__new__(WorldCoordinator)
-            self.world_coordinator.world_size = self.world_size
-            self.world_coordinator.seed = world_seed
-            self.world_coordinator.hex_data = {}
-            self.world_coordinator.location_data = {}
-            self.world_coordinator.loaded_locations = {}
-            self.world_coordinator.climate_zones = {}
-            
-            # Initialize only the systems we need (without generating world)
-            self.world_coordinator.terrain_generator = None
-            self.world_coordinator.enhanced_biomes = None
-            self.world_coordinator.climate_system = None
+            # Create WorldCoordinator with skip_generation flag
+            self.world_coordinator = WorldCoordinator(
+                world_size=self.world_size,
+                seed=world_seed,
+                skip_generation=True  # Don't generate - we'll restore from save
+            )
             
             # Deserialize game state components
             character = self._deserialize_character(save_data["character"])
@@ -1913,7 +1906,7 @@ class GameEngine:
             from game.time_system import TimeSystem
             self.time_system = TimeSystem(player_state)
             
-            # Restore world data
+            # Restore world data from save file
             self._deserialize_world_data(save_data["world_data"])
             
             # Create game state

@@ -747,8 +747,10 @@ class FantasyRPGApp(App):
                 # Use random seed to ensure fresh world generation with latest data
                 import random
                 fresh_seed = random.randint(1, 1000000)
-                action_logger.log_system_message(f"🌍 Generating world with seed: {fresh_seed}")
+                action_logger.log_system_message(f"Generating new world with seed: {fresh_seed}")
+                action_logger.log_system_message("Please wait while we generate terrain, biomes, and climate...")
                 game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
+                action_logger.log_system_message("World generation complete.")
             
             action_logger.log_system_message("Updating UI character...")
             # Update UI character reference

@@ -432,7 +432,6 @@
                     "max_temperature": 600,
                     "description": "Fire gradually warms the body to comfortable levels"
                 },
-                "rest_quality_bonus": 1,
                 "fatigue_recovery_bonus": 5,
                 "skill_bonuses": {
                     "survival": 1
@@ -481,8 +480,7 @@
                     "rate": 10,
                     "interval": "30_minutes"
                 },
-                "cold_resistance": true,
-                "rest_quality_bonus": 1
+                "cold_resistance": true
             },
             "interactions": {
                 "with_precipitation": {
@@ -514,7 +512,6 @@
                 },
                 "cold_resistance": true,
                 "heat_resistance": true,
-                "rest_quality_bonus": 2,
                 "fatigue_recovery_bonus": 10,
                 "body_temperature_stabilization": true
             },
@@ -545,7 +542,6 @@
                 "wind_chill_immunity": true,
                 "precipitation_immunity": true,
                 "temperature_regulation": true,
-                "rest_quality_bonus": 3,
                 "fatigue_recovery_bonus": 20,
                 "skill_bonuses": {
                     "survival": 2

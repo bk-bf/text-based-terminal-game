@@ -119,6 +119,13 @@ class Location:
     areas: Dict[str, Area] = field(default_factory=dict)
     starting_area: str = "entrance"
     exit_flag: bool = False  # Can player exit to hex overworld from here?
+    # Additional location properties from templates
+    size: str = "medium"
+    terrain: str = "open"
+    # Shelter flags for environmental condition system
+    provides_some_shelter: bool = False
+    provides_good_shelter: bool = False
+    provides_excellent_shelter: bool = False
     
     def get_area(self, area_id: str) -> Optional[Area]:
         """Get area by ID"""
@@ -452,7 +459,14 @@ class LocationGenerator:
             type=location_type,
             areas={area_id: area},
             starting_area=area_id,
-            exit_flag=template.get("exit_flag", False)
+            exit_flag=template.get("exit_flag", False),
+            # Copy location properties from template
+            size=template.get("size", "medium"),
+            terrain=template.get("terrain", "open"),
+            # Copy shelter flags from template for condition system
+            provides_some_shelter=template.get("provides_some_shelter", False),
+            provides_good_shelter=template.get("provides_good_shelter", False),
+            provides_excellent_shelter=template.get("provides_excellent_shelter", False)
         )
     
 
