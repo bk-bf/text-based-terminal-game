@@ -3,6 +3,7 @@ Fantasy RPG - Conditions System
 
 Manages status conditions, their effects, and interactions.
 Handles environmental exposure mechanics like wetness, wind chill, temperature effects.
+Includes shelter system integration.
 """
 
 import json
@@ -10,6 +11,26 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+
+
+class ShelterType(Enum):
+    """Types of shelter available"""
+    NONE = "none"
+    NATURAL_OVERHANG = "natural_overhang"
+    CAVE_ENTRANCE = "cave_entrance"
+    DENSE_TREES = "dense_trees"
+    MAKESHIFT_LEAN_TO = "makeshift_lean_to"
+    PROPER_CAMP = "proper_camp"
+    STRUCTURE_INTERIOR = "structure_interior"
+
+
+class ShelterQuality(Enum):
+    """Quality levels of shelter"""
+    EXPOSED = 0      # No protection
+    MINIMAL = 1      # Slight protection from elements
+    BASIC = 2        # Basic protection from rain/wind
+    GOOD = 3         # Good protection from weather
+    EXCELLENT = 4    # Excellent protection, comfortable rest
 
 
 class ConditionSeverity(Enum):
@@ -185,6 +206,16 @@ class ConditionsManager:
     def _check_condition_trigger(self, trigger: str, player_state) -> bool:
         """Check if a condition trigger is met"""
         try:
+            # Handle special environmental triggers
+            if trigger == "has_warmth_source_in_location":
+                return self._check_warmth_source_in_location(player_state)
+            elif trigger == "has_natural_shelter_in_location":
+                return self._check_shelter_in_location(player_state, "minimal")
+            elif trigger == "has_good_shelter_in_location":
+                return self._check_shelter_in_location(player_state, "good")
+            elif trigger == "has_excellent_shelter_in_location":
+                return self._check_shelter_in_location(player_state, "excellent")
+            
             # Create a safe evaluation context with the player state values
             context = {
                 'hunger': player_state.survival.hunger,
@@ -194,7 +225,8 @@ class ConditionsManager:
                 'wetness': player_state.survival.wetness,
                 'wind_chill': player_state.survival.wind_chill,
                 'hypothermia_risk': player_state.survival.hypothermia_risk,
-                'hyperthermia_risk': player_state.survival.hyperthermia_risk
+                'hyperthermia_risk': player_state.survival.hyperthermia_risk,
+                'has_warmth_source_in_location': self._check_warmth_source_in_location(player_state)
             }
             
             # Evaluate the condition using the context
@@ -202,6 +234,113 @@ class ConditionsManager:
             
         except Exception as e:
             print(f"Error evaluating trigger '{trigger}': {e}")
+            return False
+    
+    def _check_warmth_source_in_location(self, player_state) -> bool:
+        """Check if there's an object with provides_warmth: true in the current location"""
+        try:
+            # Check if player_state has game_engine reference
+            if hasattr(player_state, 'game_engine') and player_state.game_engine:
+                game_engine = player_state.game_engine
+            elif hasattr(player_state, 'character') and hasattr(player_state.character, 'game_engine'):
+                game_engine = player_state.character.game_engine
+            else:
+                # Try to get game_engine from global context or other means
+                return False
+            
+            # Check if player is in a location
+            if not game_engine.game_state.world_position.current_location_id:
+                return False
+            
+            # Get current location data
+            location_data = game_engine.game_state.world_position.current_location_data
+            if not location_data:
+                return False
+            
+            # Get current area
+            current_area_id = game_engine.game_state.world_position.current_area_id
+            areas = location_data.get("areas", {})
+            
+            if current_area_id not in areas:
+                return False
+            
+            area_data = areas[current_area_id]
+            objects = area_data.get("objects", [])
+            
+            # Check if any object provides warmth
+            for obj in objects:
+                properties = obj.get("properties", {})
+                if properties.get("provides_warmth", False):
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error checking warmth source: {e}")
+            return False
+    
+    def _check_shelter_in_location(self, player_state, required_quality: str) -> bool:
+        """Check if current location provides shelter of the required quality"""
+        try:
+            # First check if player_state has current_shelter tracking
+            if hasattr(player_state, 'current_shelter') and player_state.current_shelter:
+                shelter_quality = player_state.current_shelter.get("quality", "none")
+                
+                # Map quality levels
+                quality_levels = {
+                    "none": 0,
+                    "minimal": 1,
+                    "basic": 2,
+                    "good": 3,
+                    "excellent": 4
+                }
+                
+                current_level = quality_levels.get(shelter_quality, 0)
+                required_level = quality_levels.get(required_quality, 1)
+                
+                return current_level >= required_level
+            
+            # Fallback to checking game engine if shelter tracking not available
+            # Check if player_state has game_engine reference
+            if hasattr(player_state, 'game_engine') and player_state.game_engine:
+                game_engine = player_state.game_engine
+            elif hasattr(player_state, 'character') and hasattr(player_state.character, 'game_engine'):
+                game_engine = player_state.character.game_engine
+            else:
+                return False
+            
+            # Check if player is in a location
+            if not game_engine.game_state.world_position.current_location_id:
+                return False
+            
+            # Get current location data
+            location_data = game_engine.game_state.world_position.current_location_data
+            if not location_data:
+                return False
+            
+            # Check location shelter properties
+            shelter_type = location_data.get("shelter_type")
+            shelter_quality = location_data.get("shelter_quality", "none")
+            
+            if not shelter_type or not shelter_quality:
+                return False
+            
+            # Map quality levels
+            quality_levels = {
+                "none": 0,
+                "minimal": 1,
+                "basic": 2,
+                "good": 3,
+                "excellent": 4
+            }
+            
+            current_level = quality_levels.get(shelter_quality, 0)
+            required_level = quality_levels.get(required_quality, 1)
+            
+            return current_level >= required_level
+            
+        except Exception as e:
+            print(f"Error checking shelter: {e}")
             return False
     
     def get_condition_effects(self, condition_name: str) -> Optional[ConditionEffect]:

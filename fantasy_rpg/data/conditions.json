@@ -419,9 +419,165 @@
             },
             "severity": "life_threatening",
             "category": "unconscious"
+        },
+        "Lit Fire": {
+            "description": "Warmed by a nearby fire, providing comfort and gradual temperature recovery",
+            "trigger": "has_warmth_source_in_location",
+            "hierarchy": "warmth_source",
+            "priority": 1,
+            "effects": {
+                "body_temperature_increase": {
+                    "rate": 15,
+                    "interval": "15_minutes",
+                    "max_temperature": 600,
+                    "description": "Fire gradually warms the body to comfortable levels"
+                },
+                "rest_quality_bonus": 1,
+                "fatigue_recovery_bonus": 5,
+                "skill_bonuses": {
+                    "survival": 1
+                },
+                "cold_resistance": true,
+                "hypothermia_risk_reduction": 0.5
+            },
+            "interactions": {
+                "with_cold_conditions": {
+                    "condition_check": "has_condition_category:temperature AND condition_severity_at_least:mild",
+                    "additional_effects": {
+                        "body_temperature_increase_rate": 25,
+                        "constitution_modifier": 1,
+                        "hypothermia_risk_reduction": 0.75
+                    },
+                    "description": "Fire provides crucial warmth when suffering from cold conditions"
+                },
+                "with_wet_conditions": {
+                    "condition_check": "has_condition_category:wetness",
+                    "additional_effects": {
+                        "wetness_reduction": {
+                            "rate": 20,
+                            "interval": "30_minutes"
+                        },
+                        "drying_bonus": true
+                    },
+                    "description": "Fire helps dry wet clothing and equipment"
+                }
+            },
+            "environmental_trigger": {
+                "requires": "object_with_provides_warmth_in_location",
+                "check_interval": "5_minutes",
+                "removal_delay": "10_minutes"
+            },
+            "severity": "beneficial",
+            "category": "environmental"
+        },
+        "Natural Shelter": {
+            "description": "Protected by natural shelter, reducing exposure to harsh weather",
+            "trigger": "has_natural_shelter_in_location",
+            "hierarchy": "shelter",
+            "priority": 1,
+            "effects": {
+                "wind_chill_reduction": 0.5,
+                "wetness_reduction": {
+                    "rate": 10,
+                    "interval": "30_minutes"
+                },
+                "cold_resistance": true,
+                "rest_quality_bonus": 1
+            },
+            "interactions": {
+                "with_precipitation": {
+                    "condition_check": "weather_has_precipitation",
+                    "additional_effects": {
+                        "wetness_reduction_rate": 20,
+                        "hypothermia_risk_reduction": 0.3
+                    },
+                    "description": "Natural shelter provides crucial protection from rain and snow"
+                }
+            },
+            "environmental_trigger": {
+                "requires": "location_shelter_quality_at_least_minimal",
+                "check_interval": "5_minutes"
+            },
+            "severity": "beneficial",
+            "category": "environmental"
+        },
+        "Good Shelter": {
+            "description": "Well-protected by quality shelter, significantly reducing weather exposure",
+            "trigger": "has_good_shelter_in_location",
+            "hierarchy": "shelter",
+            "priority": 2,
+            "effects": {
+                "wind_chill_reduction": 0.75,
+                "wetness_reduction": {
+                    "rate": 20,
+                    "interval": "15_minutes"
+                },
+                "cold_resistance": true,
+                "heat_resistance": true,
+                "rest_quality_bonus": 2,
+                "fatigue_recovery_bonus": 10,
+                "body_temperature_stabilization": true
+            },
+            "interactions": {
+                "with_extreme_weather": {
+                    "condition_check": "weather_is_extreme",
+                    "additional_effects": {
+                        "constitution_modifier": 1,
+                        "hypothermia_risk_reduction": 0.6,
+                        "hyperthermia_risk_reduction": 0.6
+                    },
+                    "description": "Good shelter provides excellent protection from extreme weather conditions"
+                }
+            },
+            "environmental_trigger": {
+                "requires": "location_shelter_quality_at_least_good",
+                "check_interval": "5_minutes"
+            },
+            "severity": "beneficial",
+            "category": "environmental"
+        },
+        "Excellent Shelter": {
+            "description": "Completely protected by excellent shelter, immune to most weather effects",
+            "trigger": "has_excellent_shelter_in_location",
+            "hierarchy": "shelter",
+            "priority": 3,
+            "effects": {
+                "wind_chill_immunity": true,
+                "precipitation_immunity": true,
+                "temperature_regulation": true,
+                "rest_quality_bonus": 3,
+                "fatigue_recovery_bonus": 20,
+                "skill_bonuses": {
+                    "survival": 2
+                },
+                "body_temperature_stabilization": true,
+                "comfort_bonus": true
+            },
+            "interactions": {
+                "with_any_weather": {
+                    "condition_check": "always_true",
+                    "additional_effects": {
+                        "constitution_modifier": 2,
+                        "wisdom_modifier": 1,
+                        "all_weather_immunity": true
+                    },
+                    "description": "Excellent shelter provides complete protection and comfort regardless of weather"
+                }
+            },
+            "environmental_trigger": {
+                "requires": "location_shelter_quality_excellent",
+                "check_interval": "5_minutes"
+            },
+            "severity": "beneficial",
+            "category": "environmental"
         }
     },
     "severity_levels": {
+        "beneficial": {
+            "color": "#00FF00",
+            "priority": 0,
+            "description": "Positive effect"
+        },
         "mild": {
             "color": "#FFFF00",
             "priority": 1,

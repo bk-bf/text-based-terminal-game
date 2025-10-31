@@ -50,54 +50,44 @@ This is the **master coordination spec** for the Ultimate Fantasy Sim project. I
 - Integrate character system with world systems
 - Implement hex-to-hex movement with survival effects
 - Connect location exploration to world generation
-- Restore foraging and survival mechanics
-
+- Polish action-object properties synergy
+- Implement object property bonuses to character survival stats
+- Implement naturalized language pipeline for all log returns in UI
+- Implement build actions for objects
+- Expand location and object content
+  
 **Success Criteria:** Playable game loop from character creation to survival gameplay
 
-### Phase 4: Database & Persistence (Week 4)
-**Spec:** `fantasy-rpg-database` *(To be created)*  
-**Goal:** Robust SQLite database system for game persistence  
+### Phase 4: Historical & Social Systems (Week 4)
+**Spec:** `fantasy-rpg-history` ✅ CREATED  
+**Goal:** Historical simulation with NPCs, quests, and social depth  
+**Status:** 📋 READY
+
+**Key Features:**
+- Ancient history and civilization foundation (8-12 foundational events)
+- Historical event simulation (100-200 years of interconnected events)
+- NPC generation from historical genealogies (100-200 NPCs)
+- Quest generation from historical conflicts and opportunities
+- Historical research system for deep world investigation
+
+**Success Criteria:** Rich social interactions and emergent quest opportunities from authentic historical context
+
+### Phase 5: Combat & Equipment Systems (Week 6)
+**Spec:** `fantasy-rpg-combat` *(To be created)*  
+**Goal:** Complete D&D 5e combat system with rich equipment mechanics  
 **Status:** 📋 PLANNED
 
 **Key Features:**
-- SQLite database setup with proper schema design
-- Complete game state persistence (character, world, progress)
-- Save/load system with multiple save slots
-- Data integrity and backup systems
-- Migration system for database updates
-- Performance optimization for large world data
+- D&D 5e combat mechanics (initiative, actions, conditions, spells)
+- Comprehensive data implementation (feats, entities, conditions, items, spells, attacks)
+- Equipment system overhaul (equippable/useable items, detailed descriptions)
+- Caves of Qud-style inventory interface with item details and descriptions
+- Turn-based combat mode with tactical action selection
+- Combat actions (attack, cast spell, use item, defend, flee)
+- Flee mechanics (exit to overworld hex or move to safe location)
+- Character sheet integration showing equipped items and combat stats
 
-**Success Criteria:** Reliable, fast save/load with complete game state preservation
-
-*Note: After database implementation, consider setting up CI/CD pipeline (e.g., GitHub codebot for automated commit analysis and code review)*
-
-### Phase 5: Gameplay Systems (Week 5)
-**Spec:** `fantasy-rpg-gameplay` *(To be created)*  
-**Goal:** Rich gameplay mechanics and player choice  
-**Status:** 📋 PLANNED
-
-**Key Features:**
-- Settlement generation and NPC interaction
-- Trading and economy systems
-- Skill-based object discovery
-- Permadeath with world persistence
-- Civilization vs wilderness survival choice
-
-**Success Criteria:** Complete Ultimate Fantasy Sim experience
-
-### Phase 6: Content & Polish (Week 6)
-**Spec:** `fantasy-rpg-content` *(To be created)*  
-**Goal:** Content generation and game balance  
-**Status:** 📋 PLANNED
-
-**Key Features:**
-- Procedural quest generation
-- Dynamic events and encounters
-- Game balance and difficulty tuning
-- Tutorial and starting scenarios
-- Performance optimization
-
-**Success Criteria:** Polished, balanced game ready for extended play
+**Success Criteria:** Full tactical combat experience with rich equipment interaction
 
 ---
 
@@ -120,10 +110,11 @@ This is the **master coordination spec** for the Ultimate Fantasy Sim project. I
 
 **Estimated Timeline:** 1 week (7 days)
 
-### 📋 Upcoming Specs (To Be Created)
-- `fantasy-rpg-database` - SQLite database and robust persistence
-- `fantasy-rpg-gameplay` - Rich gameplay mechanics
-- `fantasy-rpg-content` - Content generation and polish
+### 📋 Upcoming Specs
+- `fantasy-rpg-history` ✅ CREATED - Historical simulation and social systems
+- `fantasy-rpg-database` *(To be created)* - SQLite database and robust persistence
+- `fantasy-rpg-combat` *(To be created)* - D&D 5e combat and equipment systems
+- `fantasy-rpg-content` *(To be created)* - Content balance and polish
 
 ---
 
@@ -181,23 +172,31 @@ User Input → ActionHandler → GameEngine → Backend Systems → GameEngine �
 - Foraging and resource gathering
 - Natural language output throughout
 
-### Phase 4 📋 (Database - Future Goal)
-- SQLite database with proper schema
-- Complete game state persistence
+### Phase 4 📋 (History - Next Goal)
+- Historical simulation with 5-8 civilizations
+- 500-1000 historical figures with genealogies
+- 100-200 NPCs with authentic motivations
+- Quest generation from historical conflicts
+- Complete historical research system
+
+### Phase 5 📋 (Database - Future Goal)
+- SQLite database with complete game state persistence
 - Multiple save slots with integrity checks
-- Performance optimized for large world data
+- Performance optimized for historical datasets
+- Migration system for database updates
 
-### Phase 5 📋 (Gameplay - Future Goal)
-- Settlement interaction and trading
-- Skill-based content discovery
-- Permadeath with world persistence
-- Civilization vs wilderness choice
+### Phase 6 📋 (Combat & Equipment - Future Goal)
+- Complete D&D 5e combat mechanics with initiative and conditions
+- Rich equipment system with equippable/useable items
+- Caves of Qud-style inventory interface with detailed item descriptions
+- Turn-based combat mode with tactical action selection
+- Flee mechanics connecting combat to world exploration
 
-### Phase 6 📋 (Content - Final Goal)
-- Balanced survival challenge
-- Rich procedural content
+### Phase 7 📋 (Content & Polish - Final Goal)
+- Game balance and difficulty tuning
 - Tutorial and starting scenarios
-- Performance optimized for extended play
+- Performance optimization and bug fixes
+- Extended content testing and refinement
 
 ---
 
@@ -222,10 +221,10 @@ User Input → ActionHandler → GameEngine → Backend Systems → GameEngine �
 
 ## Next Steps
 
-1. **Review integration requirements** - Analyze what needs to connect
-2. **Create fantasy-rpg-integration spec** - Detailed integration plan
-3. **Execute integration tasks** - Build GameEngine coordinator
-4. **Test integrated systems** - Verify complete gameplay loop
-5. **Plan gameplay spec** - Design rich gameplay mechanics
+1. **Complete integration phase** - Finish GameEngine coordinator and system connections
+2. **Execute fantasy-rpg-history spec** - Build historical simulation and social systems
+3. **Plan database architecture** - Design SQLite schema for complete game persistence
+4. **Create combat systems spec** - Design D&D 5e combat mechanics and equipment overhaul
+5. **Plan content and polish phase** - Balance and refinement strategy
 
 The master plan ensures systematic development from foundation through complete game, with each spec building on previous work to create the Ultimate Fantasy Sim vision.

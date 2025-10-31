@@ -5,7 +5,7 @@ Minimal action processing for only the features that actually work.
 Currently supports: inventory and character sheet.
 """
 
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 
 
 class ActionResult:
@@ -46,14 +46,11 @@ class ActionHandler:
             # Object Interaction Actions (location only)
             "examine": self.handle_examine,
             "search": self.handle_search,
-            "take": self.handle_take,
             "use": self.handle_use,
             
             # Resource Gathering Actions (location only)
             "forage": self.handle_forage,
-            "harvest": self.handle_forage,  # Alias for forage
-            "gather": self.handle_forage,   # Alias for forage
-            "pick": self.handle_forage,     # Alias for forage
+            "harvest": self.handle_harvest,
             "chop": self.handle_chop,
             "cut": self.handle_chop,        # Alias for chop
             "drink": self.handle_drink,
@@ -62,11 +59,19 @@ class ActionHandler:
             "pick_lock": self.handle_unlock, # Alias for unlock
             
             # Rest and Recovery (location only)
-            # TODO: might get scrapped for a separate Fatigue and Sleep tracker, 
-            # Rest restores Fatigue but can be manually interupted, 
-            # Sleep is random and Fatige/Sleep dependent, but recovers both 
             "rest": self.handle_rest,
-            "sleep": self.handle_rest,  # Alias for rest
+            "sleep": self.handle_sleep,
+            
+            # Wait/Time actions
+            "wait": self.handle_wait,
+            
+            # New comprehensive object interactions
+            "cut": self.handle_cut,
+            "climb": self.handle_climb,
+            "light": self.handle_light_fire,
+            "place": self.handle_place_items,
+            "repair": self.handle_repair,
+            "disarm": self.handle_disarm_trap,
             
             # Movement Actions (overworld only)
             "north": self.handle_movement,
@@ -145,23 +150,38 @@ class ActionHandler:
         
 Core Actions:
   look - Examine your surroundings
-  enter - Enter a location in this hex
+  enter - Enter a location in this hex (no arguments needed)
   exit - Exit current location to overworld
   
 Object Interaction (location only):
-  examine <object> - Examine an object closely
+  examine <object> - Examine an object closely (shows available actions)
   search <object> - Search an object for items
-  take <item> - Take an item and add to inventory
   use <object> - Use an object (context-specific)
   
 Resource Gathering (location only):
-  forage/harvest/gather/pick <object> - Gather food or materials (e.g., 'forage berry bush')
+  forage <object> - Gather resources using Survival skill (e.g., 'forage berry bush')
+  harvest <object> - Gather resources using Nature skill (e.g., 'harvest berry bush')
   chop/cut <object> - Chop wood from trees or objects (e.g., 'chop tree')
   drink/water <object> - Drink from water sources (e.g., 'drink well')
+  
+Object Manipulation (location only):
   unlock/pick_lock <object> - Pick locks on containers (e.g., 'unlock chest')
+  disarm <object> - Disarm traps on objects (e.g., 'disarm chest')
+  cut <object> - Cut through vines or similar obstacles
+  climb <object> - Climb trees, rocks, or other climbable objects
+  light <object> - Light fires in fireplaces or similar objects
+  place <item> <object> - Place items on tables or storage surfaces
+  repair <object> - Repair broken objects like fences
   
 Rest & Recovery (location only):
-  rest, sleep - Rest in current location (duration depends on fatigue)
+  rest - Rest in current location (basic recovery)
+  sleep <object> - Sleep on beds or other comfortable objects (better recovery)
+  wait <duration> - Wait and pass time:
+    • quick/15min - Wait 15 minutes
+    • short/30min - Wait 30 minutes  
+    • medium/1hr - Wait 1 hour
+    • long/3hr - Wait 3 hours
+    • extended/8hr - Wait 8 hours
   
 Movement (overworld only):
   north, south, east, west (or n, s, e, w) - Move in that direction
@@ -171,21 +191,15 @@ Character:
   character, c - View character sheet
   
 System:
-  heal - Heal 10 HP (debug)
-  xp - Gain 100 XP (debug)
   save - Save game to save.json
   load - Load game from save.json
-  dump_log [filename] - Save game log to file (optional custom filename)
-  clear - Clear game log
-  quit, exit - Quit game
   debug - Show debug information
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
   dump_world - Dump entire world data to JSON file
-  save - Save game to save.json
-  load - Load game from save.json
   help - Show this help
   
+Tip: Use 'examine <object>' to see what actions are available for each object!
 Type any command to try it."""
         
         return ActionResult(
@@ -472,27 +486,7 @@ Type any command to try it."""
         except Exception as e:
             return ActionResult(False, f"Failed to search: {str(e)}")
     
-    def handle_take(self, *args) -> ActionResult:
-        """Handle taking items from objects"""
-        if not self.game_engine:
-            return ActionResult(False, "Object interaction system not available.")
-        
-        if not args:
-            return ActionResult(False, "Take what? Specify an item name.")
-        
-        item_name = " ".join(args).lower()
-        
-        try:
-            success, message = self.game_engine.interact_with_object(item_name, "take")
-            return ActionResult(
-                success=success,
-                message=message,
-                time_passed=0.1 if success else 0.0,  # Taking items is quick
-                action_type="object_interaction"
-            )
-        except Exception as e:
-            return ActionResult(False, f"Failed to take item: {str(e)}")
-    
+
     def handle_use(self, *args) -> ActionResult:
         """Handle using objects in current location"""
         if not self.game_engine:
@@ -527,58 +521,7 @@ Type any command to try it."""
             return ActionResult(False, f"Failed to rest: {str(e)}")
     
     def handle_forage(self, *args) -> ActionResult:
-        """
-        MULTI-SKILL RISK/REWARD RESOURCE GATHERING SYSTEM
-        
-        Core Philosophy:
-        - No "wrong" methods: Every interaction can yield something based on character build
-        - Risk vs Consistency: High-reward methods have higher DCs and harsher failure penalties
-        - Skill Synergy: Multiple skills work together (primary + secondary) for better results
-        - Character Build Diversity: Different builds excel at different approaches
-        
-        Berry Bush Example - Multi-Skill Approaches:
-        
-        forage berry bush (Nature, DC 12) - HIGH RISK/HIGH REWARD
-        - Success: 2-5 berries, Failure: 0 berries (harsh penalty)
-        - Best for: Nature-focused characters willing to gamble
-        
-        search berry bush (Perception + Nature, DC 10) - MEDIUM RISK/MEDIUM REWARD  
-        - Success: 1-3 berries, Failure: 0-1 berries (forgiving)
-        - Best for: Balanced perception/nature builds
-        
-        examine berry bush (Perception, DC 8) - LOW RISK/LOW REWARD
-        - Success: 1-2 berries, Failure: 0-1 berries (very forgiving)
-        - Best for: Perception-focused characters wanting consistency
-        
-        chop berry bush (Athletics + Nature, DC 11) - ALTERNATIVE APPROACH
-        - Success: 1 berry + 1-2 firewood, Failure: 0 (different reward type)
-        - Best for: Strength-based characters wanting mixed resources
-        
-        Character Build Optimization:
-        
-        Nature Specialist (High Wisdom):
-        - Excels at: forage (high reward), search (secondary skill bonus)
-        - Strategy: Take calculated risks for maximum yield
-        
-        Perception Specialist (High Wisdom):
-        - Excels at: examine (consistent), search (primary skill)  
-        - Strategy: Reliable, steady resource gathering
-        
-        Strength Build (High Strength):
-        - Excels at: chop (specialized), alternative approaches
-        - Strategy: Focus on wood/mixed resources, different niche
-        
-        Balanced Build:
-        - Excels at: search methods (uses multiple skills)
-        - Strategy: Consistent medium yields across all resource types
-        
-        Strategic Benefits:
-        1. Build Diversity: Different character builds have different optimal strategies
-        2. Risk Management: Players choose their risk tolerance  
-        3. Skill Investment: Investing in skills has clear mechanical benefits
-        4. Experimentation: Players discover what works for their build
-        5. No Dead Ends: Every approach can work with different risk/reward profiles
-        """
+        """Handle foraging with Survival skill check"""
         if not self.game_engine:
             return ActionResult(False, "Game engine not available.")
         
@@ -588,16 +531,34 @@ Type any command to try it."""
         object_name = " ".join(args)
         
         try:
-            # Find object using GameEngine coordination
             target_object = self._find_object_in_current_area(object_name)
             if not target_object:
                 return ActionResult(False, f"You don't see any '{object_name}' here.")
             
-            # Implement multi-skill forage logic here in ActionHandler
-            success, message = self._handle_forage_interaction(target_object, "forage")
-            return ActionResult(success, message)
+            success, message = self._handle_resource_gathering(target_object, "forage", "survival")
+            return ActionResult(success, message, time_passed=0.25)
         except Exception as e:
             return ActionResult(False, f"Failed to forage: {str(e)}")
+    
+    def handle_harvest(self, *args) -> ActionResult:
+        """Handle harvesting with Nature skill check"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Harvest what? Specify an object name (e.g., 'harvest berry bush')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            success, message = self._handle_resource_gathering(target_object, "harvest", "nature")
+            return ActionResult(success, message, time_passed=0.25)
+        except Exception as e:
+            return ActionResult(False, f"Failed to harvest: {str(e)}")
     
     def handle_chop(self, *args) -> ActionResult:
         """
@@ -628,7 +589,7 @@ Type any command to try it."""
             return ActionResult(False, f"Failed to chop: {str(e)}")
     
     def handle_drink(self, *args) -> ActionResult:
-        """Handle drinking from water sources"""
+        """Handle drinking from water sources with comprehensive water properties"""
         if not self.game_engine:
             return ActionResult(False, "Game engine not available.")
         
@@ -638,13 +599,53 @@ Type any command to try it."""
         object_name = " ".join(args)
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "drink")
-            return ActionResult(success, message)
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("provides_water"):
+                return ActionResult(False, f"The {target_object.get('name')} doesn't contain drinkable water.")
+            
+            # Check if bucket is required
+            if properties.get("requires_bucket", False):
+                # TODO: Check inventory for bucket
+                return ActionResult(False, f"You need a bucket to draw water from the {target_object.get('name')}.")
+            
+            # Get water quality and apply benefits
+            water_quality = properties.get("water_quality", "good")
+            depth = properties.get("depth", "shallow")
+            temperature = properties.get("temperature", "cool")
+            
+            # Apply water benefit based on quality
+            self._apply_water_benefit(water_quality)
+            
+            message = f"You drink from the {target_object.get('name')}."
+            message += f"\nThe {temperature} water is of {water_quality} quality and quenches your thirst."
+            
+            # Quality-specific effects
+            if water_quality == "excellent":
+                message += "\nThe pure, refreshing water makes you feel invigorated."
+                # Could add small HP bonus
+                if self.game_engine.game_state:
+                    character = self.game_engine.game_state.character
+                    character.hp = min(character.max_hp, character.hp + 1)
+            elif water_quality == "poor":
+                message += "\nThe water tastes stale but still helps with thirst."
+                # Could add small negative effect or disease risk
+            
+            return ActionResult(
+                success=True,
+                message=message,
+                time_passed=0.1,
+                action_type="survival"
+            )
+            
         except Exception as e:
             return ActionResult(False, f"Failed to drink: {str(e)}")
     
     def handle_unlock(self, *args) -> ActionResult:
-        """Handle unlocking/lockpicking objects"""
+        """Handle unlocking/lockpicking objects with comprehensive DC system"""
         if not self.game_engine:
             return ActionResult(False, "Game engine not available.")
         
@@ -654,8 +655,77 @@ Type any command to try it."""
         object_name = " ".join(args)
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "unlock")
-            return ActionResult(success, message)
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_unlock"):
+                return ActionResult(False, f"The {target_object.get('name')} doesn't have a lock.")
+            
+            # Check if already unlocked
+            if target_object.get("unlocked", False):
+                return ActionResult(False, f"The {target_object.get('name')} is already unlocked.")
+            
+            # Get lockpick DC
+            dc = properties.get("dc_lockpick", 15)
+            
+            # Check for magical lock (higher DC or special requirements)
+            if properties.get("magical_lock"):
+                dc += 5
+                
+            # Check for traps first
+            if properties.get("trapped"):
+                trap_dc = properties.get("trap_dc", 18)
+                
+                # If object has hidden nature and it's not revealed, player doesn't know about trap
+                if properties.get("hidden_nature") and not target_object.get("true_nature_revealed", False):
+                    # Automatic trap trigger - player had no warning
+                    damage = 2 + trap_dc // 10  # Base damage for surprise trap
+                    if self.game_engine.game_state:
+                        character = self.game_engine.game_state.character
+                        character.hp = max(0, character.hp - damage)
+                    
+                    # Reveal true nature after triggering trap
+                    target_object["true_nature_revealed"] = True
+                    target_object["name"] = properties.get("true_name", target_object.get("name"))
+                    target_object["description"] = properties.get("true_description", target_object.get("description"))
+                    
+                    return ActionResult(False, f"As you attempt to unlock the chest, hidden mechanisms activate! You trigger a trap and take {damage} damage. You now realize this was a {target_object['name']}!")
+                else:
+                    # Player knows about trap, can attempt to detect/disarm
+                    trap_success, trap_total, trap_msg = self._check_skill_dc("perception", trap_dc)
+                    
+                    if not trap_success:
+                        # Trigger trap
+                        damage = 1 + (trap_dc - trap_total) // 5  # More damage for worse failure
+                        if self.game_engine.game_state:
+                            character = self.game_engine.game_state.character
+                            character.hp = max(0, character.hp - damage)
+                        
+                        return ActionResult(False, f"You trigger the trap while attempting to unlock the {target_object.get('name')}! You take {damage} damage.")
+            
+            # Make lockpicking check
+            success, total, check_msg = self._check_skill_dc("sleight_of_hand", dc)
+            
+            if success:
+                target_object["unlocked"] = True
+                
+                message = f"You successfully unlock the {target_object.get('name')}."
+                if properties.get("magical_lock"):
+                    message += "\nThe magical wards dissipate as the lock opens."
+                
+                # Check for treasure
+                if properties.get("contains_treasure"):
+                    items_generated = self._generate_items_from_properties(target_object, total, dc)
+                    success_items = self._add_items_to_inventory(items_generated)
+                    if success_items:
+                        message += f"\nInside you find: {', '.join(success_items)}"
+                
+                return ActionResult(True, message, time_passed=0.5)
+            else:
+                return ActionResult(False, f"You struggle with the lock on the {target_object.get('name')} but can't open it.")
+                
         except Exception as e:
             return ActionResult(False, f"Failed to unlock: {str(e)}")
     
@@ -699,68 +769,80 @@ Type any command to try it."""
         
         return None
     
-    def _handle_forage_interaction(self, obj: Dict, interaction_type: str) -> Tuple[bool, str]:
-        """
-        Handle foraging interaction with multi-skill risk/reward system
-        
-        HIGH RISK/HIGH REWARD: Nature skill, DC 12, best yield but harsh failure
-        - Success: 2-5 berries, Failure: 0 berries
-        - Best for: Nature-focused characters willing to gamble
-        """
+    def _handle_resource_gathering(self, obj: Dict, action_type: str, skill_name: str) -> Tuple[bool, str]:
+        """Handle resource gathering with streamlined success categories"""
         properties = obj.get("properties", {})
         
         # Check if object can be foraged
         if not properties.get("can_forage"):
-            return False, f"You can't forage from the {obj.get('name', 'object')}."
+            return False, f"You can't {action_type} from the {obj.get('name', 'object')}."
         
         # Check if already depleted
         if obj.get("depleted", False):
-            return False, f"The {obj.get('name')} has already been foraged recently."
+            return False, f"The {obj.get('name')} has already been {action_type}ed recently."
         
-        # Make skill check - HIGH RISK/HIGH REWARD approach
+        # Get DC from object properties or use default
+        dc = properties.get("search_dc", 12)
+        
+        # Make skill check
         import random
         roll = random.randint(1, 20)
-        primary_skill, secondary_skill, dc = self._get_interaction_skill_and_dc("forage", obj.get("name", ""))
-        skill_bonus = self._get_multi_skill_bonus(primary_skill, secondary_skill)
+        skill_bonus = self._get_skill_bonus(skill_name)
         total = roll + skill_bonus
         
-        # Use time system (GameEngine coordination)
+        # Use time system
         if self.game_engine.time_system:
-            time_result = self.game_engine.time_system.perform_activity("forage", duration_override=0.25)
+            time_result = self.game_engine.time_system.perform_activity(action_type, duration_override=0.25)
             if not time_result.get("success", True):
-                return False, time_result.get("message", "Foraging failed.")
+                return False, time_result.get("message", f"{action_type.title()} failed.")
         
-        if total >= dc:
-            # Success - generate items based on multi-skill system
-            items_generated = self._generate_items_from_object(obj, "forage", total, dc)
+        # Determine success category
+        success_category = self._determine_success_category(roll, total, dc)
+        
+        if success_category in ["success"]:  # Only implementing Fail and Success for now
+            # Success - mark as depleted and generate items
+            obj["depleted"] = True
             
+            result_msg = f"You successfully {action_type} from the {obj.get('name')}."
+            
+            # Handle food value
+            food_value = properties.get("food_value", 0)
+            if food_value > 0:
+                self._apply_food_benefit(food_value)
+                result_msg += f"\nYou restore {food_value} hunger."
+            
+            # Generate items from object properties
+            items_generated = self._generate_items_from_properties(obj, total, dc)
             if items_generated:
-                # Mark as depleted
-                obj["depleted"] = True
-                
-                # Add items to inventory (GameEngine coordination)
-                success_items = []
-                failed_items = []
-                
-                gs = self.game_engine.game_state
-                for item_id, quantity in items_generated.items():
-                    if gs.character.add_item_to_inventory(item_id, quantity):
-                        success_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
-                    else:
-                        failed_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
-                
-                result_msg = f"You successfully forage from the {obj.get('name')}."
+                success_items = self._add_items_to_inventory(items_generated)
                 if success_items:
                     result_msg += f"\nYou gather: {', '.join(success_items)}"
-                if failed_items:
-                    result_msg += f"\nCouldn't carry: {', '.join(failed_items)} (inventory full)"
-                
-                return True, result_msg
-            else:
-                return True, f"You forage from the {obj.get('name')} but don't find much."
+            
+            return True, result_msg
         else:
-            # HARSH FAILURE for high-risk approach
-            return False, f"You search the {obj.get('name')} but don't find anything useful."
+            # Fail - no items, no depletion
+            return False, f"You attempt to {action_type} from the {obj.get('name')} but don't find anything useful."
+    
+    def _determine_success_category(self, roll: int, total: int, dc: int) -> str:
+        """
+        Determine success category based on roll and total
+        
+        Categories:
+        - Critical Fail: roll <= 1
+        - Fail: roll > 1 and total < dc  
+        - Success: total >= dc and total < 20
+        - Critical Success: total >= 20
+        
+        For now, only implementing Fail and Success
+        """
+        if roll <= 1:
+            return "critical_fail"  # Future implementation
+        elif total < dc:
+            return "fail"
+        elif total >= 20:
+            return "critical_success"  # Future implementation
+        else:
+            return "success"
     
     def _get_interaction_skill_and_dc(self, interaction_type: str, object_name: str) -> tuple[str, str, int]:
         """
@@ -1085,68 +1167,120 @@ Type any command to try it."""
             return False, f"You attempt to chop the {obj.get('name')} but don't get much usable wood."
     
     def _handle_examine_interaction(self, obj: Dict, interaction_type: str) -> Tuple[bool, str]:
-        """Handle examining with LOW RISK/LOW REWARD approach"""
+        """Handle examining - available for ALL objects with property-based information"""
         properties = obj.get("properties", {})
+        
+        # Check for hidden nature discovery first
+        if properties.get("hidden_nature") and not obj.get("true_nature_revealed", False):
+            investigation_dc = properties.get("investigation_dc", 15)
+            investigation_success, investigation_total, _ = self._check_skill_dc("investigation", investigation_dc)
+            
+            if investigation_success:
+                # Reveal true nature
+                obj["true_nature_revealed"] = True
+                obj["name"] = properties.get("true_name", obj.get("name"))
+                obj["description"] = properties.get("true_description", obj.get("description"))
+                if properties.get("true_examination_text"):
+                    properties["examination_text"] = properties.get("true_examination_text")
+                
+                result_msg = f"Upon careful investigation, you realize this is actually a {obj['name']}!"
+                result_msg += f"\n\n{obj['description']}"
+                
+                if properties.get("true_examination_text"):
+                    result_msg += f"\n\n{properties['true_examination_text']}"
+                
+                # Show that it's trapped if it is
+                if properties.get("trapped"):
+                    trap_dc = properties.get("trap_dc", "unknown")
+                    result_msg += f"\n\nDANGER: This object appears to be trapped! (Trap DC {trap_dc})"
+                
+                return True, result_msg
+        
+        # Use current name and description (may have been updated by discovery)
         base_description = obj.get("description", "An unremarkable object.")
         
-        # Make skill check - LOW RISK/LOW REWARD approach
-        import random
-        roll = random.randint(1, 20)
-        primary_skill, secondary_skill, dc = self._get_interaction_skill_and_dc("examine", obj.get("name", ""))
-        skill_bonus = self._get_multi_skill_bonus(primary_skill, secondary_skill)
-        total = roll + skill_bonus
+        # Get DC from object properties or use default
+        dc = properties.get("examine_dc", 8)
+        
+        # Make skill check
+        success, total, check_msg = self._check_skill_dc("perception", dc)
         
         # Examining takes a little time
         if self.game_engine.time_system:
-            time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.083)  # 5 minutes
+            time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.083)
             if not time_result.get("success", True):
                 return False, time_result.get("message", "Examination failed.")
         
-        if total >= dc:
-            # Success - reveal additional information and potentially find items
-            examination_text = properties.get("examination_text", "")
+        result_msg = base_description
+        
+        # Add examination text if available
+        examination_text = properties.get("examination_text", "")
+        if examination_text:
+            result_msg += f"\n\n{examination_text}"
+        
+        # Show available actions based on properties
+        available_actions = self._get_available_actions_for_object(obj)
+        if len(available_actions) > 1:  # More than just "examine"
+            other_actions = [action for action in available_actions if action != "examine"]
+            result_msg += f"\n\nAvailable actions: {', '.join(other_actions)}"
+        
+        # Reveal property-based information on successful check
+        if success:
+            property_info = []
             
-            # Check for items that can be found through examination
-            items_generated = self._generate_items_from_object(obj, "examine", total, dc)
+            # Physical properties
+            if properties.get("provides_shelter"):
+                property_info.append("provides shelter from weather")
+            if properties.get("provides_warmth"):
+                property_info.append("radiates warmth")
+            if properties.get("provides_light"):
+                property_info.append("gives off light")
+            if properties.get("provides_water"):
+                quality = properties.get("water_quality", "unknown")
+                property_info.append(f"contains {quality} quality water")
+            if properties.get("provides_cover"):
+                cover_type = properties.get("provides_cover")
+                property_info.append(f"provides {cover_type} cover")
             
-            result_msg = base_description
-            if examination_text:
-                result_msg += f"\n\nUpon closer examination: {examination_text}"
-            else:
-                result_msg += f"\n\nYou notice some interesting details about the {obj.get('name')}."
+            # Functional properties
+            if properties.get("rest_bonus"):
+                bonus = properties.get("rest_bonus")
+                comfort = properties.get("comfort_level", "basic")
+                property_info.append(f"offers {comfort} comfort for resting (+{bonus} rest quality)")
+            if properties.get("fuel_value"):
+                fuel = properties.get("fuel_value")
+                property_info.append(f"could provide {fuel} units of fuel")
+            if properties.get("food_value"):
+                food = properties.get("food_value")
+                property_info.append(f"appears to have nutritional value ({food})")
             
-            # Add any items found during examination
+            # Special properties (only show if true nature revealed or not hidden)
+            if not properties.get("hidden_nature") or obj.get("true_nature_revealed", False):
+                if properties.get("magical_lock"):
+                    property_info.append("sealed with magical wards")
+                if properties.get("trapped"):
+                    trap_dc = properties.get("trap_dc", "unknown")
+                    property_info.append(f"may be trapped (detection DC {trap_dc})")
+            
+            if properties.get("historical_significance"):
+                property_info.append("has historical importance")
+            if properties.get("seasonal"):
+                property_info.append("availability varies by season")
+            if properties.get("renewable"):
+                property_info.append("resources replenish over time")
+            
+            if property_info:
+                result_msg += f"\n\nYou notice: {'; '.join(property_info)}."
+        
+        # Generate items on very successful examination
+        if success and total >= dc + 5:
+            items_generated = self._generate_items_from_properties(obj, total, dc)
             if items_generated:
-                success_items = []
-                failed_items = []
-                
-                gs = self.game_engine.game_state
-                for item_id, quantity in items_generated.items():
-                    if gs.character.add_item_to_inventory(item_id, quantity):
-                        success_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
-                    else:
-                        failed_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
-                
+                success_items = self._add_items_to_inventory(items_generated)
                 if success_items:
-                    result_msg += f"\n\nWhile examining, you also find: {', '.join(success_items)}"
-                if failed_items:
-                    result_msg += f"\nCouldn't carry: {', '.join(failed_items)} (inventory full)"
-            
-            return True, result_msg
-        else:
-            # VERY FORGIVING FAILURE for low-risk approach
-            items_generated = self._generate_items_from_object(obj, "examine", total, dc)  # Still try to generate with negative margin
-            if items_generated:
-                success_items = []
-                gs = self.game_engine.game_state
-                for item_id, quantity in items_generated.items():
-                    if gs.character.add_item_to_inventory(item_id, quantity):
-                        success_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
-                
-                if success_items:
-                    return True, f"{base_description}\n\nYou also notice: {', '.join(success_items)}"
-            
-            return True, base_description
+                    result_msg += f"\n\nWhile examining closely, you find: {', '.join(success_items)}"
+        
+        return True, result_msg
     
     def handle_dump_world(self, *args) -> ActionResult:
         """Handle dumping world data to JSON file"""
@@ -1249,3 +1383,641 @@ Type any command to try it."""
             )
         except Exception as e:
             return ActionResult(False, f"Failed to load game: {str(e)}")
+    
+    # ===== COMPREHENSIVE OBJECT PROPERTY SYSTEM =====
+    
+    def _generate_items_from_properties(self, obj: Dict, skill_roll: int = 10, dc: int = 10) -> Dict[str, int]:
+        """Generate items based on object properties"""
+        properties = obj.get("properties", {})
+        items_to_generate = {}
+        
+        # Check for specific item generation
+        if properties.get("generates_items"):
+            item_id = properties.get("generated_item_id")
+            base_quantity = properties.get("generated_quantity", 1)
+            if item_id:
+                # Scale quantity based on skill success
+                success_margin = skill_roll - dc
+                final_quantity = base_quantity + max(0, success_margin // 5)
+                items_to_generate[item_id] = final_quantity
+        
+        return items_to_generate
+    
+    def _add_items_to_inventory(self, items_dict: Dict[str, int]) -> List[str]:
+        """Add items to character inventory and return success list"""
+        success_items = []
+        gs = self.game_engine.game_state
+        
+        for item_id, quantity in items_dict.items():
+            if gs.character.add_item_to_inventory(item_id, quantity):
+                success_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
+        
+        return success_items
+    
+    def _apply_food_benefit(self, food_value: int):
+        """Apply food benefit to character survival stats"""
+        if self.game_engine and self.game_engine.game_state:
+            player_state = self.game_engine.game_state.player_state
+            if hasattr(player_state, 'hunger'):
+                player_state.hunger = max(0, player_state.hunger - food_value * 10)
+    
+    def _apply_water_benefit(self, water_quality: str = "good"):
+        """Apply water benefit based on quality"""
+        if self.game_engine and self.game_engine.game_state:
+            player_state = self.game_engine.game_state.player_state
+            if hasattr(player_state, 'thirst'):
+                quality_multiplier = {"poor": 0.5, "good": 1.0, "excellent": 1.5}.get(water_quality, 1.0)
+                thirst_reduction = int(20 * quality_multiplier)
+                player_state.thirst = max(0, player_state.thirst - thirst_reduction)
+    
+    def _apply_warmth_benefit(self, warmth_bonus: int = 5):
+        """Apply warmth benefit to character temperature"""
+        if self.game_engine and self.game_engine.game_state:
+            player_state = self.game_engine.game_state.player_state
+            if hasattr(player_state, 'body_temperature'):
+                player_state.body_temperature = min(98.6, player_state.body_temperature + warmth_bonus)
+    
+    def _apply_rest_benefit(self, rest_bonus: int = 2):
+        """Apply rest benefit to character fatigue/health"""
+        if self.game_engine and self.game_engine.game_state:
+            character = self.game_engine.game_state.character
+            player_state = self.game_engine.game_state.player_state
+            
+            # Heal HP based on rest quality
+            heal_amount = rest_bonus
+            character.hp = min(character.max_hp, character.hp + heal_amount)
+            
+            # Reduce fatigue if system exists
+            if hasattr(player_state, 'fatigue'):
+                player_state.fatigue = max(0, player_state.fatigue - rest_bonus * 10)
+    
+    def _check_skill_dc(self, skill_name: str, dc: int) -> Tuple[bool, int, str]:
+        """Perform a skill check and return result"""
+        import random
+        roll = random.randint(1, 20)
+        skill_bonus = self._get_skill_bonus(skill_name)
+        total = roll + skill_bonus
+        
+        success = total >= dc
+        message = f"{skill_name.title()} check: {roll} + {skill_bonus} = {total} (DC {dc})"
+        
+        return success, total, message
+    
+    def _get_available_actions_for_object(self, obj: Dict) -> List[str]:
+        """Get list of available actions for an object based on its properties"""
+        properties = obj.get("properties", {})
+        actions = ["examine"]  # All objects can be examined
+        
+        # Interaction Properties
+        if properties.get("can_cut"): actions.append("cut")
+        if properties.get("can_unlock"): actions.append("unlock")
+        if properties.get("can_search"): actions.append("search")
+        if properties.get("can_forage"): actions.extend(["forage", "harvest"])
+        if properties.get("can_climb"): actions.append("climb")
+        if properties.get("can_chop_wood"): actions.append("chop")
+        if properties.get("can_light_fire"): actions.append("light")
+        if properties.get("can_sleep"): actions.extend(["sleep", "rest"])
+        if properties.get("can_place_items"): actions.append("place")
+
+        if properties.get("can_repair"): actions.append("repair")
+
+        if properties.get("can_disarm"): actions.append("disarm")
+        if properties.get("provides_water"): actions.append("drink")
+        
+        return actions
+    
+    # ===== NEW COMPREHENSIVE ACTION HANDLERS =====
+    
+    def handle_sleep(self, *args) -> ActionResult:
+        """Handle sleeping on objects with can_sleep property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Sleep on what? Specify an object (e.g., 'sleep bed')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_sleep"):
+                return ActionResult(False, f"You can't sleep on the {target_object.get('name')}.")
+            
+            # Apply rest bonus from object
+            rest_bonus = properties.get("rest_bonus", 0)
+            comfort_level = properties.get("comfort_level", "basic")
+            
+            # Base sleep duration and benefits
+            base_heal = 5 + rest_bonus
+            sleep_duration = 8.0  # 8 hours
+            
+            # Apply benefits
+            self._apply_rest_benefit(rest_bonus + 3)  # Extra benefit for sleeping vs resting
+            
+            # Use time system
+            if self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity("sleep", duration_override=sleep_duration)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Sleep interrupted."))
+            
+            message = f"You sleep on the {comfort_level} {target_object.get('name')} for {sleep_duration} hours."
+            message += f"\nYou feel refreshed and heal {base_heal} HP."
+            if rest_bonus > 0:
+                message += f"\nThe {comfort_level} comfort provides +{rest_bonus} rest quality."
+            
+            return ActionResult(
+                success=True,
+                message=message,
+                time_passed=sleep_duration,
+                action_type="rest"
+            )
+        except Exception as e:
+            return ActionResult(False, f"Failed to sleep: {str(e)}")
+    
+    def handle_cut(self, *args) -> ActionResult:
+        """Handle cutting objects with can_cut property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Cut what? Specify an object (e.g., 'cut vines')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_cut"):
+                return ActionResult(False, f"You can't cut the {target_object.get('name')}.")
+            
+            # Check if already cut
+            if target_object.get("cut", False):
+                return ActionResult(False, f"The {target_object.get('name')} has already been cut.")
+            
+            # Make skill check
+            dc = properties.get("dc_strength", 12)
+            success, total, check_msg = self._check_skill_dc("athletics", dc)
+            
+            if success:
+                target_object["cut"] = True
+                
+                # Generate items if applicable
+                items_generated = self._generate_items_from_properties(target_object, total, dc)
+                success_items = self._add_items_to_inventory(items_generated)
+                
+                message = f"You successfully cut through the {target_object.get('name')}."
+                if success_items:
+                    message += f"\nYou gather: {', '.join(success_items)}"
+                
+                return ActionResult(True, message, time_passed=0.5)
+            else:
+                return ActionResult(False, f"You struggle to cut the {target_object.get('name')} but make no progress.")
+                
+        except Exception as e:
+            return ActionResult(False, f"Failed to cut: {str(e)}")
+    
+    def handle_climb(self, *args) -> ActionResult:
+        """Handle climbing objects with can_climb property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Climb what? Specify an object (e.g., 'climb tree')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_climb") and not properties.get("climbable"):
+                return ActionResult(False, f"You can't climb the {target_object.get('name')}.")
+            
+            # Make athletics check
+            dc = properties.get("dc_strength", 13)
+            success, total, check_msg = self._check_skill_dc("athletics", dc)
+            
+            if success:
+                message = f"You successfully climb the {target_object.get('name')}."
+                message += "\nFrom your elevated position, you get a better view of the area."
+                
+                # Bonus perception check for elevated view
+                perception_success, _, _ = self._check_skill_dc("perception", 10)
+                if perception_success:
+                    message += "\nYou spot something interesting from up here!"
+                    # Could reveal hidden objects or provide area information
+                
+                return ActionResult(True, message, time_passed=0.25)
+            else:
+                return ActionResult(False, f"You attempt to climb the {target_object.get('name')} but can't get a good grip.")
+                
+        except Exception as e:
+            return ActionResult(False, f"Failed to climb: {str(e)}")
+    
+    def handle_light_fire(self, *args) -> ActionResult:
+        """Handle lighting fires in objects with can_light_fire property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Light fire in what? Specify an object (e.g., 'light fireplace')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_light_fire"):
+                return ActionResult(False, f"You can't light a fire in the {target_object.get('name')}.")
+            
+            # Check if already lit
+            if target_object.get("lit", False):
+                return ActionResult(False, f"The {target_object.get('name')} is already lit.")
+            
+            # Check if fuel is required
+            if properties.get("fuel_required"):
+                if not self._check_and_consume_fuel():
+                    return ActionResult(False, f"You need firewood to light a fire in the {target_object.get('name')}.")
+            
+            # Make survival check to light fire
+            success, total, check_msg = self._check_skill_dc("survival", 12)
+            
+            if success:
+                # Transform object if it has transforms_to property
+                transforms_to = properties.get("transforms_to")
+                if transforms_to:
+                    success = self._transform_object(target_object, transforms_to)
+                    if not success:
+                        return ActionResult(False, f"Failed to transform {target_object.get('name')} after lighting.")
+                else:
+                    target_object["lit"] = True
+                
+                message = f"You successfully light a fire in the {target_object.get('name')}."
+                message += "\nYou consume 1 firewood to fuel the flames."
+                
+                # Apply warmth benefit
+                self._apply_warmth_benefit(10)
+                message += "\nThe fire provides comforting warmth and illuminates the area."
+                
+                # Use time system for lighting fire
+                time_passed = 0.25  # 15 minutes to light a fire
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("craft_simple", duration_override=time_passed)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Failed to light fire due to time constraints."))
+                
+                return ActionResult(True, message, time_passed=time_passed)
+            else:
+                return ActionResult(False, f"You struggle to light a fire in the {target_object.get('name')}.")
+                
+        except Exception as e:
+            return ActionResult(False, f"Failed to light fire: {str(e)}")
+    
+    def _transform_object(self, target_object: Dict, new_object_id: str) -> bool:
+        """Transform an object into a different object type"""
+        try:
+            # Load the new object data from objects.json
+            import json
+            with open('fantasy_rpg/data/objects.json', 'r') as f:
+                objects_data = json.load(f)
+            
+            if new_object_id not in objects_data['objects']:
+                return False
+            
+            new_object_data = objects_data['objects'][new_object_id]
+            
+            # Update the target object with new data
+            # Handle name as either string or list of strings
+            name_data = new_object_data['name']
+            if isinstance(name_data, list):
+                # Randomly select one name from the list
+                import random
+                selected_name = random.choice(name_data)
+            else:
+                selected_name = name_data
+            
+            target_object['name'] = selected_name
+            target_object['description'] = new_object_data['description']
+            target_object['properties'] = new_object_data['properties'].copy()
+            target_object['lit'] = True  # Mark as lit
+            
+            # Copy any item drops if they exist
+            if 'item_drops' in new_object_data:
+                target_object['item_drops'] = new_object_data['item_drops']
+            
+            return True
+        except Exception as e:
+            print(f"Error transforming object: {e}")
+            return False
+    
+    def _check_and_consume_fuel(self) -> bool:
+        """Check if player has firewood and consume 1 unit"""
+        if not self.game_engine or not self.game_engine.game_state:
+            return False
+        
+        character = self.game_engine.game_state.character
+        
+        try:
+            # Method 1: Use inventory.remove_item() method (from inventory.py)
+            if hasattr(character, 'inventory') and hasattr(character.inventory, 'remove_item'):
+                removed_item = character.inventory.remove_item("firewood", 1)
+                return removed_item is not None
+            
+            # Method 2: Use inventory.has_item() and manual removal
+            if hasattr(character, 'inventory') and hasattr(character.inventory, 'has_item'):
+                if character.inventory.has_item("firewood", 1):
+                    # Find and remove the item manually
+                    for item in character.inventory.items:
+                        if item.item_id == "firewood" and item.quantity > 0:
+                            item.quantity -= 1
+                            if item.quantity <= 0:
+                                character.inventory.items.remove(item)
+                            return True
+            
+            # Method 3: Direct access to inventory.items list (InventoryItem objects)
+            if hasattr(character, 'inventory') and hasattr(character.inventory, 'items'):
+                for item in character.inventory.items:
+                    if hasattr(item, 'item_id') and item.item_id == "firewood":
+                        if hasattr(item, 'quantity') and item.quantity > 0:
+                            item.quantity -= 1
+                            if item.quantity <= 0:
+                                character.inventory.items.remove(item)
+                            return True
+            
+            # Method 4: Character-level remove method
+            if hasattr(character, 'remove_item_from_inventory'):
+                return character.remove_item_from_inventory("firewood", 1)
+            
+        except Exception as e:
+            print(f"Error checking inventory: {e}")
+        
+        # No firewood found
+        return False
+    
+    def _has_item_in_inventory(self, item_id: str, quantity: int = 1) -> bool:
+        """Check if player has specified item in inventory"""
+        if not self.game_engine or not self.game_engine.game_state:
+            return False
+        
+        character = self.game_engine.game_state.character
+        # TODO: Implement proper inventory checking
+        return True  # Placeholder
+    
+    def _consume_item_from_inventory(self, item_id: str, quantity: int = 1) -> bool:
+        """Remove specified item from player inventory"""
+        if not self.game_engine or not self.game_engine.game_state:
+            return False
+        
+        character = self.game_engine.game_state.character
+        # TODO: Implement proper inventory item removal
+        return True  # Placeholder
+    
+    def handle_place_items(self, *args) -> ActionResult:
+        """Handle placing items on objects with can_place_items property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if len(args) < 2:
+            return ActionResult(False, "Place what on what? (e.g., 'place sword table')")
+        
+        item_name = args[0]
+        object_name = " ".join(args[1:])
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_place_items"):
+                return ActionResult(False, f"You can't place items on the {target_object.get('name')}.")
+            
+            # Check storage capacity
+            storage_slots = properties.get("storage_slots", 1)
+            current_items = target_object.get("placed_items", [])
+            
+            if len(current_items) >= storage_slots:
+                return ActionResult(False, f"The {target_object.get('name')} is full.")
+            
+            # TODO: Check if player has the item and remove from inventory
+            # For now, just simulate placing
+            if "placed_items" not in target_object:
+                target_object["placed_items"] = []
+            target_object["placed_items"].append(item_name)
+            
+            return ActionResult(True, f"You place the {item_name} on the {target_object.get('name')}.")
+            
+        except Exception as e:
+            return ActionResult(False, f"Failed to place item: {str(e)}")
+    
+    def handle_repair(self, *args) -> ActionResult:
+        """Handle repairing objects with can_repair property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Repair what? Specify an object (e.g., 'repair fence')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_repair"):
+                return ActionResult(False, f"The {target_object.get('name')} doesn't need repair or can't be repaired.")
+            
+            # Check if already repaired
+            if target_object.get("repaired", False):
+                return ActionResult(False, f"The {target_object.get('name')} is already in good condition.")
+            
+            # Make skill check (could require tools)
+            tool_required = properties.get("tool_required", False)
+            dc = 15 if tool_required else 12
+            
+            success, total, check_msg = self._check_skill_dc("athletics", dc)
+            
+            if success:
+                target_object["repaired"] = True
+                
+                message = f"You successfully repair the {target_object.get('name')}."
+                if tool_required:
+                    message += "\nThe repair work required some skill and effort."
+                
+                return ActionResult(True, message, time_passed=1.0)
+            else:
+                return ActionResult(False, f"You attempt to repair the {target_object.get('name')} but lack the skill or tools needed.")
+                
+        except Exception as e:
+            return ActionResult(False, f"Failed to repair: {str(e)}")
+    
+
+    def handle_disarm_trap(self, *args) -> ActionResult:
+        """Handle disarming traps on objects with can_disarm property"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Disarm what? Specify an object (e.g., 'disarm chest')")
+        
+        object_name = " ".join(args)
+        
+        try:
+            target_object = self._find_object_in_current_area(object_name)
+            if not target_object:
+                return ActionResult(False, f"You don't see any '{object_name}' here.")
+            
+            properties = target_object.get("properties", {})
+            if not properties.get("can_disarm"):
+                return ActionResult(False, f"The {target_object.get('name')} doesn't appear to have any traps to disarm.")
+            
+            # Check if trap is already disarmed
+            if target_object.get("disarmed", False):
+                return ActionResult(False, f"The trap on the {target_object.get('name')} has already been disarmed.")
+            
+            # Check if true nature is revealed (player must know it's trapped)
+            if properties.get("hidden_nature") and not target_object.get("true_nature_revealed", False):
+                return ActionResult(False, f"You don't see any traps on the {target_object.get('name')}. Try examining it more carefully first.")
+            
+            # Get disarm DC
+            disarm_dc = properties.get("disarm_dc", properties.get("trap_dc", 16))
+            
+            # Make sleight of hand check to disarm trap
+            success, total, check_msg = self._check_skill_dc("sleight_of_hand", disarm_dc)
+            
+            if success:
+                # Mark as disarmed
+                target_object["disarmed"] = True
+                
+                # Transform object if it has disarm_transforms_to property
+                transforms_to = properties.get("disarm_transforms_to")
+                if transforms_to:
+                    transform_success = self._transform_object(target_object, transforms_to)
+                    if transform_success:
+                        message = f"You carefully disarm the trap on the {target_object.get('name')}."
+                        message += f"\nThe {target_object.get('name')} is now safe to use."
+                    else:
+                        message = f"You disarm the trap but something went wrong with the mechanism."
+                else:
+                    message = f"You successfully disarm the trap on the {target_object.get('name')}."
+                
+                return ActionResult(True, message, time_passed=1.0)
+            else:
+                # Failed disarm attempt - trigger trap
+                damage = 1 + (disarm_dc - total) // 5  # More damage for worse failure
+                if self.game_engine.game_state:
+                    character = self.game_engine.game_state.character
+                    character.hp = max(0, character.hp - damage)
+                
+                return ActionResult(False, f"You fail to disarm the trap and trigger it! You take {damage} damage from the mechanism.")
+                
+        except Exception as e:
+            return ActionResult(False, f"Failed to disarm trap: {str(e)}")
+    
+    def handle_wait(self, *args) -> ActionResult:
+        """Handle waiting/passing time with different duration options"""
+        if not self.game_engine:
+            return ActionResult(False, "Game engine not available.")
+        
+        if not args:
+            return ActionResult(False, "Wait how long? Options: quick (15min), short (30min), medium (1hr), long (3hr), extended (8hr)")
+        
+        duration_arg = args[0].lower()
+        
+        # Map duration arguments to time system activities
+        duration_map = {
+            # Quick actions (15 minutes)
+            "quick": ("eat", 0.25, "resting"),
+            "15min": ("eat", 0.25, "resting"),
+            "15": ("eat", 0.25, "resting"),
+            
+            # Short actions (30 minutes)
+            "short": ("short_rest", 0.5, "resting"),
+            "30min": ("short_rest", 0.5, "resting"),
+            "30": ("short_rest", 0.5, "resting"),
+            
+            # Medium actions (1 hour)
+            "medium": ("rest", 1.0, "resting"),
+            "1hr": ("rest", 1.0, "resting"),
+            "1h": ("rest", 1.0, "resting"),
+            "1": ("rest", 1.0, "resting"),
+            "hour": ("rest", 1.0, "resting"),
+            
+            # Long actions (3 hours)
+            "long": ("long_rest", 3.0, "resting"),
+            "3hr": ("long_rest", 3.0, "resting"),
+            "3h": ("long_rest", 3.0, "resting"),
+            "3": ("long_rest", 3.0, "resting"),
+            
+            # Extended actions (8 hours)
+            "extended": ("sleep", 8.0, "resting"),
+            "8hr": ("sleep", 8.0, "resting"),
+            "8h": ("sleep", 8.0, "resting"),
+            "8": ("sleep", 8.0, "resting"),
+            "night": ("sleep", 8.0, "resting"),
+        }
+        
+        if duration_arg not in duration_map:
+            available_options = ["quick (15min)", "short (30min)", "medium (1hr)", "long (3hr)", "extended (8hr)"]
+            return ActionResult(False, f"Unknown duration '{duration_arg}'. Options: {', '.join(available_options)}")
+        
+        activity_name, duration_hours, activity_level = duration_map[duration_arg]
+        
+        try:
+            # Use time system to perform the waiting activity
+            if self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity(activity_name, duration_override=duration_hours)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Wait interrupted."))
+            
+            # Format duration for display
+            if duration_hours < 1:
+                duration_str = f"{int(duration_hours * 60)} minutes"
+            elif duration_hours == 1:
+                duration_str = "1 hour"
+            else:
+                duration_str = f"{duration_hours} hours"
+            
+            # Create descriptive message based on duration
+            if duration_hours <= 0.25:
+                activity_desc = "take a brief moment to rest"
+            elif duration_hours <= 0.5:
+                activity_desc = "rest quietly for a short while"
+            elif duration_hours <= 1:
+                activity_desc = "rest comfortably for an hour"
+            elif duration_hours <= 3:
+                activity_desc = "rest deeply for several hours"
+            else:
+                activity_desc = "rest extensively through an extended period"
+            
+            message = f"You {activity_desc}, letting {duration_str} pass peacefully."
+            
+            # Add environmental context
+            if self.game_engine.game_state.world_position.current_location_id:
+                message += f"\nYou remain in the {self.game_engine.game_state.world_position.current_location_data.get('name', 'location')} during your rest."
+            else:
+                message += f"\nYou rest in the wilderness of hex {self.game_engine.game_state.world_position.hex_id}."
+            
+            return ActionResult(
+                success=True,
+                message=message,
+                time_passed=duration_hours,
+                action_type="wait"
+            )
+            
+        except Exception as e:
+            return ActionResult(False, f"Failed to wait: {str(e)}")

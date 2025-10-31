@@ -24,6 +24,13 @@ except ImportError:
                 self.temperature = 70.0
                 self.precipitation = 0
                 self.wind_speed = 0
+                self.precipitation_type = "rain"
+                self.wind_direction = "N"
+                self.cloud_cover = 50
+                self.visibility = 1000
+                self.feels_like = 70.0
+                self.is_storm = False
+                self.lightning_risk = 0.0
         class CharacterWeatherResistance:
             def __init__(self):
                 pass
@@ -168,6 +175,7 @@ class PlayerState:
     """Complete player state with CDDA-style survival tracking"""
     # Core character reference
     character: any = None  # Reference to character object
+    game_engine: any = None  # Reference to game engine for condition checking
     
     # Survival needs
     survival: SurvivalNeeds = field(default_factory=SurvivalNeeds)
@@ -189,9 +197,12 @@ class PlayerState:
     last_sleep_hours: int = 0  # Hours since last sleep
     activity_level: str = "normal"  # "resting", "normal", "active", "strenuous"
     
-    # Status effects
-    status_effects: List[str] = field(default_factory=list)
+    # Conditions system
     temporary_modifiers: Dict[str, int] = field(default_factory=dict)
+    active_conditions: List[str] = field(default_factory=list)  # Conditions from conditions.json
+    
+    # Shelter tracking
+    current_shelter: Optional[Dict[str, str]] = None  # Current shelter information
     
     def advance_time(self, hours: float, activity: str = "normal"):
         """
@@ -299,30 +310,29 @@ class PlayerState:
         old_fatigue = self.survival.fatigue
         
         if activity == "resting":
-            # Resting REDUCES fatigue (gets less tired)
+            # Resting INCREASES fatigue (gets more rested) - HIGH fatigue = well rested
             recovery = int(30 * hours)  # 30 points per hour
-            self.survival.fatigue = max(0, self.survival.fatigue - recovery)
-            print(f"  Fatigue: RESTING for {hours:.1f}h, -{recovery} tiredness, {old_fatigue} → {self.survival.fatigue}")
+            self.survival.fatigue = min(1000, self.survival.fatigue + recovery)
+            print(f"  Fatigue: RESTING for {hours:.1f}h, +{recovery} rest, {old_fatigue} → {self.survival.fatigue}")
             
         elif activity == "unconscious":
-            # Being unconscious also reduces fatigue (forced rest)
+            # Being unconscious also increases fatigue (forced rest)
             recovery = int(20 * hours)  # 20 points per hour (less than active rest)
-            self.survival.fatigue = max(0, self.survival.fatigue - recovery)
-            print(f"  Fatigue: UNCONSCIOUS for {hours:.1f}h, -{recovery} tiredness, {old_fatigue} → {self.survival.fatigue}")
+            self.survival.fatigue = min(1000, self.survival.fatigue + recovery)
+            print(f"  Fatigue: UNCONSCIOUS for {hours:.1f}h, +{recovery} rest, {old_fatigue} → {self.survival.fatigue}")
             
         else:
-            # Activity DECREASES fatigue (gets more tired) - HIGH fatigue = well rested
+            # Activity DECREASES fatigue (gets more tired) - LOW fatigue = exhausted
             activity_rates = {
-                "normal": -10,     # -10 points per hour (mild tiredness)
-                "active": -20,     # -20 points per hour (moderate tiredness)
-                "strenuous": -40   # -40 points per hour (high tiredness)
+                "normal": 10,      # 10 points per hour (mild tiredness)
+                "active": 20,      # 20 points per hour (moderate tiredness)
+                "strenuous": 40    # 40 points per hour (high tiredness)
             }
             
-            rate = activity_rates.get(activity, -10)
-            fatigue_change = int(rate * hours)
-            self.survival.fatigue = max(0, min(1000, self.survival.fatigue + fatigue_change))
-            change_desc = f"+{fatigue_change}" if fatigue_change > 0 else str(fatigue_change)
-            print(f"  Fatigue: {activity.upper()} for {hours:.1f}h, {change_desc} fatigue, {old_fatigue} → {self.survival.fatigue}")
+            rate = activity_rates.get(activity, 10)
+            fatigue_loss = int(rate * hours)
+            self.survival.fatigue = max(0, self.survival.fatigue - fatigue_loss)
+            print(f"  Fatigue: {activity.upper()} for {hours:.1f}h, -{fatigue_loss} rest, {old_fatigue} → {self.survival.fatigue}")
     
     def _update_temperature_regulation(self, hours: float):
         """Update body temperature based on weather and clothing"""
@@ -430,73 +440,36 @@ class PlayerState:
             # Debug output to show wetness change
             if self.survival.wetness > old_wetness:
                 wetness_level = self.survival.get_wetness_level()
-                print(f"🌧️ You are getting wet from the {new_weather.precipitation_type}! Wetness: {old_wetness} → {self.survival.wetness} ({wetness_level.name})")
+                precip_type = getattr(new_weather, 'precipitation_type', 'precipitation')
+                print(f"🌧️ You are getting wet from the {precip_type}! Wetness: {old_wetness} → {self.survival.wetness} ({wetness_level.name})")
         
         # Update health effects immediately to reflect new wetness
         self._update_health_effects()
 
     def _update_health_effects(self):
-        """Update health effects based on survival status"""
-        # Clear old survival-related status effects
-        self.status_effects = [effect for effect in self.status_effects 
-                             if not effect.startswith(('Hungry', 'Thirsty', 'Tired', 'Cold', 'Hot', 'Wet'))]
-        
-        # Add current status effects
-        hunger_level = self.survival.get_hunger_level()
-        if hunger_level == SurvivalLevel.CRITICAL:
-            self.status_effects.append("Starving")
-        elif hunger_level == SurvivalLevel.BAD:
-            self.status_effects.append("Very Hungry")
-        elif hunger_level == SurvivalLevel.POOR:
-            self.status_effects.append("Hungry")
-        
-        thirst_level = self.survival.get_thirst_level()
-        if thirst_level == SurvivalLevel.CRITICAL:
-            self.status_effects.append("Severely Dehydrated")
-        elif thirst_level == SurvivalLevel.BAD:
-            self.status_effects.append("Dehydrated")
-        elif thirst_level == SurvivalLevel.POOR:
-            self.status_effects.append("Thirsty")
-        
-        fatigue_level = self.survival.get_fatigue_level()
-        if fatigue_level == SurvivalLevel.CRITICAL:
-            self.status_effects.append("Exhausted")
-        elif fatigue_level == SurvivalLevel.BAD:
-            self.status_effects.append("Very Tired")
-        elif fatigue_level == SurvivalLevel.POOR:
-            self.status_effects.append("Tired")
-        
-        temp_status = self.survival.get_temperature_status()
-        if temp_status == TemperatureStatus.FREEZING:
-            self.status_effects.append("Freezing")
-        elif temp_status == TemperatureStatus.VERY_COLD:
-            self.status_effects.append("Very Cold")
-        elif temp_status == TemperatureStatus.COLD:
-            self.status_effects.append("Cold")
-        elif temp_status == TemperatureStatus.VERY_HOT:
-            self.status_effects.append("Very Hot")
-        elif temp_status == TemperatureStatus.OVERHEATING:
-            self.status_effects.append("Overheating")
-        
-        wetness_level = self.survival.get_wetness_level()
-        if wetness_level == WetnessLevel.DRENCHED:
-            self.status_effects.append("Drenched")
-        elif wetness_level == WetnessLevel.SOAKED:
-            self.status_effects.append("Soaked")
-        elif wetness_level == WetnessLevel.WET:
-            self.status_effects.append("Wet")
-        
-        # Health risks
-        if self.survival.hypothermia_risk > 70:
-            self.status_effects.append("Hypothermia Risk")
-        if self.survival.hyperthermia_risk > 70:
-            self.status_effects.append("Heat Stroke Risk")
+        """Update health effects - now handled by conditions system"""
+        # The conditions system now handles all status effects
+        # This method is kept for compatibility but does nothing
+        pass
     
     def _update_status_effects(self):
         """Update temporary status effects and modifiers"""
+        # Update conditions from conditions.json
+        try:
+            # Try different import paths for conditions
+            try:
+                from .conditions import get_conditions_manager
+            except ImportError:
+                from conditions import get_conditions_manager
+            
+            conditions_manager = get_conditions_manager()
+            self.active_conditions = conditions_manager.evaluate_conditions(self)
+        except Exception as e:
+            print(f"Error evaluating conditions: {e}")
+            self.active_conditions = []
+        
         # Clear expired temporary modifiers
         # (This would be expanded with actual duration tracking)
-        pass
     
     def eat_food(self, nutrition_value: int):
         """Consume food to reduce hunger"""
@@ -533,10 +506,10 @@ Fatigue: {fatigue_level.name.title()} ({self.survival.fatigue}/1000)
 Temperature: {temp_status.name.replace('_', ' ').title()}
 Wetness: {wetness_level.name.title()}"""
         
-        if self.status_effects:
-            summary += f"\n\nstatus effects:\n"
-            for effect in self.status_effects:
-                summary += f"• {effect}\n"
+        if self.active_conditions:
+            summary += f"\n\nactive conditions:\n"
+            for condition in self.active_conditions:
+                summary += f"• {condition}\n"
         
         return summary
     
@@ -619,8 +592,28 @@ def test_player_state():
     # Test 2: Time advancement and survival changes
     print("\n2. Testing time advancement:")
     
-    # Create some weather
-    test_weather = WeatherState(45.0, 15, "NW", 30, "rain", 70, 1000, 0.0, False, 0.0)
+    # Create some weather - use stub if real WeatherState not available
+    try:
+        # Try to import and use the real WeatherState
+        from fantasy_rpg.world.weather_core import WeatherState as RealWeatherState
+        test_weather = RealWeatherState(
+            temperature=45.0,
+            wind_speed=15,
+            wind_direction="NW",
+            precipitation=30,
+            precipitation_type="rain",
+            cloud_cover=70,
+            visibility=1000,
+            feels_like=0.0,  # Will be calculated in __post_init__
+            is_storm=False,  # Will be calculated in __post_init__
+            lightning_risk=0.0  # Will be calculated in __post_init__
+        )
+    except ImportError:
+        # Use simple stub weather
+        test_weather = WeatherState()
+        test_weather.temperature = 45.0
+        test_weather.precipitation = 30
+        test_weather.wind_speed = 15
     player.update_weather(test_weather)
     
     print("Advancing 4 hours of normal activity...")
@@ -667,7 +660,25 @@ def test_player_state():
     print("\n6. Testing weather effects:")
     
     # Cold, wet weather
-    cold_weather = WeatherState(25.0, 25, "N", 80, "snow", 100, 200, 0.0, False, 0.0)
+    try:
+        from fantasy_rpg.world.weather_core import WeatherState as RealWeatherState
+        cold_weather = RealWeatherState(
+            temperature=25.0,
+            wind_speed=25,
+            wind_direction="N",
+            precipitation=80,
+            precipitation_type="snow",
+            cloud_cover=100,
+            visibility=200,
+            feels_like=0.0,
+            is_storm=False,
+            lightning_risk=0.0
+        )
+    except ImportError:
+        cold_weather = WeatherState()
+        cold_weather.temperature = 25.0
+        cold_weather.precipitation = 80
+        cold_weather.wind_speed = 25
     player.update_weather(cold_weather)
     
     print("Experiencing cold, snowy weather for 6 hours...")
@@ -681,15 +692,15 @@ def test_player_state():
     print(f"Temperature status: {player.survival.get_temperature_status().name}")
     print(f"Hypothermia risk: {player.survival.hypothermia_risk}%")
     
-    # Test 7: Status effects
-    print("\n7. Testing status effects:")
+    # Test 7: Active conditions
+    print("\n7. Testing active conditions:")
     
-    if player.status_effects:
-        print("Current status effects:")
-        for effect in player.status_effects:
-            print(f"  • {effect}")
+    if player.active_conditions:
+        print("Current active conditions:")
+        for condition in player.active_conditions:
+            print(f"  • {condition}")
     else:
-        print("No status effects")
+        print("No active conditions")
     
     # Test 8: Survival summary
     print("\n8. Testing survival summary:")
@@ -715,9 +726,56 @@ def test_player_state():
     print(f"  Temperature: {player.survival.get_temperature_status().name}")
     print(f"  Wetness: {player.survival.get_wetness_level().name}")
     
-    print("\nCritical status effects:")
-    for effect in player.status_effects:
-        print(f"  • {effect}")
+    print("\nCritical conditions:")
+    for condition in player.active_conditions:
+        print(f"  • {condition}")
+    
+    # Test 10: Shelter system
+    print("\n10. Testing shelter system:")
+    
+    # Test no shelter
+    print("No shelter:")
+    print(f"  Current shelter: {player.current_shelter}")
+    
+    # Test minimal shelter
+    print("\nEntering minimal shelter (natural overhang):")
+    player.current_shelter = {
+        "type": "natural_overhang",
+        "quality": "minimal",
+        "condition": "Natural Shelter"
+    }
+    player._update_status_effects()  # Trigger condition evaluation
+    print(f"  Current shelter: {player.current_shelter}")
+    print(f"  Active conditions: {player.active_conditions}")
+    
+    # Test good shelter
+    print("\nEntering good shelter (structure interior):")
+    player.current_shelter = {
+        "type": "structure_interior", 
+        "quality": "good",
+        "condition": "Good Shelter"
+    }
+    player._update_status_effects()  # Trigger condition evaluation
+    print(f"  Current shelter: {player.current_shelter}")
+    print(f"  Active conditions: {player.active_conditions}")
+    
+    # Test excellent shelter
+    print("\nEntering excellent shelter (crystal cavern):")
+    player.current_shelter = {
+        "type": "cave_entrance",
+        "quality": "excellent", 
+        "condition": "Excellent Shelter"
+    }
+    player._update_status_effects()  # Trigger condition evaluation
+    print(f"  Current shelter: {player.current_shelter}")
+    print(f"  Active conditions: {player.active_conditions}")
+    
+    # Test exiting shelter
+    print("\nExiting shelter:")
+    player.current_shelter = None
+    player._update_status_effects()  # Trigger condition evaluation
+    print(f"  Current shelter: {player.current_shelter}")
+    print(f"  Active conditions: {player.active_conditions}")
     
     print("\n=== Player state survival system testing complete! ===")
 

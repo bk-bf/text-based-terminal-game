@@ -511,9 +511,17 @@ class LocationGenerator:
         data = spawn_item["data"]
         
         if item_class == GameObject:
+            # Handle name as either string or list of strings
+            name_data = data.get("name", item_id.replace("_", " ").title())
+            if isinstance(name_data, list):
+                # Randomly select one name from the list
+                selected_name = self.rng.choice(name_data)
+            else:
+                selected_name = name_data
+            
             obj = GameObject(
                 id=item_id,
-                name=data.get("name", item_id.replace("_", " ").title()),
+                name=selected_name,
                 description=data.get("description", ""),
                 interactive=data.get("interactive", True),
                 properties=data.get("properties", {})
@@ -523,9 +531,17 @@ class LocationGenerator:
                 obj.item_drops = self._generate_item_drops(data["item_drops"])
             return obj
         elif item_class == GameEntity:
+            # Handle name as either string or list of strings
+            name_data = data.get("name", item_id.replace("_", " ").title())
+            if isinstance(name_data, list):
+                # Randomly select one name from the list
+                selected_name = self.rng.choice(name_data)
+            else:
+                selected_name = name_data
+                
             entity = GameEntity(
                 id=item_id,
-                name=data.get("name", item_id.replace("_", " ").title()),
+                name=selected_name,
                 description=data.get("description", ""),
                 hostile=data.get("hostile", False),
                 stats=data.get("stats", {})

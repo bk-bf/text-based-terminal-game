@@ -187,7 +187,7 @@
                 "rare",
                 "valuable"
             ],
-            "spawn_weight": 100,
+            "spawn_weight": 60,
             "properties": {
                 "can_unlock": true,
                 "can_search": true,
@@ -195,9 +195,7 @@
                 "dc_lockpick": 15,
                 "search_dc": 14,
                 "examine_dc": 10,
-                "contains_treasure": true,
-                "trapped": true,
-                "trap_dc": 18
+                "contains_treasure": true
             },
             "item_drops": {
                 "pools": [
@@ -209,6 +207,47 @@
                 "min_drops": 2,
                 "max_drops": 5,
                 "drop_chance": 90
+            }
+        },
+        "trapped_treasure_chest": {
+            "name": "Treasure Chest",
+            "description": "An ornate chest bound with iron and secured with complex locks.",
+            "interactive": true,
+            "pools": [
+                "treasure",
+                "rare",
+                "valuable"
+            ],
+            "spawn_weight": 40,
+            "properties": {
+                "can_unlock": true,
+                "can_search": true,
+                "can_examine": true,
+                "can_disarm": true,
+                "dc_lockpick": 15,
+                "search_dc": 14,
+                "examine_dc": 10,
+                "contains_treasure": true,
+                "trapped": true,
+                "trap_dc": 18,
+                "disarm_dc": 16,
+                "hidden_nature": true,
+                "investigation_dc": 16,
+                "true_name": "Trapped Treasure Chest",
+                "true_description": "An ornate chest bound with iron and secured with complex locks. Upon closer inspection, you notice subtle scratches around the lock mechanism and a faint metallic gleam that suggests hidden mechanisms.",
+                "true_examination_text": "The lock mechanism shows signs of tampering, and there are tiny holes in the metalwork that could conceal poison needles or other traps.",
+                "disarm_transforms_to": "treasure_chest"
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "valuable",
+                    "currency",
+                    "magical"
+                ],
+                "min_drops": 3,
+                "max_drops": 6,
+                "drop_chance": 95
             }
         },
         "berry_bush": {
@@ -255,7 +294,6 @@
             ],
             "spawn_weight": 80,
             "properties": {
-                "can_sit": true,
                 "provides_cover": "partial",
                 "can_climb": true,
                 "blocks_movement": false,
@@ -266,8 +304,25 @@
             }
         },
         "fireplace": {
-            "name": "Stone Fireplace",
-            "description": "A well-built stone fireplace with a chimney. Cold ashes remain from old fires.",
+            "name": [
+                "Stone Fireplace",
+                "Brick Fireplace",
+                "Grand Fireplace",
+                "Rustic Hearth",
+                "Kitchen Hearth",
+                "Cottage Fireplace",
+                "Manor Fireplace",
+                "Fieldstone Hearth",
+                "Tavern Hearth",
+                "Blackened Fireplace",
+                "Ornate Fireplace",
+                "Simple Hearth",
+                "Cracked Fireplace",
+                "Ancient Hearth",
+                "Cooking Fireplace",
+                "Peasant's Hearth"
+            ],
+            "description": "A well-built fireplace with a chimney. Cold ashes remain from old fires.",
             "interactive": true,
             "pools": [
                 "structure",
@@ -277,9 +332,65 @@
             "spawn_weight": 100,
             "properties": {
                 "can_light_fire": true,
+                "can_search": true,
+                "can_examine": true,
+                "fuel_required": true,
+                "search_dc": 10,
+                "examine_dc": 8,
+                "transforms_to": "lit_fireplace",
+                "generates_items": true,
+                "generated_item_id": "firewood",
+                "generated_quantity": 1
+            },
+            "item_drops": {
+                "pools": [
+                    "fuel",
+                    "wood",
+                    "materials"
+                ],
+                "min_drops": 0,
+                "max_drops": 2,
+                "drop_chance": 60
+            }
+        },
+        "lit_fireplace": {
+            "name": [
+                "Lit Stone Fireplace",
+                "Blazing Brick Fireplace",
+                "Roaring Grand Fireplace",
+                "Crackling Rustic Hearth",
+                "Glowing Kitchen Hearth",
+                "Burning Great Hall Fireplace",
+                "Warm Cottage Fireplace",
+                "Flickering Manor Fireplace",
+                "Bright Fieldstone Hearth",
+                "Flaming Castle Fireplace",
+                "Cozy Tavern Hearth",
+                "Glowing Blackened Fireplace",
+                "Radiant Ornate Fireplace",
+                "Cheerful Simple Hearth",
+                "Warming Cracked Fireplace",
+                "Blazing Ancient Hearth",
+                "Hot Cooking Fireplace",
+                "Comforting Warming Hearth",
+                "Elegant Noble's Fireplace",
+                "Humble Peasant's Hearth"
+            ],
+            "description": "A well-built fireplace with a cheerful fire crackling within. The flames dance warmly, casting flickering light and radiating comfortable heat.",
+            "interactive": true,
+            "pools": [
+                "structure",
+                "shelter",
+                "warmth"
+            ],
+            "spawn_weight": 0,
+            "properties": {
                 "provides_warmth": true,
                 "provides_light": true,
-                "fuel_required": true
+                "can_examine": true,
+                "examination_text": "The fire burns steadily, consuming the fuel and providing both warmth and light. The stone chimney draws the smoke upward efficiently.",
+                "fuel_value": -1,
+                "burns_out_after": 4
             }
         },
         "bed": {
@@ -370,7 +481,6 @@
             ],
             "spawn_weight": 100,
             "properties": {
-                "can_take_wood": true,
                 "can_search": true,
                 "can_examine": true,
                 "fuel_value": 10,
@@ -410,7 +520,28 @@
             }
         },
         "old_well": {
-            "name": "Old Well",
+            "name": [
+                "Old Well",
+                "Stone Well",
+                "Village Well",
+                "Moss-covered Well",
+                "Ancient Well",
+                "Brick-lined Well",
+                "Deep Well",
+                "Weathered Well",
+                "Community Well",
+                "Abandoned Well",
+                "Crumbling Well",
+                "Overgrown Well",
+                "Hand-dug Well",
+                "Medieval Well",
+                "Forgotten Well",
+                "Rustic Well",
+                "Farm Well",
+                "Courtyard Well",
+                "Sacred Well",
+                "Wishing Well"
+            ],
             "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
             "interactive": true,
             "pools": [
@@ -424,7 +555,6 @@
                 "can_search": true,
                 "can_examine": true,
                 "water_quality": "good",
-                "requires_bucket": false,
                 "depth": "deep",
                 "search_dc": 11,
                 "examine_dc": 9
@@ -440,7 +570,27 @@
             }
         },
         "old_furniture": {
-            "name": "Old Furniture",
+            "name": [
+                "Dusty Armchair",
+                "Weathered Bookshelf",
+                "Broken Wardrobe",
+                "Rickety Dining Table",
+                "Moth-eaten Sofa",
+                "Cracked Dresser",
+                "Tilted Writing Desk",
+                "Sagging Bed Frame",
+                "Splintered Chest of Drawers",
+                "Faded Rocking Chair",
+                "Collapsed Bookcase",
+                "Rotting Kitchen Table",
+                "Torn Upholstered Chair",
+                "Warped Cabinet",
+                "Moldy Ottoman",
+                "Creaking Floorboards",
+                "Damaged Sideboard",
+                "Rusted Bed Springs",
+                "Peeling Vanity Table"
+            ],
             "description": "Various pieces of household furniture covered in dust and cobwebs.",
             "interactive": true,
             "pools": [
@@ -515,9 +665,78 @@
             "spawn_weight": 40,
             "properties": {
                 "provides_water": true,
+                "hidden": true,
                 "water_quality": "excellent",
                 "depth": "shallow",
                 "temperature": "cool"
+            }
+        },
+        "suspicious_barrel": {
+            "name": "Old Barrel",
+            "description": "A weathered wooden barrel that has seen better days.",
+            "interactive": true,
+            "pools": [
+                "abandoned",
+                "storage",
+                "common"
+            ],
+            "spawn_weight": 30,
+            "properties": {
+                "can_search": true,
+                "can_examine": true,
+                "search_dc": 12,
+                "examine_dc": 8,
+                "hidden_nature": true,
+                "investigation_dc": 14,
+                "true_name": "Smuggler's Cache",
+                "true_description": "A weathered wooden barrel that has been cleverly modified with a false bottom. Faint scratches around the rim suggest it has been opened frequently.",
+                "true_examination_text": "The barrel's bottom sounds hollow when tapped, and there are tool marks around the rim indicating it has been modified for concealment.",
+                "contains_treasure": true
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "currency",
+                    "criminal",
+                    "valuable"
+                ],
+                "min_drops": 2,
+                "max_drops": 4,
+                "drop_chance": 85
+            }
+        },
+        "ancient_statue": {
+            "name": "Weathered Statue",
+            "description": "An old stone statue worn smooth by time and weather.",
+            "interactive": true,
+            "pools": [
+                "ruins",
+                "ancient",
+                "religious"
+            ],
+            "spawn_weight": 25,
+            "properties": {
+                "can_examine": true,
+                "examine_dc": 10,
+                "hidden_nature": true,
+                "investigation_dc": 18,
+                "true_name": "Sacred Guardian Statue",
+                "true_description": "An ancient stone statue of a guardian deity, its eyes inlaid with precious gems that still gleam despite the centuries. Intricate runes are carved into its base.",
+                "true_examination_text": "The statue's eyes are actually valuable gems, and the runes at its base glow faintly with residual magic. This is clearly a sacred artifact of great historical importance.",
+                "historical_significance": true,
+                "contains_treasure": true,
+                "magical_lock": true
+            },
+            "item_drops": {
+                "pools": [
+                    "treasure",
+                    "magical",
+                    "very_rare",
+                    "crystals"
+                ],
+                "min_drops": 1,
+                "max_drops": 2,
+                "drop_chance": 70
             }
         }
     }

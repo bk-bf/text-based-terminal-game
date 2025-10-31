@@ -162,7 +162,7 @@ class GameEngine:
         # For now, we'll work with the existing hex_data system
         
         # Initialize player state and time system using real classes
-        player_state = PlayerState(character=character)
+        player_state = PlayerState(character=character, game_engine=self)
         self.time_system = TimeSystem(player_state)
         
         # Choose starting hex coordinates (center of world)
@@ -254,6 +254,18 @@ class GameEngine:
         # Get weather description
         weather_desc = gs.current_weather.get_description()
         
+        # Get active conditions
+        try:
+            from .conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            active_conditions = conditions_manager.evaluate_conditions(gs.player_state)
+            # Format conditions for display
+            formatted_conditions = [conditions_manager.format_condition_for_display(cond) for cond in active_conditions]
+        except Exception as e:
+            print(f"Warning: Could not evaluate conditions: {e}")
+            active_conditions = []
+            formatted_conditions = []
+        
         # Get location info
         location_info = "Overworld"
         if gs.world_position.current_location_id:
@@ -284,6 +296,10 @@ class GameEngine:
                 "date": gs.game_time.get_date_string()
             },
             "weather": weather_desc,
+            "conditions": {
+                "active": active_conditions,
+                "formatted": formatted_conditions
+            },
             "game_info": {
                 "world_seed": gs.world_seed,
                 "play_time": f"{gs.play_time_minutes // 60}h {gs.play_time_minutes % 60}m"
@@ -530,6 +546,9 @@ class GameEngine:
                 else:
                     entry_message += f"\n\nYou notice {', '.join(object_names)}."
         
+        # Check for shelter conditions when entering location
+        self._check_and_apply_shelter_conditions(location_data)
+        
         # Notify UI of location entry
         self._notify_ui_state_change("location_entry")
         
@@ -564,6 +583,9 @@ class GameEngine:
         
         # Get current hex description for context
         hex_name = gs.world_position.hex_data.get("name", "the area")
+        
+        # Remove shelter conditions when exiting location
+        self._remove_shelter_conditions()
         
         # Notify UI of location exit
         self._notify_ui_state_change("location_exit")
@@ -2006,7 +2028,7 @@ class GameEngine:
         """Deserialize player state from dictionary"""
         from game.player_state import PlayerState
         
-        player_state = PlayerState(character=character)
+        player_state = PlayerState(character=character, game_engine=self)
         
         # Restore survival stats
         survival_data = data["survival"]
@@ -2179,6 +2201,53 @@ class GameEngine:
             if not hasattr(self.world_coordinator, 'persistent_locations'):
                 self.world_coordinator.persistent_locations = {}
             self.world_coordinator.persistent_locations.update(data["persistent_locations"])
+    
+    def _check_and_apply_shelter_conditions(self, location_data: Dict):
+        """Check for shelter conditions when entering a location and apply them"""
+        if not location_data:
+            return
+        
+        # Get shelter information from location
+        shelter_type = location_data.get("shelter_type")
+        shelter_quality = location_data.get("shelter_quality")
+        
+        if not shelter_type or not shelter_quality:
+            return
+        
+        # Map shelter quality to condition names
+        quality_to_condition = {
+            "minimal": "Natural Shelter",
+            "basic": "Natural Shelter", 
+            "good": "Good Shelter",
+            "excellent": "Excellent Shelter"
+        }
+        
+        condition_name = quality_to_condition.get(shelter_quality)
+        if not condition_name:
+            return
+        
+        # Apply the shelter condition by updating the player state
+        # The conditions system will automatically detect this when evaluating conditions
+        gs = self.game_state
+        if hasattr(gs.player_state, 'current_shelter'):
+            gs.player_state.current_shelter = {
+                "type": shelter_type,
+                "quality": shelter_quality,
+                "condition": condition_name
+            }
+        else:
+            # Add shelter tracking to player state if it doesn't exist
+            gs.player_state.current_shelter = {
+                "type": shelter_type,
+                "quality": shelter_quality,
+                "condition": condition_name
+            }
+    
+    def _remove_shelter_conditions(self):
+        """Remove shelter conditions when exiting a location"""
+        gs = self.game_state
+        if hasattr(gs.player_state, 'current_shelter'):
+            gs.player_state.current_shelter = None
 
 
 def test_game_engine():

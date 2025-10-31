@@ -644,7 +644,6 @@ class FantasyRPGApp(App):
             # Help text
             action_logger.log_message("Type 'help' for available commands.")
             action_logger.log_message("Type 'look' to examine your surroundings.")
-            action_logger.log_message("Type 'survival' to check your condition.")
             action_logger.log_separator()
             
         except Exception as e:
@@ -806,7 +805,6 @@ class FantasyRPGApp(App):
             # Help text
             action_logger.log_message("Type 'help' for available commands.")
             action_logger.log_message("Type 'look' to examine your surroundings.")
-            action_logger.log_message("Type 'survival' to check your condition.")
             action_logger.log_separator()
             
         except Exception as e:
