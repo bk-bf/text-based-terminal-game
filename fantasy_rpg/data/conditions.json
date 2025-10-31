@@ -472,7 +472,7 @@
         },
         "Natural Shelter": {
             "description": "Protected by natural shelter, reducing exposure to harsh weather",
-            "trigger": "has_natural_shelter_in_location",
+            "trigger": "provides_some_shelter",
             "hierarchy": "shelter",
             "priority": 1,
             "effects": {
@@ -503,7 +503,7 @@
         },
         "Good Shelter": {
             "description": "Well-protected by quality shelter, significantly reducing weather exposure",
-            "trigger": "has_good_shelter_in_location",
+            "trigger": "provides_good_shelter",
             "hierarchy": "shelter",
             "priority": 2,
             "effects": {
@@ -538,7 +538,7 @@
         },
         "Excellent Shelter": {
             "description": "Completely protected by excellent shelter, immune to most weather effects",
-            "trigger": "has_excellent_shelter_in_location",
+            "trigger": "provides_excellent_shelter",
             "hierarchy": "shelter",
             "priority": 3,
             "effects": {

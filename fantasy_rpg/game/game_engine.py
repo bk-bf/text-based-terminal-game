@@ -154,8 +154,34 @@ class GameEngine:
         if world_seed is None:
             world_seed = random.randint(1, 1000000)
         
+        # Debug logging for world generation
+        try:
+            from ..actions.action_logger import get_action_logger
+            action_logger = get_action_logger()
+            action_logger.log_system_message(f"🔧 GameEngine.new_game() called with seed {world_seed}")
+        except ImportError:
+            print(f"DEBUG: GameEngine.new_game() called with seed {world_seed}")
+        
+        # Clear any existing cached data to ensure fresh generation
+        if hasattr(self, 'world_coordinator'):
+            try:
+                action_logger.log_system_message("🗑️ Clearing existing WorldCoordinator")
+            except:
+                print("DEBUG: Clearing existing WorldCoordinator")
+            del self.world_coordinator
+        
         # Initialize world systems using WorldCoordinator (proper flow)
+        try:
+            action_logger.log_system_message("🏗️ Creating new WorldCoordinator...")
+        except:
+            print("DEBUG: Creating new WorldCoordinator...")
+        
         self.world_coordinator = WorldCoordinator(world_size=self.world_size, seed=world_seed)
+        
+        try:
+            action_logger.log_system_message("✅ WorldCoordinator created successfully")
+        except:
+            print("DEBUG: WorldCoordinator created successfully")
         
         # Generate the complete world through WorldCoordinator
         # Note: The WorldCoordinator should have a generate_world method that returns a World object
@@ -221,6 +247,9 @@ class GameEngine:
             current_weather=current_weather,
             world_seed=world_seed
         )
+        
+        # Clear any persistent location data to ensure fresh generation
+        self.game_state.persistent_locations = {}
         
         self.is_initialized = True
         
@@ -546,8 +575,10 @@ class GameEngine:
                 else:
                     entry_message += f"\n\nYou notice {', '.join(object_names)}."
         
-        # Check for shelter conditions when entering location
-        self._check_and_apply_shelter_conditions(location_data)
+        # Shelter conditions now work automatically like "Lit Fire" - no manual setup needed
+        
+        # Debug location info
+        self._debug_location_info(location_data)
         
         # Notify UI of location entry
         self._notify_ui_state_change("location_entry")
@@ -584,8 +615,7 @@ class GameEngine:
         # Get current hex description for context
         hex_name = gs.world_position.hex_data.get("name", "the area")
         
-        # Remove shelter conditions when exiting location
-        self._remove_shelter_conditions()
+        # Shelter conditions now work automatically like "Lit Fire" - no manual removal needed
         
         # Notify UI of location exit
         self._notify_ui_state_change("location_exit")
@@ -659,6 +689,9 @@ class GameEngine:
         gs.world_position.current_location_id = target_location.get("id")
         gs.world_position.current_location_data = target_location_data
         gs.world_position.current_area_id = target_location_data.get("starting_area", "entrance")
+        
+        # Debug location info for location-to-location movement
+        self._debug_location_info(target_location_data)
         
         # Build movement message
         target_name = target_location.get("name", "Unknown Location")
@@ -2248,6 +2281,44 @@ class GameEngine:
         gs = self.game_state
         if hasattr(gs.player_state, 'current_shelter'):
             gs.player_state.current_shelter = None
+    
+    def _debug_location_info(self, location_data: Dict):
+        """Debug location flags and properties"""
+        from .conditions import DEBUG_SHELTER
+        if not DEBUG_SHELTER or not location_data:
+            return
+            
+        try:
+            from ..actions.action_logger import get_action_logger
+            action_logger = get_action_logger()
+            
+            location_name = location_data.get("name", "Unknown Location")
+            
+            # Collect ALL flags that start with "provides_"
+            all_flags = []
+            for key, value in location_data.items():
+                if key.startswith("provides_") and value:
+                    all_flags.append(key.replace("provides_", ""))
+            
+            # Also check for other relevant flags
+            other_flags = []
+            for flag in ["exit_flag", "spawn_weight", "size", "terrain", "type"]:
+                if flag in location_data:
+                    other_flags.append(f"{flag}:{location_data[flag]}")
+            
+            debug_msg = f"🏠 {location_name}"
+            if all_flags:
+                debug_msg += f" | Provides: {', '.join(all_flags)}"
+            else:
+                debug_msg += " | No provides_ flags"
+            
+            if other_flags:
+                debug_msg += f" | {', '.join(other_flags[:3])}"  # Show first 3 to avoid spam
+                
+            action_logger.log_message(debug_msg)
+                
+        except ImportError:
+            pass
 
 
 def test_game_engine():

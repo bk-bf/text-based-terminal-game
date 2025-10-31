@@ -88,6 +88,12 @@ class TimeSystem:
             "Consult your map", weather_affected=False
         )
         
+        # Wait action (variable duration, no special effects)
+        activities["wait"] = ActivityDefinition(
+            "wait", ActivityType.MEDIUM, 1.0, "normal",
+            "Wait and pass time", weather_affected=True
+        )
+        
         # Quick actions (15 minutes)
         activities["eat"] = ActivityDefinition(
             "eat", ActivityType.QUICK, 0.25, "normal",

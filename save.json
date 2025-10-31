@@ -1,9 +1,9 @@
 {
   "version": "1.0",
-  "saved_at": "2025-10-31T19:42:48.227465",
+  "saved_at": "2025-10-31T21:50:45.422234",
   "game_info": {
     "world_seed": 12345,
-    "created_at": "2025-10-31T19:36:23.000780",
+    "created_at": "2025-10-31T21:50:42.552463",
     "play_time_minutes": 0
   },
   "character": {
@@ -83,20 +83,20 @@
   },
   "player_state": {
     "survival": {
-      "hunger": 696,
-      "thirst": 477,
-      "fatigue": 649,
-      "body_temperature": 205,
+      "hunger": 500,
+      "thirst": 500,
+      "fatigue": 500,
+      "body_temperature": 500,
       "warmth": 500,
-      "wetness": 45,
+      "wetness": 10,
       "wind_chill": 0,
-      "hypothermia_risk": 64,
+      "hypothermia_risk": 0,
       "hyperthermia_risk": 0,
       "dehydration_effects": 0,
       "starvation_effects": 0
     },
     "game_time": {
-      "game_hour": 17.508000000000003,
+      "game_hour": 12.0,
       "game_day": 1,
       "game_season": "spring"
     },
@@ -105,10 +105,10 @@
       "current_location": "Forest 1010"
     },
     "activity": {
-      "last_meal_hours": 0.792,
-      "last_drink_hours": 5.507999999999999,
-      "last_sleep_hours": 5.507999999999999,
-      "activity_level": "resting"
+      "last_meal_hours": 0,
+      "last_drink_hours": 0,
+      "last_sleep_hours": 0,
+      "activity_level": "normal"
     },
     "status_effects": [],
     "temporary_modifiers": {}
@@ -1296,245 +1296,9 @@
         "starting_area": "area_1"
       }
     ],
-    "current_location_id": "farmyard_10_10_0",
-    "current_location_data": {
-      "id": "farmyard_10_10_0",
-      "name": "Farmyard",
-      "type": "wilderness",
-      "description": "Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.",
-      "exit_flag": true,
-      "size": "medium",
-      "terrain": "open",
-      "areas": {
-        "area_0": {
-          "id": "area_0",
-          "name": "Farmyard",
-          "description": "Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.",
-          "size": "AreaSize.LARGE",
-          "terrain": "TerrainType.OPEN",
-          "exits": {},
-          "objects": [
-            {
-              "id": "old_well",
-              "name": "Overgrown Well",
-              "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
-              "interactive": true,
-              "properties": {
-                "provides_water": true,
-                "can_search": true,
-                "can_examine": true,
-                "water_quality": "good",
-                "depth": "deep",
-                "search_dc": 11,
-                "examine_dc": 9
-              },
-              "item_drops": []
-            },
-            {
-              "id": "old_furniture",
-              "name": "Peeling Vanity Table",
-              "description": "Various pieces of household furniture covered in dust and cobwebs.",
-              "interactive": true,
-              "properties": {
-                "can_search": true,
-                "can_examine": true,
-                "can_chop_wood": true,
-                "search_dc": 12,
-                "examine_dc": 8,
-                "chop_dc": 13,
-                "may_contain_items": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "broken_fence",
-              "name": "Broken Fence",
-              "description": "Sections of wooden fencing that have fallen into disrepair.",
-              "interactive": false,
-              "properties": {
-                "blocks_movement": false,
-                "provides_cover": "partial",
-                "can_repair": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "fireplace",
-              "name": "Rustic Hearth",
-              "description": "A well-built fireplace with a chimney. Cold ashes remain from old fires.",
-              "interactive": true,
-              "properties": {
-                "can_light_fire": true,
-                "can_search": true,
-                "can_examine": true,
-                "fuel_required": true,
-                "search_dc": 10,
-                "examine_dc": 8,
-                "transforms_to": "lit_fireplace",
-                "generates_items": true,
-                "generated_item_id": "firewood",
-                "generated_quantity": 1
-              },
-              "item_drops": [
-                {
-                  "id": "bat_guano",
-                  "name": "Bat Guano",
-                  "description": "Bat droppings, useful as fertilizer or alchemical component.",
-                  "value": 2,
-                  "weight": 0.5
-                }
-              ]
-            },
-            {
-              "id": "chopping_block",
-              "name": "Chopping Block",
-              "description": "A thick wooden stump used for splitting firewood. An axe is embedded in its surface.",
-              "interactive": true,
-              "properties": {
-                "can_chop_wood": true,
-                "tool_required": false,
-                "provides_axe": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "broken_fence",
-              "name": "Broken Fence",
-              "description": "Sections of wooden fencing that have fallen into disrepair.",
-              "interactive": false,
-              "properties": {
-                "blocks_movement": false,
-                "provides_cover": "partial",
-                "can_repair": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "table",
-              "name": "Wooden Table",
-              "description": "A sturdy wooden table scarred by years of use. Various items could be placed on it.",
-              "interactive": true,
-              "properties": {
-                "can_place_items": true,
-                "can_search": true,
-                "can_examine": true,
-                "can_chop_wood": true,
-                "storage_slots": 6,
-                "provides_work_surface": true,
-                "search_dc": 11,
-                "examine_dc": 9,
-                "chop_dc": 14
-              },
-              "item_drops": []
-            },
-            {
-              "id": "broken_fence",
-              "name": "Broken Fence",
-              "description": "Sections of wooden fencing that have fallen into disrepair.",
-              "interactive": false,
-              "properties": {
-                "blocks_movement": false,
-                "provides_cover": "partial",
-                "can_repair": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "suspicious_barrel",
-              "name": "Old Barrel",
-              "description": "A weathered wooden barrel that has seen better days.",
-              "interactive": true,
-              "properties": {
-                "can_search": true,
-                "can_examine": true,
-                "search_dc": 12,
-                "examine_dc": 8,
-                "hidden_nature": true,
-                "investigation_dc": 14,
-                "true_name": "Smuggler's Cache",
-                "true_description": "A weathered wooden barrel that has been cleverly modified with a false bottom. Faint scratches around the rim suggest it has been opened frequently.",
-                "true_examination_text": "The barrel's bottom sounds hollow when tapped, and there are tool marks around the rim indicating it has been modified for concealment.",
-                "contains_treasure": true
-              },
-              "item_drops": []
-            },
-            {
-              "id": "cave_pool",
-              "name": "Underground Pool",
-              "description": "A clear pool of water fed by underground springs. The water looks fresh and clean.",
-              "interactive": true,
-              "properties": {
-                "provides_water": true,
-                "hidden": true,
-                "water_quality": "excellent",
-                "depth": "shallow",
-                "temperature": "cool"
-              },
-              "item_drops": []
-            }
-          ],
-          "items": [],
-          "entities": [
-            {
-              "id": "wild_dog",
-              "name": "Wild Dog",
-              "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
-              "hostile": true,
-              "stats": {
-                "hp": 5,
-                "ac": 12,
-                "speed": 40,
-                "str": 10,
-                "dex": 14,
-                "con": 10,
-                "int": 3,
-                "wis": 12,
-                "cha": 6
-              },
-              "item_drops": []
-            },
-            {
-              "id": "wild_dog",
-              "name": "Wild Dog",
-              "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
-              "hostile": true,
-              "stats": {
-                "hp": 5,
-                "ac": 12,
-                "speed": 40,
-                "str": 10,
-                "dex": 14,
-                "con": 10,
-                "int": 3,
-                "wis": 12,
-                "cha": 6
-              },
-              "item_drops": []
-            },
-            {
-              "id": "wild_dog",
-              "name": "Wild Dog",
-              "description": "A feral dog that has reverted to its wild instincts. Its ribs show through matted fur.",
-              "hostile": true,
-              "stats": {
-                "hp": 5,
-                "ac": 12,
-                "speed": 40,
-                "str": 10,
-                "dex": 14,
-                "con": 10,
-                "int": 3,
-                "wis": 12,
-                "cha": 6
-              },
-              "item_drops": []
-            }
-          ]
-        }
-      },
-      "starting_area": "area_0"
-    },
-    "current_area_id": "area_0",
+    "current_location_id": null,
+    "current_location_data": null,
+    "current_area_id": "entrance",
     "coords": [
       10,
       10

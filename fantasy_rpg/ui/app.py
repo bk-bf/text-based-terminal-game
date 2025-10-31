@@ -580,8 +580,10 @@ class FantasyRPGApp(App):
                 test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
                 
                 action_logger.log_system_message("Starting new game...")
-                # Initialize game with test character using consistent seed
-                game_state = self.game_engine.new_game(test_character, world_seed=12345)
+                # Use random seed to ensure fresh world generation with latest data
+                import random
+                fresh_seed = random.randint(1, 1000000)
+                game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
             
             action_logger.log_system_message("Updating UI character...")
             # Update UI character reference
@@ -742,7 +744,11 @@ class FantasyRPGApp(App):
                 test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
                 
                 action_logger.log_system_message("Starting new game...")
-                game_state = self.game_engine.new_game(test_character, world_seed=12345)
+                # Use random seed to ensure fresh world generation with latest data
+                import random
+                fresh_seed = random.randint(1, 1000000)
+                action_logger.log_system_message(f"🌍 Generating world with seed: {fresh_seed}")
+                game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
             
             action_logger.log_system_message("Updating UI character...")
             # Update UI character reference

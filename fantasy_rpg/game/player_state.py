@@ -201,8 +201,7 @@ class PlayerState:
     temporary_modifiers: Dict[str, int] = field(default_factory=dict)
     active_conditions: List[str] = field(default_factory=list)  # Conditions from conditions.json
     
-    # Shelter tracking
-    current_shelter: Optional[Dict[str, str]] = None  # Current shelter information
+    # Shelter now works automatically via location flags (like "Lit Fire" system)
     
     def advance_time(self, hours: float, activity: str = "normal"):
         """

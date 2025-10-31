@@ -3,6 +3,10 @@ Fantasy RPG - Basic Action Handler
 
 Minimal action processing for only the features that actually work.
 Currently supports: inventory and character sheet.
+
+CRITICAL REQUIREMENT: All actions that pass time MUST use the time system's perform_activity() method
+to ensure condition effects (like damage from "Freezing") are properly applied during time passage.
+Never set time_passed without calling the time system!
 """
 
 from typing import Dict, Any, Optional, Tuple, List
@@ -249,6 +253,12 @@ Type any command to try it."""
                 success, message = self.game_engine.move_between_locations(direction)
                 
                 if success:
+                    # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                    if self.game_engine.time_system:
+                        time_result = self.game_engine.time_system.perform_activity("travel", duration_override=0.5)
+                        if not time_result.get("success", True):
+                            return ActionResult(False, time_result.get("message", "Movement interrupted."))
+                    
                     return ActionResult(
                         success=True,
                         message=message,
@@ -266,6 +276,12 @@ Type any command to try it."""
             success, message = self.game_engine.move_player(direction)
             
             if success:
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("travel", duration_override=2.0)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Movement interrupted."))
+                
                 return ActionResult(
                     success=True,
                     message=message,
@@ -326,6 +342,12 @@ Type any command to try it."""
             success, message = self.game_engine.enter_location()
             
             if success:
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.25)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Entry interrupted."))
+                
                 return ActionResult(
                     success=True,
                     message=message,
@@ -347,6 +369,12 @@ Type any command to try it."""
             success, message = self.game_engine.exit_location()
             
             if success:
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.25)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Exit interrupted."))
+                
                 return ActionResult(
                     success=True,
                     message=message,
@@ -536,6 +564,13 @@ Type any command to try it."""
                 return ActionResult(False, f"You don't see any '{object_name}' here.")
             
             success, message = self._handle_resource_gathering(target_object, "forage", "survival")
+            
+            # CRITICAL: Use time system to ensure condition effects are applied during time passage
+            if success and self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity("forage", duration_override=0.25)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Foraging interrupted."))
+            
             return ActionResult(success, message, time_passed=0.25)
         except Exception as e:
             return ActionResult(False, f"Failed to forage: {str(e)}")
@@ -556,6 +591,13 @@ Type any command to try it."""
                 return ActionResult(False, f"You don't see any '{object_name}' here.")
             
             success, message = self._handle_resource_gathering(target_object, "harvest", "nature")
+            
+            # CRITICAL: Use time system to ensure condition effects are applied during time passage
+            if success and self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity("forage", duration_override=0.25)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Harvesting interrupted."))
+            
             return ActionResult(success, message, time_passed=0.25)
         except Exception as e:
             return ActionResult(False, f"Failed to harvest: {str(e)}")
@@ -633,6 +675,12 @@ Type any command to try it."""
             elif water_quality == "poor":
                 message += "\nThe water tastes stale but still helps with thirst."
                 # Could add small negative effect or disease risk
+            
+            # CRITICAL: Use time system to ensure condition effects are applied during time passage
+            if self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity("drink", duration_override=0.1)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Drinking interrupted."))
             
             return ActionResult(
                 success=True,
@@ -721,6 +769,12 @@ Type any command to try it."""
                     success_items = self._add_items_to_inventory(items_generated)
                     if success_items:
                         message += f"\nInside you find: {', '.join(success_items)}"
+                
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("lockpick", duration_override=0.5)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Lockpicking interrupted."))
                 
                 return ActionResult(True, message, time_passed=0.5)
             else:
@@ -1576,6 +1630,12 @@ Type any command to try it."""
                 if success_items:
                     message += f"\nYou gather: {', '.join(success_items)}"
                 
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("craft_simple", duration_override=0.5)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Cutting interrupted."))
+                
                 return ActionResult(True, message, time_passed=0.5)
             else:
                 return ActionResult(False, f"You struggle to cut the {target_object.get('name')} but make no progress.")
@@ -1615,6 +1675,12 @@ Type any command to try it."""
                 if perception_success:
                     message += "\nYou spot something interesting from up here!"
                     # Could reveal hidden objects or provide area information
+                
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("explore", duration_override=0.25)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Climbing interrupted."))
                 
                 return ActionResult(True, message, time_passed=0.25)
             else:
@@ -1858,6 +1924,12 @@ Type any command to try it."""
                 if tool_required:
                     message += "\nThe repair work required some skill and effort."
                 
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("craft_simple", duration_override=1.0)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Repair interrupted."))
+                
                 return ActionResult(True, message, time_passed=1.0)
             else:
                 return ActionResult(False, f"You attempt to repair the {target_object.get('name')} but lack the skill or tools needed.")
@@ -1915,6 +1987,12 @@ Type any command to try it."""
                 else:
                     message = f"You successfully disarm the trap on the {target_object.get('name')}."
                 
+                # CRITICAL: Use time system to ensure condition effects are applied during time passage
+                if self.game_engine.time_system:
+                    time_result = self.game_engine.time_system.perform_activity("lockpick", duration_override=1.0)
+                    if not time_result.get("success", True):
+                        return ActionResult(False, time_result.get("message", "Disarming interrupted."))
+                
                 return ActionResult(True, message, time_passed=1.0)
             else:
                 # Failed disarm attempt - trigger trap
@@ -1938,49 +2016,49 @@ Type any command to try it."""
         
         duration_arg = args[0].lower()
         
-        # Map duration arguments to time system activities
+        # Map duration arguments to hours (pure time passing, no activity effects)
         duration_map = {
-            # Quick actions (15 minutes)
-            "quick": ("eat", 0.25, "resting"),
-            "15min": ("eat", 0.25, "resting"),
-            "15": ("eat", 0.25, "resting"),
+            # Quick wait (15 minutes)
+            "quick": 0.25,
+            "15min": 0.25,
+            "15": 0.25,
             
-            # Short actions (30 minutes)
-            "short": ("short_rest", 0.5, "resting"),
-            "30min": ("short_rest", 0.5, "resting"),
-            "30": ("short_rest", 0.5, "resting"),
+            # Short wait (30 minutes)
+            "short": 0.5,
+            "30min": 0.5,
+            "30": 0.5,
             
-            # Medium actions (1 hour)
-            "medium": ("rest", 1.0, "resting"),
-            "1hr": ("rest", 1.0, "resting"),
-            "1h": ("rest", 1.0, "resting"),
-            "1": ("rest", 1.0, "resting"),
-            "hour": ("rest", 1.0, "resting"),
+            # Medium wait (1 hour)
+            "medium": 1.0,
+            "1hr": 1.0,
+            "1h": 1.0,
+            "1": 1.0,
+            "hour": 1.0,
             
-            # Long actions (3 hours)
-            "long": ("long_rest", 3.0, "resting"),
-            "3hr": ("long_rest", 3.0, "resting"),
-            "3h": ("long_rest", 3.0, "resting"),
-            "3": ("long_rest", 3.0, "resting"),
+            # Long wait (3 hours)
+            "long": 3.0,
+            "3hr": 3.0,
+            "3h": 3.0,
+            "3": 3.0,
             
-            # Extended actions (8 hours)
-            "extended": ("sleep", 8.0, "resting"),
-            "8hr": ("sleep", 8.0, "resting"),
-            "8h": ("sleep", 8.0, "resting"),
-            "8": ("sleep", 8.0, "resting"),
-            "night": ("sleep", 8.0, "resting"),
+            # Extended wait (8 hours)
+            "extended": 8.0,
+            "8hr": 8.0,
+            "8h": 8.0,
+            "8": 8.0,
+            "night": 8.0,
         }
         
         if duration_arg not in duration_map:
             available_options = ["quick (15min)", "short (30min)", "medium (1hr)", "long (3hr)", "extended (8hr)"]
             return ActionResult(False, f"Unknown duration '{duration_arg}'. Options: {', '.join(available_options)}")
         
-        activity_name, duration_hours, activity_level = duration_map[duration_arg]
+        duration_hours = duration_map[duration_arg]
         
         try:
-            # Use time system to perform the waiting activity
+            # Use time system with "wait" activity (ensures condition effects are applied)
             if self.game_engine.time_system:
-                time_result = self.game_engine.time_system.perform_activity(activity_name, duration_override=duration_hours)
+                time_result = self.game_engine.time_system.perform_activity("wait", duration_override=duration_hours)
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Wait interrupted."))
             

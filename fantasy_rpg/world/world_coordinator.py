@@ -47,6 +47,14 @@ class WorldCoordinator:
     """Coordinates world-level and location-level interactions with full world generation"""
     
     def __init__(self, world_size: Tuple[int, int] = (20, 20), seed: int = 12345):
+        # Debug logging for world generation
+        try:
+            from ..actions.action_logger import get_action_logger
+            action_logger = get_action_logger()
+            action_logger.log_system_message(f"🌍 WorldCoordinator.__init__() - size: {world_size}, seed: {seed}")
+        except ImportError:
+            print(f"DEBUG: WorldCoordinator.__init__() - size: {world_size}, seed: {seed}")
+        
         self.world_size = world_size
         self.seed = seed
         self.hex_data = {}
@@ -386,17 +394,59 @@ class WorldCoordinator:
     
     def _load_location_index(self):
         """Load location index data"""
+        # Debug logging for location loading
+        try:
+            from ..actions.action_logger import get_action_logger
+            action_logger = get_action_logger()
+            action_logger.log_system_message("📍 Loading location index...")
+        except ImportError:
+            print("DEBUG: Loading location index...")
+        
         # Try to load from locations.json
         try:
             locations_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'locations.json')
+            
+            try:
+                action_logger.log_system_message(f"📂 Loading locations from: {locations_path}")
+            except:
+                print(f"DEBUG: Loading locations from: {locations_path}")
+            
             if os.path.exists(locations_path):
                 with open(locations_path, 'r') as f:
                     self.location_data = json.load(f)
+                
+                # Debug: Show what was loaded
+                locations = self.location_data.get("locations", {})
+                try:
+                    action_logger.log_system_message(f"✅ Loaded {len(locations)} location templates")
+                    
+                    # Show a few examples with shelter flags
+                    shelter_examples = []
+                    for loc_id, loc_data in list(locations.items())[:3]:
+                        shelter_flags = [k for k in loc_data.keys() if k.startswith("provides_")]
+                        if shelter_flags:
+                            shelter_examples.append(f"{loc_data.get('name', loc_id)}: {shelter_flags}")
+                    
+                    if shelter_examples:
+                        action_logger.log_system_message(f"🏠 Shelter examples: {'; '.join(shelter_examples)}")
+                    else:
+                        action_logger.log_system_message("⚠️ No shelter flags found in location templates!")
+                        
+                except:
+                    print(f"DEBUG: Loaded {len(locations)} location templates")
+                    
             else:
+                try:
+                    action_logger.log_system_message(f"❌ locations.json not found at {locations_path}")
+                except:
+                    print(f"DEBUG: locations.json not found at {locations_path}")
                 # Fallback to basic location data
                 self._create_basic_locations()
         except Exception as e:
-            print(f"Warning: Could not load locations.json: {e}")
+            try:
+                action_logger.log_system_message(f"❌ Error loading locations.json: {e}")
+            except:
+                print(f"Warning: Could not load locations.json: {e}")
             self._create_basic_locations()
     
     def _create_basic_locations(self):

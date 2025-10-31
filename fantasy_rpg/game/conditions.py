@@ -12,6 +12,9 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
+# DEBUG TOGGLE - Set to True to enable location entry debugging
+DEBUG_SHELTER = True
+
 
 class ShelterType(Enum):
     """Types of shelter available"""
@@ -209,12 +212,8 @@ class ConditionsManager:
             # Handle special environmental triggers
             if trigger == "has_warmth_source_in_location":
                 return self._check_warmth_source_in_location(player_state)
-            elif trigger == "has_natural_shelter_in_location":
-                return self._check_shelter_in_location(player_state, "minimal")
-            elif trigger == "has_good_shelter_in_location":
-                return self._check_shelter_in_location(player_state, "good")
-            elif trigger == "has_excellent_shelter_in_location":
-                return self._check_shelter_in_location(player_state, "excellent")
+            elif trigger in ["provides_some_shelter", "provides_good_shelter", "provides_excellent_shelter"]:
+                return self._check_shelter_flag_in_location(player_state, trigger)
             
             # Create a safe evaluation context with the player state values
             context = {
@@ -277,6 +276,33 @@ class ConditionsManager:
             
         except Exception as e:
             print(f"Error checking warmth source: {e}")
+            return False
+    
+    def _check_shelter_flag_in_location(self, player_state, shelter_flag: str) -> bool:
+        """Check if current location has the specified shelter flag (like warmth source checking)"""
+        try:
+            # Check if player_state has game_engine reference
+            if hasattr(player_state, 'game_engine') and player_state.game_engine:
+                game_engine = player_state.game_engine
+            elif hasattr(player_state, 'character') and hasattr(player_state.character, 'game_engine'):
+                game_engine = player_state.character.game_engine
+            else:
+                return False
+            
+            # Check if player is in a location
+            if not game_engine.game_state.world_position.current_location_id:
+                return False
+            
+            # Get current location data
+            location_data = game_engine.game_state.world_position.current_location_data
+            if not location_data:
+                return False
+            
+            # Check if location has the shelter flag
+            return location_data.get(shelter_flag, False)
+            
+        except Exception as e:
+            print(f"Error checking shelter flag: {e}")
             return False
     
     def _check_shelter_in_location(self, player_state, required_quality: str) -> bool:
