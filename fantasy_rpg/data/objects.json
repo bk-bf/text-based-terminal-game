@@ -83,6 +83,7 @@
     "objects": {
         "stone_altar": {
             "name": "Stone Altar",
+            "shortkey": "sa",
             "description": "An ancient stone altar covered in moss and weathered by time. Faded runes are carved into its surface.",
             "interactive": true,
             "pools": [
@@ -99,6 +100,7 @@
         },
         "rubble_pile": {
             "name": "Rubble Pile",
+            "shortkey": "rp",
             "description": "A heap of broken stones and debris from collapsed walls.",
             "interactive": false,
             "pools": [
@@ -114,6 +116,7 @@
         },
         "overgrown_vines": {
             "name": "Overgrown Vines",
+            "shortkey": "ov",
             "description": "Thick vines that have grown over the ancient stonework, reclaiming the structure for nature.",
             "interactive": true,
             "pools": [
@@ -131,6 +134,7 @@
         },
         "broken_column": {
             "name": "Broken Column",
+            "shortkey": "bc",
             "description": "A once-grand stone column, now cracked and partially collapsed.",
             "interactive": false,
             "pools": [
@@ -146,6 +150,7 @@
         },
         "throne_remnant": {
             "name": "Throne Remnant",
+            "shortkey": "tr",
             "description": "The remains of what was once a magnificent throne, now broken and covered in dust.",
             "interactive": true,
             "pools": [
@@ -162,6 +167,7 @@
         },
         "locked_door": {
             "name": "Locked Door",
+            "shortkey": "ld",
             "description": "A heavy stone door sealed with ancient locks and magical wards.",
             "interactive": true,
             "pools": [
@@ -180,6 +186,7 @@
         },
         "treasure_chest": {
             "name": "Treasure Chest",
+            "shortkey": "tc",
             "description": "An ornate chest bound with iron and secured with complex locks.",
             "interactive": true,
             "pools": [
@@ -211,6 +218,7 @@
         },
         "trapped_treasure_chest": {
             "name": "Treasure Chest",
+            "shortkey": "tt",
             "description": "An ornate chest bound with iron and secured with complex locks.",
             "interactive": true,
             "pools": [
@@ -252,6 +260,7 @@
         },
         "berry_bush": {
             "name": "Berry Bush",
+            "shortkey": "bb",
             "description": "A wild bush heavy with ripe berries. The fruit looks safe to eat.",
             "interactive": true,
             "pools": [
@@ -285,6 +294,7 @@
         },
         "fallen_log": {
             "name": "Fallen Log",
+            "shortkey": "fl",
             "description": "A large tree trunk that has fallen across the path, now covered in moss.",
             "interactive": true,
             "pools": [
@@ -322,6 +332,7 @@
                 "Cooking Fireplace",
                 "Peasant's Hearth"
             ],
+            "shortkey": "fp",
             "description": "A well-built fireplace with a chimney. Cold ashes remain from old fires.",
             "interactive": true,
             "pools": [
@@ -376,6 +387,7 @@
                 "Elegant Noble's Fireplace",
                 "Humble Peasant's Hearth"
             ],
+            "shortkey": "lf",
             "description": "A well-built fireplace with a cheerful fire crackling within. The flames dance warmly, casting flickering light and radiating comfortable heat.",
             "interactive": true,
             "pools": [
@@ -395,6 +407,7 @@
         },
         "bed": {
             "name": "Simple Bed",
+            "shortkey": "bd",
             "description": "A basic wooden bed frame with a straw mattress. It looks reasonably comfortable.",
             "interactive": true,
             "pools": [
@@ -424,6 +437,7 @@
         },
         "table": {
             "name": "Wooden Table",
+            "shortkey": "tb",
             "description": "A sturdy wooden table scarred by years of use. Various items could be placed on it.",
             "interactive": true,
             "pools": [
@@ -456,6 +470,7 @@
         },
         "chopping_block": {
             "name": "Chopping Block",
+            "shortkey": "cb",
             "description": "A thick wooden stump used for splitting firewood. An axe is embedded in its surface.",
             "interactive": true,
             "pools": [
@@ -472,6 +487,7 @@
         },
         "woodpile": {
             "name": "Woodpile",
+            "shortkey": "wp",
             "description": "A neat stack of cut firewood, ready for use.",
             "interactive": true,
             "pools": [
@@ -505,6 +521,7 @@
         },
         "broken_fence": {
             "name": "Broken Fence",
+            "shortkey": "bf",
             "description": "Sections of wooden fencing that have fallen into disrepair.",
             "interactive": false,
             "pools": [
@@ -542,6 +559,7 @@
                 "Sacred Well",
                 "Wishing Well"
             ],
+            "shortkey": "we",
             "description": "A stone-lined well with a wooden bucket on a rope. The water below looks clear.",
             "interactive": true,
             "pools": [
@@ -591,6 +609,7 @@
                 "Rusted Bed Springs",
                 "Peeling Vanity Table"
             ],
+            "shortkey": "fu",
             "description": "Various pieces of household furniture covered in dust and cobwebs.",
             "interactive": true,
             "pools": [
@@ -622,6 +641,7 @@
         },
         "root_cellar": {
             "name": "Root Cellar",
+            "shortkey": "rc",
             "description": "A small underground storage area accessed by a wooden trapdoor.",
             "interactive": true,
             "pools": [
@@ -639,6 +659,7 @@
         },
         "rock_formation": {
             "name": "Rock Formation",
+            "shortkey": "rf",
             "description": "Natural stone formations jutting from the cave walls and floor.",
             "interactive": false,
             "pools": [
@@ -655,6 +676,7 @@
         },
         "cave_pool": {
             "name": "Underground Pool",
+            "shortkey": "cp",
             "description": "A clear pool of water fed by underground springs. The water looks fresh and clean.",
             "interactive": true,
             "pools": [
@@ -673,6 +695,7 @@
         },
         "suspicious_barrel": {
             "name": "Old Barrel",
+            "shortkey": "ba",
             "description": "A weathered wooden barrel that has seen better days.",
             "interactive": true,
             "pools": [
@@ -707,6 +730,7 @@
         },
         "ancient_statue": {
             "name": "Weathered Statue",
+            "shortkey": "st",
             "description": "An old stone statue worn smooth by time and weather.",
             "interactive": true,
             "pools": [

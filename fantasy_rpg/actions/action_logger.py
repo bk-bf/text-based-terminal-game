@@ -300,6 +300,27 @@ class ActionLogger:
         if time_passed > 0:
             time_desc = self._format_time_passage(time_passed)
             self.game_log.add_message(f"{time_desc} passes.")
+        
+        # Log condition trigger messages (from conditions.json)
+        condition_messages = action_result.get('condition_messages', [])
+        print(f"[DEBUG] ActionLogger: condition_messages = {condition_messages}")
+        if condition_messages:
+            for cond_msg in condition_messages:
+                # Each message is a dict with 'name' and 'message'
+                condition_name = cond_msg.get('name', 'Unknown')
+                trigger_msg = cond_msg.get('message', '')
+                if trigger_msg:
+                    self.game_log.add_message(f"[yellow]⚠️  {trigger_msg}[/yellow]", "condition")
+        
+        # Log debug survival output (if debug_survival enabled)
+        debug_output = action_result.get('debug_output')
+        print(f"[DEBUG] ActionLogger: debug_output exists = {debug_output is not None}")
+        if debug_output:
+            print(f"[DEBUG] ActionLogger: debug_output length = {len(debug_output)}")
+            # Log debug output as plain text without formatting
+            for line in debug_output.split('\n'):
+                if line.strip():
+                    self.game_log.add_message(line)
     
     def _log_weather_changes(self, player_state):
         """Log weather changes in natural language"""
@@ -374,6 +395,42 @@ class ActionLogger:
         # Check for survival warnings
         if character and hasattr(character, 'player_state') and character.player_state:
             self._check_survival_warnings(character.player_state)
+            self._check_condition_triggers(character.player_state)
+    
+    def _check_condition_triggers(self, player_state):
+        """Check for newly triggered conditions and log their messages"""
+        try:
+            from ..game.conditions import get_conditions_manager
+            conditions_manager = get_conditions_manager()
+            
+            # Get previous and current conditions
+            previous_conditions = getattr(player_state, 'active_conditions', [])
+            current_conditions = conditions_manager.evaluate_conditions(player_state)
+            
+            # Update player state's active conditions
+            player_state.active_conditions = current_conditions
+            
+            # Get newly triggered conditions with their messages
+            newly_triggered = conditions_manager.get_newly_triggered_conditions(
+                previous_conditions, current_conditions
+            )
+            
+            # Log each newly triggered condition message
+            for condition_info in newly_triggered:
+                if self.game_log:
+                    # Use different formatting based on severity
+                    condition_data = conditions_manager.conditions_data.get(condition_info['name'], {})
+                    severity = condition_data.get('severity', 'moderate')
+                    
+                    if severity in ['critical', 'life_threatening']:
+                        self.game_log.add_message(f"[!] {condition_info['message']}", "warning")
+                    elif severity == 'beneficial':
+                        self.game_log.add_message(f"✓ {condition_info['message']}", "success")
+                    else:
+                        self.game_log.add_message(f"• {condition_info['message']}")
+                        
+        except Exception as e:
+            print(f"Error checking condition triggers: {e}")
     
     def _check_survival_warnings(self, player_state):
         """Check and log survival warnings"""
@@ -402,12 +459,6 @@ class ActionLogger:
                 warnings.append("You are exhausted!")
             else:
                 warnings.append("You are very tired.")
-        
-        # Check temperature risks
-        if player_state.survival.hypothermia_risk > 60:
-            warnings.append("You are getting dangerously cold.")
-        elif player_state.survival.hyperthermia_risk > 60:
-            warnings.append("You are overheating.")
         
         # Log warnings
         for warning in warnings:

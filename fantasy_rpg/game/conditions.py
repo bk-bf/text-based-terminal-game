@@ -149,6 +149,26 @@ class ConditionsManager:
         
         return active_conditions
     
+    def get_newly_triggered_conditions(self, previous_conditions: List[str], current_conditions: List[str]) -> List[dict]:
+        """
+        Compare previous and current condition lists to find newly triggered conditions.
+        Returns a list of dicts with 'name' and 'message' for each newly triggered condition.
+        """
+        newly_triggered = []
+        
+        for condition_name in current_conditions:
+            if condition_name not in previous_conditions:
+                condition_data = self.conditions_data.get(condition_name, {})
+                trigger_message = condition_data.get("trigger_message", "")
+                
+                if trigger_message:
+                    newly_triggered.append({
+                        "name": condition_name,
+                        "message": trigger_message
+                    })
+        
+        return newly_triggered
+    
     def _apply_hierarchies_and_exclusions(self, potentially_active: List[str]) -> List[str]:
         """Apply condition hierarchies and exclusions to filter the final active conditions"""
         active_conditions = potentially_active.copy()
@@ -223,8 +243,6 @@ class ConditionsManager:
                 'body_temperature': player_state.survival.body_temperature,
                 'wetness': player_state.survival.wetness,
                 'wind_chill': player_state.survival.wind_chill,
-                'hypothermia_risk': player_state.survival.hypothermia_risk,
-                'hyperthermia_risk': player_state.survival.hyperthermia_risk,
                 'has_warmth_source_in_location': self._check_warmth_source_in_location(player_state)
             }
             
@@ -608,8 +626,6 @@ def test_conditions_system():
             self.body_temperature = 250  # Cold
             self.wetness = 300  # Wet
             self.wind_chill = 50
-            self.hypothermia_risk = 30
-            self.hyperthermia_risk = 0
     
     class MockPlayerState:
         def __init__(self):

@@ -146,8 +146,8 @@ Polish the synergy between player actions and object properties from the compreh
   - _Requirements: 3.3, 3.4, 3.5_
 
 - [ ] 7.2 Implement object property bonuses
-  - Fireplaces provide warmth bonuses to survival stats
-  - Beds provide rest quality bonuses and fatigue recovery
+  - Lit fireplaces provide warmth condition
+  - Beds provide quicker fatigue recovery but also demand higher wake-up DC 
   - Wells and water sources restore thirst with quality variations
   - Food sources (berry bushes, etc.) provide hunger relief
   - _Requirements: 4.1, 4.2, 4.3_

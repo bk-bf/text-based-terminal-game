@@ -62,6 +62,10 @@ class TimeSystem:
         # Weather update tracking
         self.hours_since_weather_update = 0
         self.weather_update_interval = 2  # Update weather every 2 hours
+        
+        # Message storage (populated by _advance_time, retrieved by perform_activity)
+        self._last_condition_messages = []
+        self._last_debug_output = None
     
     def _create_activity_definitions(self) -> Dict[str, ActivityDefinition]:
         """Create definitions for all game activities"""
@@ -256,7 +260,8 @@ class TimeSystem:
         # Get activity-specific results
         results = self._get_activity_results(activity_name, duration, **kwargs)
         
-        return {
+        # Include condition trigger messages and debug output
+        return_dict = {
             "success": True,
             "activity": activity_name,
             "duration_hours": duration,
@@ -264,11 +269,23 @@ class TimeSystem:
             "new_time": self.player_state.get_time_string(),
             "exertion_level": activity.exertion_level,
             "warnings": warnings,
+            "condition_messages": self._last_condition_messages,
+            "debug_output": self._last_debug_output,
             **results
         }
+        
+        # Clear stored messages
+        self._last_condition_messages = []
+        self._last_debug_output = None
+        
+        return return_dict
     
     def _calculate_activity_duration(self, activity: ActivityDefinition, **kwargs) -> float:
         """Calculate actual duration for an activity with modifiers"""
+        # Check for explicit duration override first (used by wait command)
+        if "duration_override" in kwargs:
+            return kwargs["duration_override"]
+        
         base_duration = activity.base_duration_hours
         
         if base_duration == 0:
@@ -383,15 +400,15 @@ class TimeSystem:
         elif self.player_state.survival.get_hunger_level().value <= 2:  # BAD hunger
             warnings.append("[!] You are very hungry.")
         
-        # Temperature warnings
-        if self.player_state.survival.hypothermia_risk > 80:
+        # Temperature warnings (based on body_temperature directly)
+        if self.player_state.survival.body_temperature <= 200:
             warnings.append("[!] You are dangerously cold!")
-        elif self.player_state.survival.hypothermia_risk > 60:
+        elif self.player_state.survival.body_temperature <= 300:
             warnings.append("[!] You are getting very cold.")
         
-        if self.player_state.survival.hyperthermia_risk > 80:
+        if self.player_state.survival.body_temperature >= 800:
             warnings.append("[!] You are dangerously overheated!")
-        elif self.player_state.survival.hyperthermia_risk > 60:
+        elif self.player_state.survival.body_temperature >= 700:
             warnings.append("[!] You are getting very hot.")
         
         # Weather warnings
@@ -416,8 +433,12 @@ class TimeSystem:
         """Advance game time and update all systems"""
         old_time = self.player_state.get_time_string()
         
-        # Advance player state
-        self.player_state.advance_time(hours, exertion_level)
+        # Advance player state and collect messages
+        time_result = self.player_state.advance_time(hours, exertion_level)
+        
+        # Store messages for retrieval by perform_activity
+        self._last_condition_messages = time_result.get("newly_triggered_conditions", [])
+        self._last_debug_output = time_result.get("debug_output")
         
         # Apply damage-over-time effects
         self._apply_damage_over_time(hours)

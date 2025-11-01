@@ -3,17 +3,12 @@
         "Hungry": {
             "description": "Lack of food causes weakness and distraction",
             "trigger": "hunger <= 200 and hunger > 50",
+            "trigger_message": "Your stomach growls insistently. You need to find food soon.",
             "hierarchy": "hunger",
             "priority": 1,
             "effects": {
                 "constitution_modifier": -1,
-                "skill_penalties": {
-                    "athletics": -1,
-                    "perception": -1
-                },
-                "saving_throw_penalties": {
-                    "constitution": -1
-                }
+                "wisdom_modifier": -1
             },
             "severity": "moderate",
             "category": "survival"
@@ -21,20 +16,13 @@
         "Starving": {
             "description": "Severe lack of food weakens the body",
             "trigger": "hunger <= 50",
+            "trigger_message": "Your body trembles with weakness. You desperately need food or you won't survive much longer.",
             "hierarchy": "hunger",
             "priority": 2,
             "effects": {
                 "strength_modifier": -2,
                 "constitution_modifier": -2,
-                "max_hp_modifier": -0.25,
-                "skill_penalties": {
-                    "athletics": -3,
-                    "acrobatics": -2
-                },
-                "saving_throw_penalties": {
-                    "constitution": -2,
-                    "strength": -1
-                }
+                "dexterity_modifier": -1
             },
             "severity": "critical",
             "category": "survival"
@@ -42,25 +30,20 @@
         "Dying of Hunger": {
             "description": "Extreme starvation causes muscle wasting and organ failure",
             "trigger": "hunger <= 10",
+            "trigger_message": "Your vision blurs and darkness creeps at the edges. Without food immediately, death is certain.",
             "hierarchy": "hunger",
             "priority": 3,
             "effects": {
                 "strength_modifier": -4,
                 "constitution_modifier": -4,
                 "dexterity_modifier": -2,
-                "max_hp_modifier": -0.5,
-                "skill_penalties": {
-                    "all": -3
-                },
-                "saving_throw_penalties": {
-                    "all": -3
-                },
+                "wisdom_modifier": -2,
                 "movement_penalty": 0.75,
                 "unconscious_risk": true,
                 "damage_over_time": {
                     "type": "starvation",
                     "amount": 1,
-                    "interval": "30_minutes"
+                    "interval": "1_hour"
                 },
                 "faint_chance": 0.25
             },
@@ -70,14 +53,12 @@
         "Thirsty": {
             "description": "Thirst causes mild impairment",
             "trigger": "thirst <= 200 and thirst > 50",
+            "trigger_message": "Your throat feels parched and dry. You should find water.",
             "hierarchy": "thirst",
             "priority": 1,
             "effects": {
                 "constitution_modifier": -1,
-                "skill_penalties": {
-                    "athletics": -1,
-                    "survival": -1
-                }
+                "wisdom_modifier": -1
             },
             "severity": "moderate",
             "category": "survival"
@@ -85,27 +66,19 @@
         "Dehydrated": {
             "description": "Severe thirst impairs physical and mental function",
             "trigger": "thirst <= 50",
+            "trigger_message": "Your lips crack and your tongue swells. You need water urgently or you'll collapse.",
             "hierarchy": "thirst",
             "priority": 2,
             "effects": {
                 "constitution_modifier": -3,
-                "wisdom_modifier": -1,
-                "skill_penalties": {
-                    "athletics": -2,
-                    "perception": -2,
-                    "survival": -2
-                },
-                "saving_throw_penalties": {
-                    "constitution": -3,
-                    "wisdom": -1
-                },
+                "wisdom_modifier": -2,
+                "strength_modifier": -1,
                 "movement_penalty": 0.5
             },
             "interactions": {
                 "with_overheating": {
                     "condition_check": "has_condition:Overheating",
                     "additional_effects": {
-                        "hyperthermia_risk_multiplier": 3.0,
                         "constitution_modifier": -2,
                         "unconscious_risk": true
                     },
@@ -118,24 +91,20 @@
         "Dying of Thirst": {
             "description": "Extreme dehydration causes organ failure and death",
             "trigger": "thirst <= 10",
+            "trigger_message": "Your body is shutting down from dehydration. Every breath is agony. Find water now or perish.",
             "hierarchy": "thirst",
             "priority": 3,
             "effects": {
                 "constitution_modifier": -5,
                 "wisdom_modifier": -3,
                 "intelligence_modifier": -2,
-                "skill_penalties": {
-                    "all": -4
-                },
-                "saving_throw_penalties": {
-                    "all": -3
-                },
+                "strength_modifier": -2,
                 "movement_penalty": 0.8,
                 "unconscious_risk": true,
                 "damage_over_time": {
                     "type": "dehydration",
                     "amount": 1,
-                    "interval": "15_minutes"
+                    "interval": "1_hour"
                 },
                 "faint_chance": 0.3
             },
@@ -145,12 +114,11 @@
         "Tired": {
             "description": "Mild fatigue causes minor performance issues",
             "trigger": "fatigue >= 200 and fatigue < 350",
+            "trigger_message": "Your eyelids grow heavy and you stifle a yawn. Rest would be welcome.",
             "hierarchy": "fatigue",
             "priority": 0,
             "effects": {
-                "skill_penalties": {
-                    "perception": -1
-                },
+                "wisdom_modifier": -1,
                 "movement_penalty": 0.1
             },
             "severity": "mild",
@@ -159,17 +127,13 @@
         "Very Tired": {
             "description": "Significant fatigue impairs performance",
             "trigger": "fatigue >= 50 and fatigue < 200",
+            "trigger_message": "Exhaustion weighs on you like a heavy cloak. You need to rest soon.",
             "hierarchy": "fatigue",
             "priority": 1,
             "effects": {
                 "dexterity_modifier": -1,
                 "wisdom_modifier": -1,
-                "skill_penalties": {
-                    "perception": -2,
-                    "athletics": -1,
-                    "acrobatics": -1
-                },
-                "attack_penalty": -1
+                "constitution_modifier": -1
             },
             "severity": "moderate",
             "category": "survival"
@@ -177,17 +141,11 @@
         "Exhausted": {
             "description": "Extreme fatigue severely impairs all actions",
             "trigger": "fatigue < 50",
+            "trigger_message": "Your body screams for rest. You can barely keep your eyes open and stumble with every step.",
             "hierarchy": "fatigue",
             "priority": 2,
             "effects": {
                 "all_ability_modifiers": -2,
-                "skill_penalties": {
-                    "all": -3
-                },
-                "saving_throw_penalties": {
-                    "all": -2
-                },
-                "attack_penalty": -3,
                 "movement_penalty": 0.75,
                 "disadvantage_on": [
                     "attack_rolls",
@@ -213,37 +171,27 @@
         "Cold": {
             "description": "Uncomfortably cold, affecting dexterity",
             "trigger": "body_temperature <= 300 and body_temperature > 200",
+            "trigger_message": "A chill runs through you. Your fingers grow stiff and numb from the cold.",
             "hierarchy": "temperature",
             "priority": 1,
             "exclusion_group": "temperature",
             "effects": {
-                "dexterity_modifier": -1,
-                "skill_penalties": {
-                    "acrobatics": -1,
-                    "sleight_of_hand": -2
-                }
+                "dexterity_modifier": -1
             },
             "severity": "mild",
             "category": "temperature"
         },
         "Icy": {
             "description": "Dangerously cold, risking hypothermia",
-            "trigger": "body_temperature <= 200 or hypothermia_risk >= 80",
+            "trigger": "body_temperature <= 200",
+            "trigger_message": "Your entire body shivers uncontrollably. The cold bites deep into your bones. You need warmth immediately.",
             "hierarchy": "temperature",
             "priority": 2,
             "exclusion_group": "temperature",
             "effects": {
                 "dexterity_modifier": -3,
                 "constitution_modifier": -2,
-                "skill_penalties": {
-                    "acrobatics": -3,
-                    "sleight_of_hand": -3,
-                    "athletics": -2
-                },
-                "saving_throw_penalties": {
-                    "dexterity": -2,
-                    "constitution": -2
-                },
+                "strength_modifier": -1,
                 "movement_penalty": 0.5
             },
             "severity": "critical",
@@ -252,36 +200,27 @@
         "Hot": {
             "description": "Uncomfortably hot, causing fatigue",
             "trigger": "body_temperature >= 700 and body_temperature < 800",
+            "trigger_message": "Sweat beads on your forehead as heat presses down on you. You need to cool off.",
             "hierarchy": "temperature",
             "priority": 1,
             "exclusion_group": "temperature",
             "effects": {
-                "constitution_modifier": -1,
-                "skill_penalties": {
-                    "athletics": -1
-                }
+                "constitution_modifier": -1
             },
             "severity": "mild",
             "category": "temperature"
         },
         "Overheating": {
             "description": "Dangerously hot, risking heat stroke",
-            "trigger": "body_temperature >= 800 or hyperthermia_risk >= 80",
+            "trigger": "body_temperature >= 800",
+            "trigger_message": "The heat is overwhelming. Your head pounds and your vision swims. Find shade and water quickly.",
             "hierarchy": "temperature",
             "priority": 2,
             "exclusion_group": "temperature",
             "effects": {
                 "constitution_modifier": -3,
                 "wisdom_modifier": -2,
-                "skill_penalties": {
-                    "athletics": -3,
-                    "perception": -2,
-                    "survival": -2
-                },
-                "saving_throw_penalties": {
-                    "constitution": -3,
-                    "wisdom": -1
-                }
+                "strength_modifier": -1
             },
             "severity": "critical",
             "category": "temperature"
@@ -289,22 +228,22 @@
         "Wet": {
             "description": "Wet clothing and equipment cause discomfort",
             "trigger": "wetness >= 200 and wetness < 350",
+            "trigger_message": "Your clothes cling damply to your skin, chilling you to the bone.",
             "hierarchy": "wetness",
             "priority": 1,
             "effects": {
                 "dexterity_modifier": -1,
-                "skill_penalties": {
-                    "stealth": -1,
-                    "acrobatics": -1
-                },
-                "cold_vulnerability": true
+                "cold_vulnerability": true,
+                "body_temperature_decrease": {
+                    "base_rate": 10,
+                    "emergency_rate": 18
+                }
             },
             "interactions": {
                 "with_cold_conditions": {
                     "condition_check": "has_condition_category:temperature AND condition_severity_at_least:mild",
                     "additional_effects": {
-                        "constitution_modifier": -1,
-                        "hypothermia_risk_multiplier": 2.0
+                        "constitution_modifier": -1
                     },
                     "description": "Wet clothing in cold weather dramatically increases heat loss"
                 }
@@ -315,31 +254,27 @@
         "Soaked": {
             "description": "Completely wet, equipment and movement impaired",
             "trigger": "wetness >= 350",
+            "trigger_message": "Water drips from every inch of you. Your sodden clothing weighs you down and the cold seeps deep.",
             "hierarchy": "wetness",
             "priority": 2,
             "effects": {
                 "dexterity_modifier": -2,
                 "constitution_modifier": -1,
-                "skill_penalties": {
-                    "acrobatics": -2,
-                    "stealth": -3,
-                    "athletics": -1
-                },
-                "equipment_penalties": {
-                    "armor_ac_penalty": -1,
-                    "weapon_attack_penalty": -1
-                },
+                "armor_ac_penalty": -1,
                 "movement_penalty": 0.25,
                 "cold_vulnerability": true,
-                "fire_resistance": true
+                "fire_resistance": true,
+                "body_temperature_decrease": {
+                    "base_rate": 20,
+                    "emergency_rate": 35
+                }
             },
             "interactions": {
                 "with_freezing_conditions": {
                     "condition_check": "has_condition:Freezing",
                     "additional_effects": {
                         "constitution_modifier": -2,
-                        "hypothermia_risk_multiplier": 3.0,
-                        "movement_penalty": 0.255
+                        "movement_penalty": 0.25
                     },
                     "description": "Soaked clothing in freezing weather is extremely dangerous"
                 }
@@ -348,81 +283,81 @@
             "category": "wetness"
         },
         "Wind Chilled": {
-            "description": "Strong winds increase cold exposure",
-            "trigger": "wind_chill >= 100",
+            "description": "Exposed to harsh wind, body heat rapidly lost",
+            "trigger": "wind_chill <= -20",
+            "trigger_message": "Bitter wind tears through your clothing, stealing your warmth. You need shelter from this gale.",
             "effects": {
-                "constitution_modifier": -1,
-                "skill_penalties": {
-                    "perception": -2,
-                    "survival": -1
-                },
+                "constitution_modifier": -2,
+                "wisdom_modifier": -1,
+                "movement_penalty": 0.15,
                 "cold_vulnerability": true,
-                "ranged_attack_penalty": -2
+                "body_temperature_decrease": {
+                    "base_rate": 15,
+                    "emergency_rate": 25
+                }
             },
             "severity": "moderate",
-            "category": "weather"
+            "category": "temperature"
         },
         "Freezing": {
-            "description": "Body temperature dangerously low",
-            "trigger": "body_temperature <= 100 or hypothermia_risk >= 90",
-            "hierarchy": "temperature",
+            "description": "Severe hypothermia, life-threatening cold",
+            "trigger": "body_temperature < 100",
+            "trigger_message": "Your teeth chatter uncontrollably and your limbs go numb. If you don't find warmth and shelter immediately, you will freeze to death.",
+            "hierarchy": "temperature_cold",
             "priority": 3,
             "exclusion_group": "temperature",
             "effects": {
                 "all_ability_modifiers": -3,
-                "movement_penalty": 0.75,
-                "unconscious_risk": true,
+                "movement_penalty": 0.5,
+                "unconscious_risk": 0.1,
                 "damage_over_time": {
-                    "type": "cold",
+                    "type": "hypothermia",
                     "amount": 2,
-                    "interval": "15_minutes"
-                },
-                "faint_chance": 0.2
+                    "interval": "1_hour"
+                }
             },
-            "severity": "life_threatening",
-            "category": "disease"
+            "severity": "critical",
+            "category": "temperature"
         },
         "Heat Stroke": {
-            "description": "Body overheating to dangerous levels",
-            "trigger": "body_temperature >= 900 or hyperthermia_risk >= 90",
-            "hierarchy": "temperature",
+            "description": "Critical heat exhaustion, body failing to regulate temperature",
+            "trigger": "body_temperature > 900",
+            "trigger_message": "Your skin burns like fire and confusion clouds your thoughts. Your body is failing. You need water and shade now or you will die.",
+            "hierarchy": "temperature_hot",
             "priority": 3,
             "exclusion_group": "temperature",
             "effects": {
                 "constitution_modifier": -4,
                 "wisdom_modifier": -3,
-                "unconscious_risk": true,
+                "intelligence_modifier": -2,
+                "strength_modifier": -2,
+                "movement_penalty": 0.5,
+                "faint_chance": 0.15,
                 "damage_over_time": {
-                    "type": "heat",
+                    "type": "heatstroke",
                     "amount": 2,
-                    "interval": "15_minutes"
-                },
-                "faint_chance": 0.2
+                    "interval": "1_hour"
+                }
             },
-            "severity": "life_threatening",
-            "category": "disease"
+            "severity": "critical",
+            "category": "temperature"
         },
         "Fainted": {
-            "description": "Unconscious from exhaustion, dehydration, or extreme temperatures",
-            "trigger": "False",
+            "description": "Lost consciousness from exhaustion or exposure",
+            "trigger": "manual",
+            "trigger_message": "Darkness swallows you as your body gives out. You collapse, unconscious.",
             "effects": {
-                "all_ability_modifiers": -10,
+                "incapacitated": true,
                 "movement_penalty": 1.0,
-                "unconscious": true,
-                "helpless": true,
-                "fatigue_recovery": 100
+                "armor_ac_penalty": -5
             },
-            "duration": {
-                "min_minutes": 30,
-                "max_minutes": 180,
-                "recovery_check_interval": "15_minutes"
-            },
-            "severity": "life_threatening",
-            "category": "unconscious"
+            "severity": "critical",
+            "category": "incapacitation"
         },
         "Lit Fire": {
             "description": "Warmed by a nearby fire, providing comfort and gradual temperature recovery",
             "trigger": "has_warmth_source_in_location",
+            "trigger_message": "The dancing flames warm your skin and lift your spirits. You feel safer here.",
             "hierarchy": "warmth_source",
             "priority": 1,
             "effects": {
@@ -432,20 +367,14 @@
                     "max_temperature": 600,
                     "description": "Fire gradually warms the body to comfortable levels"
                 },
-                "fatigue_recovery_bonus": 5,
-                "skill_bonuses": {
-                    "survival": 1
-                },
-                "cold_resistance": true,
-                "hypothermia_risk_reduction": 0.5
+                "fatigue_recovery_bonus": 5
             },
             "interactions": {
                 "with_cold_conditions": {
                     "condition_check": "has_condition_category:temperature AND condition_severity_at_least:mild",
                     "additional_effects": {
                         "body_temperature_increase_rate": 25,
-                        "constitution_modifier": 1,
-                        "hypothermia_risk_reduction": 0.75
+                        "constitution_modifier": 1
                     },
                     "description": "Fire provides crucial warmth when suffering from cold conditions"
                 },
@@ -472,22 +401,22 @@
         "Natural Shelter": {
             "description": "Protected by natural shelter, reducing exposure to harsh weather",
             "trigger": "provides_some_shelter",
+            "trigger_message": "You find respite from the elements here. The shelter blocks the worst of the weather.",
             "hierarchy": "shelter",
             "priority": 1,
             "effects": {
                 "wind_chill_reduction": 0.5,
+                "precipitation_reduction": 0.5,
                 "wetness_reduction": {
                     "rate": 10,
                     "interval": "30_minutes"
-                },
-                "cold_resistance": true
+                }
             },
             "interactions": {
                 "with_precipitation": {
                     "condition_check": "weather_has_precipitation",
                     "additional_effects": {
-                        "wetness_reduction_rate": 20,
-                        "hypothermia_risk_reduction": 0.3
+                        "wetness_reduction_rate": 20
                     },
                     "description": "Natural shelter provides crucial protection from rain and snow"
                 }
@@ -502,16 +431,16 @@
         "Good Shelter": {
             "description": "Well-protected by quality shelter, significantly reducing weather exposure",
             "trigger": "provides_good_shelter",
+            "trigger_message": "This shelter provides good protection. You feel secure from the elements and can rest easier.",
             "hierarchy": "shelter",
             "priority": 2,
             "effects": {
                 "wind_chill_reduction": 0.75,
+                "precipitation_reduction": 0.75,
                 "wetness_reduction": {
                     "rate": 20,
                     "interval": "15_minutes"
                 },
-                "cold_resistance": true,
-                "heat_resistance": true,
                 "fatigue_recovery_bonus": 10,
                 "body_temperature_stabilization": true
             },
@@ -519,9 +448,7 @@
                 "with_extreme_weather": {
                     "condition_check": "weather_is_extreme",
                     "additional_effects": {
-                        "constitution_modifier": 1,
-                        "hypothermia_risk_reduction": 0.6,
-                        "hyperthermia_risk_reduction": 0.6
+                        "constitution_modifier": 1
                     },
                     "description": "Good shelter provides excellent protection from extreme weather conditions"
                 }
@@ -536,16 +463,14 @@
         "Excellent Shelter": {
             "description": "Completely protected by excellent shelter, immune to most weather effects",
             "trigger": "provides_excellent_shelter",
+            "trigger_message": "You are completely protected here. The weather cannot touch you and you can truly rest in comfort.",
             "hierarchy": "shelter",
             "priority": 3,
             "effects": {
-                "wind_chill_immunity": true,
-                "precipitation_immunity": true,
+                "wind_chill_reduction": 1.0,
+                "precipitation_reduction": 1.0,
                 "temperature_regulation": true,
                 "fatigue_recovery_bonus": 20,
-                "skill_bonuses": {
-                    "survival": 2
-                },
                 "body_temperature_stabilization": true,
                 "comfort_bonus": true
             },

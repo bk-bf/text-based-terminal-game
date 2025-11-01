@@ -8,6 +8,7 @@ This separates input handling from UI presentation.
 from typing import Dict, Any, Optional, Callable
 from .action_handler import ActionHandler, ActionResult
 from .action_logger import get_action_logger
+from .shortkey_manager import get_shortkey_manager
 
 
 class InputController:
@@ -23,6 +24,7 @@ class InputController:
         self.game_engine = game_engine  # Use GameEngine instead of ActionHandler
         self.action_handler = None
         self.action_logger = get_action_logger()
+        self.shortkey_manager = get_shortkey_manager()  # Add shortkey manager
         
         # UI callbacks - set by the UI system
         self.ui_callbacks = {
@@ -53,6 +55,7 @@ class InputController:
             'save': self._handle_save_game,
             'load': self._handle_load_game,
             'clear': self._handle_clear_log,
+            'debug_survival': self._handle_debug_survival_toggle,
             'quit': self._handle_quit
             # Note: 'exit' removed to allow GameEngine to handle location exits
         }
@@ -70,6 +73,38 @@ class InputController:
         if callback_name in self.ui_callbacks:
             self.ui_callbacks[callback_name] = callback_func
     
+    def _update_current_location_shortcuts(self):
+        """Update object shortcuts for the current location"""
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return
+        
+        try:
+            gs = self.game_engine.game_state
+            
+            # Only update if inside a location
+            if not gs.world_position.current_location_id:
+                return
+            
+            location_data = gs.world_position.current_location_data
+            if not location_data:
+                return
+            
+            # Get objects from current area
+            areas = location_data.get("areas", {})
+            current_area_id = gs.world_position.current_area_id
+            
+            if current_area_id not in areas:
+                return
+            
+            area_data = areas[current_area_id]
+            objects = area_data.get("objects", [])
+            
+            # Update shortkey manager
+            self.shortkey_manager.assign_object_shortcuts_from_data(objects)
+        except Exception:
+            # Silently fail - shortcuts just won't be updated
+            pass
+    
     def process_input(self, command_text: str) -> Dict[str, Any]:
         """
         Process user input and return response for UI.
@@ -83,11 +118,21 @@ class InputController:
         if not command_text.strip():
             return {'type': 'error', 'message': 'Please enter a command.'}
         
-        # Parse command
+        # Update object shortcuts BEFORE parsing command
+        self._update_current_location_shortcuts()
+        
+        # Parse command with shortkey expansion
+        action, args = self.shortkey_manager.parse_command(command_text)
+        
+        # Reconstruct full command with expanded shortcuts
+        if args:
+            expanded_command = f"{action} {' '.join(args)}"
+        else:
+            expanded_command = action
+        
+        # Handle debug commands (check original command first)
         parts = command_text.split()
         cmd = parts[0].lower() if parts else ""
-        
-        # Handle debug commands
         if cmd in self.debug_commands:
             return self.debug_commands[cmd](command_text)
         
@@ -99,8 +144,8 @@ class InputController:
             # Get GameEngine's action handler
             action_handler = self.game_engine.get_action_handler()
             
-            # Process through GameEngine's action handler
-            result = action_handler.process_command(command_text)
+            # Process through GameEngine's action handler with expanded command
+            result = action_handler.process_command(expanded_command)
             
             # Convert action result to UI response
             return self._convert_action_result_to_ui_response(result, command_text)
@@ -175,6 +220,25 @@ class InputController:
         return {
             'type': 'debug_xp',
             'amount': 100,
+            'command': command_text
+        }
+    
+    def _handle_debug_survival_toggle(self, command_text: str) -> Dict[str, Any]:
+        """Toggle survival debug logging on/off"""
+        if self.game_engine and hasattr(self.game_engine, 'game_state'):
+            gs = self.game_engine.game_state
+            if gs and hasattr(gs, 'player_state'):
+                current = gs.player_state.debug_survival
+                gs.player_state.debug_survival = not current
+                status = "ENABLED" if not current else "DISABLED"
+                return {
+                    'type': 'debug_survival',
+                    'status': status,
+                    'command': command_text
+                }
+        return {
+            'type': 'debug_survival',
+            'status': 'UNAVAILABLE',
             'command': command_text
         }
     

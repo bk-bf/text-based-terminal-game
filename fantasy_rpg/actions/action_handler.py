@@ -25,6 +25,35 @@ class ActionResult:
     def get(self, key: str, default=None):
         """Get additional data from the result"""
         return self.data.get(key, default)
+    
+    @classmethod
+    def from_time_result(cls, time_result: dict, success: bool = True, message: str = "", **extra_kwargs):
+        """Create ActionResult from TimeSystem's perform_activity result
+        
+        This merges time_result data (condition_messages, debug_output) with ActionResult.
+        
+        Args:
+            time_result: Dict returned from time_system.perform_activity()
+            success: Action success status (overrides time_result if provided)
+            message: Action message
+            **extra_kwargs: Additional data to merge (overrides time_result if conflicts)
+            
+        Returns:
+            ActionResult with all time data included
+        """
+        if not time_result:
+            return cls(success, message, **extra_kwargs)
+        
+        # Extract time passed from time_result
+        time_passed = time_result.get("duration_hours", 0.0)
+        
+        # Merge data: time_result first, then extra_kwargs (so extra_kwargs overrides)
+        # Remove keys that conflict with ActionResult.__init__ parameters
+        merged_data = {k: v for k, v in time_result.items() 
+                      if k not in ('success', 'message', 'time_passed')}
+        merged_data.update(extra_kwargs)
+        
+        return cls(success, message, time_passed, **merged_data)
 
 
 class ActionHandler:
@@ -149,50 +178,55 @@ class ActionHandler:
         )
     
     def handle_help(self, *args) -> ActionResult:
-        """Handle help display"""
-        help_text = """Available commands:
+        """Handle help display - now with shortkey support"""
+        # Get shortkey help from manager
+        try:
+            from .shortkey_manager import get_shortkey_manager
+            shortkey_manager = get_shortkey_manager()
+            shortkey_help = shortkey_manager.get_action_help()
+        except:
+            shortkey_help = ""
         
+        help_text = f"""{shortkey_help}
+
+=== FULL COMMAND LIST ===
+
 Core Actions:
-  look - Examine your surroundings
+  look / l - Examine your surroundings
   enter - Enter a location in this hex (no arguments needed)
   exit - Exit current location to overworld
   
 Object Interaction (location only):
-  examine <object> - Examine an object closely (shows available actions)
-  search <object> - Search an object for items
-  use <object> - Use an object (context-specific)
+  examine/x <object> - Examine an object closely (shows available actions)
+  search/a <object> - Search an object for items
+  use/u <object> - Use an object (context-specific)
   
 Resource Gathering (location only):
-  forage <object> - Gather resources using Survival skill (e.g., 'forage berry bush')
-  harvest <object> - Gather resources using Nature skill (e.g., 'harvest berry bush')
-  chop/cut <object> - Chop wood from trees or objects (e.g., 'chop tree')
-  drink/water <object> - Drink from water sources (e.g., 'drink well')
+  forage/g <object> - Gather resources using Survival skill
+  harvest/v <object> - Gather resources using Nature skill
+  chop/h <object> - Chop wood from trees or objects
+  drink/b <object> - Drink from water sources
   
 Object Manipulation (location only):
-  unlock/pick_lock <object> - Pick locks on containers (e.g., 'unlock chest')
-  disarm <object> - Disarm traps on objects (e.g., 'disarm chest')
+  unlock/k <object> - Pick locks on containers
+  disarm <object> - Disarm traps on objects
   cut <object> - Cut through vines or similar obstacles
   climb <object> - Climb trees, rocks, or other climbable objects
-  light <object> - Light fires in fireplaces or similar objects
+  light/f <object> - Light fires in fireplaces or similar objects
   place <item> <object> - Place items on tables or storage surfaces
   repair <object> - Repair broken objects like fences
   
 Rest & Recovery (location only):
-  rest - Rest in current location (basic recovery)
-  sleep <object> - Sleep on beds or other comfortable objects (better recovery)
-  wait <duration> - Wait and pass time:
-    • quick/15min - Wait 15 minutes
-    • short/30min - Wait 30 minutes  
-    • medium/1hr - Wait 1 hour
-    • long/3hr - Wait 3 hours
-    • extended/8hr - Wait 8 hours
+  rest/r - Rest in current location (basic recovery)
+  sleep/p <object> - Sleep on beds or other comfortable objects (better recovery)
+  wait/w <duration> - Wait and pass time (quick/short/medium/long/extended)
   
 Movement (overworld only):
-  north, south, east, west (or n, s, e, w) - Move in that direction
+  north/n, south/s, east/e, west/w - Move in that direction
   
 Character:
-  inventory, i - View your inventory
-  character, c - View character sheet
+  inventory/i - View your inventory
+  character/c - View character sheet
   
 System:
   save - Save game to save.json
@@ -201,10 +235,10 @@ System:
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
   dump_world - Dump entire world data to JSON file
-  help - Show this help
+  help/? - Show this help
   
-Tip: Use 'examine <object>' to see what actions are available for each object!
-Type any command to try it."""
+Tip: Objects have permanent shortcuts like [fp] for fireplace, [we] for well!
+Example: 'li fp' lights the fireplace, 'dr we' drinks from the well"""
         
         return ActionResult(
             success=True,
@@ -296,6 +330,36 @@ Type any command to try it."""
         except Exception as e:
             return ActionResult(False, f"Movement failed: {str(e)}")
     
+    def _update_location_shortcuts(self):
+        """Update shortkey manager with current location's objects"""
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return
+        
+        gs = self.game_engine.game_state
+        
+        # Only update if in a location
+        if not gs.world_position.current_location_id:
+            return
+        
+        location_data = gs.world_position.current_location_data
+        if not location_data:
+            return
+        
+        # Get objects from current area
+        areas = location_data.get("areas", {})
+        current_area_id = gs.world_position.current_area_id
+        
+        if current_area_id not in areas:
+            return
+        
+        area_data = areas[current_area_id]
+        objects = area_data.get("objects", [])
+        
+        # Update shortkey manager
+        from actions.shortkey_manager import get_shortkey_manager
+        shortkey_manager = get_shortkey_manager()
+        shortkey_manager.assign_object_shortcuts_from_data(objects)
+    
     def handle_look(self, *args) -> ActionResult:
         """Handle look command through GameEngine"""
         if not self.game_engine:
@@ -306,6 +370,9 @@ Type any command to try it."""
             
             # Check if player is inside a location
             if gs.world_position.current_location_id:
+                # Update shortcuts for current location
+                self._update_location_shortcuts()
+                
                 # Inside a location - show location description and contents
                 location_data = gs.world_position.current_location_data
                 if location_data:
@@ -342,6 +409,9 @@ Type any command to try it."""
             success, message = self.game_engine.enter_location()
             
             if success:
+                # Update shortkey mappings for objects in this location
+                self._update_location_shortcuts()
+                
                 # CRITICAL: Use time system to ensure condition effects are applied during time passage
                 if self.game_engine.time_system:
                     time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.25)
@@ -1573,6 +1643,7 @@ Type any command to try it."""
             self._apply_rest_benefit(rest_bonus + 3)  # Extra benefit for sleeping vs resting
             
             # Use time system
+            time_result = None
             if self.game_engine.time_system:
                 time_result = self.game_engine.time_system.perform_activity("sleep", duration_override=sleep_duration)
                 if not time_result.get("success", True):
@@ -1583,10 +1654,11 @@ Type any command to try it."""
             if rest_bonus > 0:
                 message += f"\nThe {comfort_level} comfort provides +{rest_bonus} rest quality."
             
-            return ActionResult(
+            # Include condition messages and debug output from time system
+            return ActionResult.from_time_result(
+                time_result,
                 success=True,
                 message=message,
-                time_passed=sleep_duration,
                 action_type="rest"
             )
         except Exception as e:
@@ -2057,6 +2129,7 @@ Type any command to try it."""
         
         try:
             # Use time system with "wait" activity (ensures condition effects are applied)
+            time_result = None
             if self.game_engine.time_system:
                 time_result = self.game_engine.time_system.perform_activity("wait", duration_override=duration_hours)
                 if not time_result.get("success", True):
@@ -2090,10 +2163,11 @@ Type any command to try it."""
             else:
                 message += f"\nYou rest in the wilderness of hex {self.game_engine.game_state.world_position.hex_id}."
             
-            return ActionResult(
+            # Include condition messages and debug output from time system
+            return ActionResult.from_time_result(
+                time_result,
                 success=True,
                 message=message,
-                time_passed=duration_hours,
                 action_type="wait"
             )
             

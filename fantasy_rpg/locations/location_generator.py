@@ -47,6 +47,7 @@ class GameObject:
     """Object within an area (furniture, features, etc.)"""
     id: str
     name: str
+    shortkey: str = ""  # Permanent shortkey from JSON
     description: str = ""
     interactive: bool = True
     properties: Dict[str, Any] = field(default_factory=dict)
@@ -536,6 +537,7 @@ class LocationGenerator:
             obj = GameObject(
                 id=item_id,
                 name=selected_name,
+                shortkey=data.get("shortkey", ""),
                 description=data.get("description", ""),
                 interactive=data.get("interactive", True),
                 properties=data.get("properties", {})

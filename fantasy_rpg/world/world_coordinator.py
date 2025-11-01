@@ -303,6 +303,7 @@ class WorldCoordinator:
                 obj_dict = {
                     "id": getattr(obj, 'id', 'unknown'),
                     "name": getattr(obj, 'name', 'Unknown Object'),
+                    "shortkey": getattr(obj, 'shortkey', ''),
                     "description": getattr(obj, 'description', ''),
                     "interactive": getattr(obj, 'interactive', True),
                     "properties": getattr(obj, 'properties', {}),

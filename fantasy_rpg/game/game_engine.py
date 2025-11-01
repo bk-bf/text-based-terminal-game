@@ -1580,7 +1580,7 @@ class GameEngine:
             return False, f"Failed to dump hex data: {str(e)}"
 
     def get_location_contents(self) -> str:
-        """Get a description of objects and items in the current location"""
+        """Get a description of objects and items in the current location with shortkeys"""
         if not self.is_initialized or not self.game_state:
             return ""
         
@@ -1608,12 +1608,37 @@ class GameEngine:
         content_parts = []
         
         if objects:
-            object_names = [obj.get("name", "Unknown") for obj in objects]
-            content_parts.append(f"Objects: {', '.join(object_names)}")
+            # Format objects with their permanent shortkeys from JSON
+            formatted_objects = []
+            
+            # DEBUG: Write to file for inspection
+            with open("shortkey_debug.txt", "w") as f:
+                f.write("=== OBJECT DEBUG OUTPUT ===\n\n")
+                for obj in objects:
+                    obj_name = obj.get("name", "Unknown")
+                    shortkey = obj.get("shortkey", "")
+                    
+                    f.write(f"Object: {obj_name}\n")
+                    f.write(f"Shortkey: '{shortkey}'\n")
+                    f.write(f"Full dict keys: {list(obj.keys())}\n")
+                    f.write(f"Full dict: {obj}\n")
+                    f.write("-" * 50 + "\n")
+                    
+                    if shortkey:
+                        formatted_objects.append(f"{obj_name} [{shortkey}]")
+                    else:
+                        formatted_objects.append(obj_name)
+            
+            content_parts.append(f"You notice {', '.join(formatted_objects)}.")
         
         if items:
             item_names = [item.get("name", "Unknown") for item in items]
-            content_parts.append(f"Items: {', '.join(item_names)}")
+            if len(item_names) <= 3:
+                content_parts.append(f"Items on the ground: {', '.join(item_names)}.")
+            else:
+                shown = item_names[:3]
+                remaining = len(item_names) - 3
+                content_parts.append(f"Items on the ground: {', '.join(shown)}, and {remaining} more.")
         
         return "\n".join(content_parts) if content_parts else ""
 
@@ -2023,12 +2048,6 @@ class GameEngine:
         survival_data["wetness"] = getattr(survival, "wetness", 0)
         survival_data["wind_chill"] = getattr(survival, "wind_chill", 0)
         
-        # Health effects
-        survival_data["hypothermia_risk"] = getattr(survival, "hypothermia_risk", 0)
-        survival_data["hyperthermia_risk"] = getattr(survival, "hyperthermia_risk", 0)
-        survival_data["dehydration_effects"] = getattr(survival, "dehydration_effects", 0)
-        survival_data["starvation_effects"] = getattr(survival, "starvation_effects", 0)
-        
         return {
             "survival": survival_data,
             "game_time": {
@@ -2065,10 +2084,6 @@ class GameEngine:
         player_state.survival.warmth = survival_data["warmth"]
         player_state.survival.wetness = survival_data["wetness"]
         player_state.survival.wind_chill = survival_data["wind_chill"]
-        player_state.survival.hypothermia_risk = survival_data["hypothermia_risk"]
-        player_state.survival.hyperthermia_risk = survival_data["hyperthermia_risk"]
-        player_state.survival.dehydration_effects = survival_data["dehydration_effects"]
-        player_state.survival.starvation_effects = survival_data["starvation_effects"]
         
         # Restore game time data
         if "game_time" in data:

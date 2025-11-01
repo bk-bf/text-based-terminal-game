@@ -247,8 +247,6 @@ condition:"""
                     
                     condition_list = ", ".join(formatted_conditions)
                     survival_text += f"\n{condition_list}"
-                else:
-                    survival_text += "\n[#00FF00]Healthy[/]"
                     
             except (ImportError, Exception) as e:
                 # Fallback to old system if conditions system not available
@@ -261,10 +259,6 @@ condition:"""
                     if formatted_conditions:
                         condition_list = ", ".join(formatted_conditions)
                         survival_text += f"\n{condition_list}"
-                    else:
-                        survival_text += "\n[Healthy]"
-                else:
-                    survival_text += "\n[Healthy]"
         
         # Get realistic environment description
         environment_text = self._get_environment_description(char)

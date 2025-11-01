@@ -18,10 +18,12 @@ try:
     from .screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen, LoadGameConfirmationScreen
     from ..actions.input_controller import InputController
     from ..actions.action_logger import get_action_logger
+    from ..actions.action_handler import ActionResult
 except ImportError:
     from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen, LoadGameConfirmationScreen
     from fantasy_rpg.actions.input_controller import InputController
     from fantasy_rpg.actions.action_logger import get_action_logger
+    from fantasy_rpg.actions.action_handler import ActionResult
 
 
 class FantasyRPGApp(App):
@@ -236,11 +238,26 @@ class FantasyRPGApp(App):
             self.log_message(response.get('message', 'Unknown error'))
             
         elif response_type == 'action_result':
-            # Handle general GameEngine action results
-            message = response.get('message', '')
-            if message:
-                self.log_message(message)
-                self.log_message("")  # Add line break after command output
+            # Use action_logger to properly format and log the complete result
+            # This handles time passage, condition messages, debug output, etc.
+            action_logger = get_action_logger()
+            
+            # Reconstruct ActionResult from response data
+            result_data = response.get('result_data', {})
+            action_result = ActionResult(
+                success=response.get('success', True),
+                message=response.get('message', ''),
+                time_passed=response.get('time_passed', 0.0),
+                **result_data
+            )
+            
+            # Log through action_logger which handles all formatting
+            action_logger.log_action_result(
+                action_result,
+                character=self.character,
+                command_text=response.get('command', ''),
+                player_state=self.game_engine.game_state.player_state if self.game_engine else None
+            )
             
             # Update UI state from GameEngine
             self._refresh_ui_from_game_state()
@@ -282,6 +299,12 @@ class FantasyRPGApp(App):
             command = response.get('command', 'xp')
             self.log_command(command)
             self.add_experience(100)
+        
+        elif response_type == 'debug_survival':
+            command = response.get('command', 'debug_survival')
+            status = response.get('status', 'UNKNOWN')
+            self.log_command(command)
+            self.log_message(f"[cyan]🔍 Survival debug logging: {status}[/cyan]")
             
         elif response_type == 'save_log':
             command = response.get('command', 'save')

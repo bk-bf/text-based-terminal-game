@@ -84,12 +84,6 @@ class SurvivalNeeds:
     wetness: int = 0  # 0-400, how wet the character is
     wind_chill: int = 0  # 0-200, wind chill effect
     
-    # Health effects from survival
-    hypothermia_risk: int = 0  # 0-100, risk of hypothermia
-    hyperthermia_risk: int = 0  # 0-100, risk of overheating
-    dehydration_effects: int = 0  # 0-100, dehydration severity
-    starvation_effects: int = 0  # 0-100, starvation severity
-    
     def get_hunger_level(self) -> SurvivalLevel:
         """Get hunger status level"""
         if self.hunger >= 800:
@@ -190,6 +184,7 @@ class PlayerState:
     current_hex: str = "0847"
     current_location: str = "Forest Clearing"
     current_weather: Optional[WeatherState] = None
+    current_shelter: Optional[Dict[str, str]] = None  # Shelter tracking for condition system
     
     # Activity tracking
     last_meal_hours: int = 0  # Hours since last meal
@@ -201,15 +196,23 @@ class PlayerState:
     temporary_modifiers: Dict[str, int] = field(default_factory=dict)
     active_conditions: List[str] = field(default_factory=list)  # Conditions from conditions.json
     
+    # Debug mode flag - ENABLED BY DEFAULT for development/testing
+    debug_survival: bool = True  # Shows detailed survival calculations after time-passing actions
+    
     # Shelter now works automatically via location flags (like "Lit Fire" system)
     
-    def advance_time(self, hours: float, activity: str = "normal"):
+    def advance_time(self, hours: float, activity: str = "normal") -> dict:
         """
         Advance game time and update survival needs.
         
         Args:
             hours: Number of hours to advance
             activity: Activity level during this time
+            
+        Returns:
+            Dictionary with:
+                - newly_triggered_conditions: List of condition trigger messages
+                - debug_output: Debug summary string (if debug_survival enabled)
         """
         self.turn_counter += 1
         self.activity_level = activity
@@ -238,11 +241,23 @@ class PlayerState:
         # Update health effects
         self._update_health_effects()
         
-        # Update status effects
-        self._update_status_effects()
+        # Update status effects and collect newly triggered condition messages
+        newly_triggered = self._update_status_effects()
+        
+        # Collect debug output if enabled (return as string instead of printing)
+        debug_output = None
+        if self.debug_survival:
+            debug_output = self._get_survival_summary_string(hours, activity)
+        
+        return {
+            "newly_triggered_conditions": newly_triggered,
+            "debug_output": debug_output
+        }
     
     def _update_hunger(self, hours: float, activity: str):
         """Update hunger based on time and activity - MUCH slower for realism"""
+        old_hunger = self.survival.hunger
+        
         # Base hunger rate (points per hour) - GREATLY reduced for balance
         base_rate = 2  # Was 8, now 2 (4x slower)
         
@@ -257,14 +272,21 @@ class PlayerState:
         rate = base_rate * activity_modifiers.get(activity, 1.0)
         hunger_loss = int(rate * hours)
         
+        if self.debug_survival:
+            print(f"\n=== HUNGER UPDATE ===")
+            print(f"  Base rate: {base_rate}/hour")
+            print(f"  Activity: {activity} (×{activity_modifiers.get(activity, 1.0)})")
+            print(f"  Effective rate: {rate}/hour")
+            print(f"  Time passed: {hours:.2f}h")
+            print(f"  Hunger loss: -{hunger_loss}")
+            print(f"  Before: {old_hunger}")
+        
         # Apply hunger loss
         self.survival.hunger = max(0, self.survival.hunger - hunger_loss)
         
-        # Update starvation effects
-        if self.survival.hunger < 200:
-            self.survival.starvation_effects = min(100, self.survival.starvation_effects + int(hours * 2))
-        elif self.survival.hunger > 400:
-            self.survival.starvation_effects = max(0, self.survival.starvation_effects - int(hours))
+        if self.debug_survival:
+            print(f"  After: {self.survival.hunger}")
+            print(f"  Change: {self.survival.hunger - old_hunger}")
     
     def _update_thirst(self, hours: float, activity: str):
         """Update thirst based on time, activity, and environment - 3x faster than hunger"""
@@ -297,12 +319,6 @@ class PlayerState:
         
         # Apply thirst loss
         self.survival.thirst = max(0, self.survival.thirst - thirst_loss)
-        
-        # Update dehydration effects
-        if self.survival.thirst < 200:
-            self.survival.dehydration_effects = min(100, self.survival.dehydration_effects + int(hours * 3))
-        elif self.survival.thirst > 400:
-            self.survival.dehydration_effects = max(0, self.survival.dehydration_effects - int(hours))
     
     def _update_fatigue(self, hours: float, activity: str):
         """Update fatigue based on time and activity"""
@@ -310,7 +326,16 @@ class PlayerState:
         
         if activity == "resting":
             # Resting INCREASES fatigue (gets more rested) - HIGH fatigue = well rested
-            recovery = int(30 * hours)  # 30 points per hour
+            recovery = int(30 * hours)  # 30 points per hour base rate
+            
+            # Apply shelter bonuses for better rest quality (subtle improvements)
+            if "Excellent Shelter" in self.active_conditions:
+                recovery += int(5 * hours)  # +5/hour in excellent shelter
+            elif "Good Shelter" in self.active_conditions:
+                recovery += int(3 * hours)  # +3/hour in good shelter
+            elif "Natural Shelter" in self.active_conditions:
+                recovery += int(2 * hours)  # +2/hour in natural shelter
+            
             self.survival.fatigue = min(1000, self.survival.fatigue + recovery)
             print(f"  Fatigue: RESTING for {hours:.1f}h, +{recovery} rest, {old_fatigue} → {self.survival.fatigue}")
             
@@ -334,7 +359,7 @@ class PlayerState:
             print(f"  Fatigue: {activity.upper()} for {hours:.1f}h, -{fatigue_loss} rest, {old_fatigue} → {self.survival.fatigue}")
     
     def _update_temperature_regulation(self, hours: float):
-        """Update body temperature based on weather and clothing"""
+        """Update body temperature based on weather, clothing, and environmental conditions"""
         if not self.current_weather:
             return
         
@@ -358,58 +383,162 @@ class PlayerState:
             warmth_bonus = cold_resistance * 15  # Up to 300 points of warmth
             target_temp += warmth_bonus
         
-        # Gradual temperature change
+        # Check for environmental condition effects (fire, shelter, wetness, wind)
+        has_lit_fire = "Lit Fire" in self.active_conditions
+        has_natural_shelter = "Natural Shelter" in self.active_conditions
+        has_good_shelter = "Good Shelter" in self.active_conditions
+        has_excellent_shelter = "Excellent Shelter" in self.active_conditions
+        has_wet = "Wet" in self.active_conditions
+        has_soaked = "Soaked" in self.active_conditions
+        has_wind_chilled = "Wind Chilled" in self.active_conditions
+        
+        # Calculate base temperature change rate
         temp_diff = target_temp - self.survival.body_temperature
-        change_rate = 0.3 * hours  # 30% change per hour
+        base_change_rate = 0.3  # 30% change per hour (base)
+        
+        # Shelter provides temperature stabilization (reduces change rate)
+        shelter_stabilization = 1.0  # Default: no stabilization
+        if has_excellent_shelter:
+            shelter_stabilization = 0.15  # 85% reduction in temperature change
+        elif has_good_shelter:
+            shelter_stabilization = 0.35  # 65% reduction in temperature change
+        elif has_natural_shelter:
+            shelter_stabilization = 0.65  # 35% reduction in temperature change
+        
+        # Apply shelter stabilization to change rate
+        change_rate = base_change_rate * shelter_stabilization * hours
         temp_change = int(temp_diff * change_rate)
         
+        # Apply environmental temperature change
         self.survival.body_temperature += temp_change
-        self.survival.body_temperature = max(0, min(1000, self.survival.body_temperature))
         
-        # Update temperature-related risks
-        if self.survival.body_temperature < 300:
-            risk_increase = int((300 - self.survival.body_temperature) / 10 * hours)
-            self.survival.hypothermia_risk = min(100, self.survival.hypothermia_risk + risk_increase)
-        elif self.survival.body_temperature > 700:
-            risk_increase = int((self.survival.body_temperature - 700) / 10 * hours)
-            self.survival.hyperthermia_risk = min(100, self.survival.hyperthermia_risk + risk_increase)
-        else:
-            # Recovery when in comfortable range
-            self.survival.hypothermia_risk = max(0, self.survival.hypothermia_risk - int(hours * 5))
-            self.survival.hyperthermia_risk = max(0, self.survival.hyperthermia_risk - int(hours * 5))
+        # Active cooling conditions (wetness, wind chill) - applied BEFORE fire warming
+        # These cause continuous heat loss regardless of environmental temperature
+        
+        # Wetness conditions cause active heat loss (evaporative cooling + reduced insulation)
+        if has_soaked:
+            # Soaked: severe active cooling (20 points/hour base)
+            cooling_rate = 20
+            
+            # Emergency cooling when dangerously hot (body_temp > 900)
+            if self.survival.body_temperature > 900:
+                cooling_rate = 35  # Increased cooling when critically hot
+            
+            # Calculate cooling for time passed (no cap - can cool to freezing)
+            active_cooling = int(cooling_rate * hours)
+            self.survival.body_temperature -= active_cooling
+            
+        elif has_wet:
+            # Wet: moderate active cooling (10 points/hour base)
+            cooling_rate = 10
+            
+            # Emergency cooling when dangerously hot (body_temp > 900)
+            if self.survival.body_temperature > 900:
+                cooling_rate = 18  # Increased cooling when critically hot
+            
+            # Calculate cooling for time passed (no cap - can cool to freezing)
+            active_cooling = int(cooling_rate * hours)
+            self.survival.body_temperature -= active_cooling
+        
+        # Wind Chilled condition causes active heat loss (wind stripping away warmth)
+        if has_wind_chilled:
+            # Wind chill: active cooling (15 points/hour base)
+            cooling_rate = 15
+            
+            # Emergency cooling when dangerously hot (body_temp > 900)
+            if self.survival.body_temperature > 900:
+                cooling_rate = 25  # Increased cooling when critically hot
+            
+            # Calculate cooling for time passed (no cap - can cool to freezing)
+            active_cooling = int(cooling_rate * hours)
+            self.survival.body_temperature -= active_cooling
+        
+        # Lit Fire provides active warming (counteracts cooling, synergizes with shelter)
+        if has_lit_fire:
+            # Fire warming rate: 15 points per hour (can be boosted in cold conditions)
+            fire_warming_rate = 15
+            
+            # In freezing conditions (body_temp < 100), fire provides emergency warming
+            if self.survival.body_temperature < 100:
+                fire_warming_rate = 25  # Increased warming when critically cold
+            
+            # Calculate warming for time passed (no cap - natural regulation through environmental system)
+            fire_warming = int(fire_warming_rate * hours)
+            self.survival.body_temperature += fire_warming
+        
+        # Clamp temperature to valid range
+        self.survival.body_temperature = max(0, min(1000, self.survival.body_temperature))
     
     def _update_environmental_exposure(self, hours: float):
-        """Update wetness and wind chill effects"""
+        """Update wetness and wind chill effects with shelter protection"""
         if not self.current_weather:
             return
         
-        # Update wetness from precipitation
+        # Check for shelter conditions that provide protection
+        has_lit_fire = "Lit Fire" in self.active_conditions
+        has_natural_shelter = "Natural Shelter" in self.active_conditions
+        has_good_shelter = "Good Shelter" in self.active_conditions
+        has_excellent_shelter = "Excellent Shelter" in self.active_conditions
+        
+        # Calculate precipitation reduction (0.0 = full effect, 1.0 = complete immunity)
+        precipitation_reduction = 0.0
+        if has_excellent_shelter:
+            precipitation_reduction = 1.0  # Complete immunity
+        elif has_good_shelter:
+            precipitation_reduction = 0.75  # 75% reduction
+        elif has_natural_shelter:
+            precipitation_reduction = 0.5  # 50% reduction
+        
+        # Calculate wind chill reduction (0.0 = full effect, 1.0 = complete immunity)
+        wind_chill_reduction = 0.0
+        if has_excellent_shelter:
+            wind_chill_reduction = 1.0  # Complete immunity
+        elif has_good_shelter:
+            wind_chill_reduction = 0.75  # 75% reduction
+        elif has_natural_shelter:
+            wind_chill_reduction = 0.5  # 50% reduction
+        
+        # Update wetness from precipitation (reduced by shelter)
         if self.current_weather.precipitation > 0:
-            wetness_increase = int(self.current_weather.precipitation / 10 * hours)
+            # Apply precipitation reduction from shelter
+            effective_precipitation = self.current_weather.precipitation * (1.0 - precipitation_reduction)
+            wetness_increase = int(effective_precipitation / 10 * hours)
             self.survival.wetness = min(400, self.survival.wetness + wetness_increase)
         else:
-            # Dry off gradually
+            # Dry off gradually (base rate + bonuses from shelter/fire)
             dry_rate = 5  # Base drying rate
+            
+            # Weather bonuses (existing)
             if self.current_weather.wind_speed > 10:
                 dry_rate += self.current_weather.wind_speed // 5  # Wind helps drying
             if self.current_weather.temperature > 70:
                 dry_rate += 5  # Heat helps drying
             
+            # Shelter/fire wetness reduction bonuses (active drying from conditions)
+            if has_lit_fire:
+                dry_rate += 15  # Fire provides excellent drying (most effective)
+            elif has_excellent_shelter:
+                dry_rate += 8  # Excellent shelter provides good drying
+            elif has_good_shelter:
+                dry_rate += 5  # Good shelter provides moderate drying
+            elif has_natural_shelter:
+                dry_rate += 3  # Natural shelter provides some drying
+            
             wetness_decrease = int(dry_rate * hours)
             self.survival.wetness = max(0, self.survival.wetness - wetness_decrease)
         
-        # Update wind chill
+        # Update wind chill (reduced by shelter)
         if self.current_weather.wind_speed > 5 and self.current_weather.temperature < 60:
-            wind_chill_effect = int(self.current_weather.wind_speed * 2 * hours)
+            # Apply wind chill reduction from shelter
+            effective_wind_speed = self.current_weather.wind_speed * (1.0 - wind_chill_reduction)
+            wind_chill_effect = int(effective_wind_speed * 2 * hours)
             self.survival.wind_chill = min(200, self.survival.wind_chill + wind_chill_effect)
         else:
             # Wind chill fades when out of wind
             self.survival.wind_chill = max(0, self.survival.wind_chill - int(hours * 10))
         
-        # Wetness makes you colder
-        if self.survival.wetness > 100:
-            wetness_penalty = int(self.survival.wetness / 20 * hours)
-            self.survival.body_temperature = max(0, self.survival.body_temperature - wetness_penalty)
+        # Note: Wetness cooling now handled by condition system in _update_temperature_regulation()
+        # This allows proper integration with fire/shelter effects
     
     def _apply_immediate_wetness_effects(self, new_weather: WeatherState, old_weather: WeatherState):
         """Apply immediate wetness when entering precipitation"""
@@ -451,8 +580,14 @@ class PlayerState:
         # This method is kept for compatibility but does nothing
         pass
     
-    def _update_status_effects(self):
-        """Update temporary status effects and modifiers"""
+    def _update_status_effects(self) -> list[dict]:
+        """Update temporary status effects and modifiers
+        
+        Returns:
+            List of newly triggered condition messages (dicts with 'name' and 'message')
+        """
+        newly_triggered = []
+        
         # Update conditions from conditions.json
         try:
             # Try different import paths for conditions
@@ -462,13 +597,32 @@ class PlayerState:
                 from conditions import get_conditions_manager
             
             conditions_manager = get_conditions_manager()
+            
+            # Store previous conditions before evaluation
+            previous_conditions = set(self.active_conditions)
+            
+            # Evaluate current conditions
             self.active_conditions = conditions_manager.evaluate_conditions(self)
+            current_conditions = set(self.active_conditions)
+            
+            # Debug output
+            if self.debug_survival:
+                print(f"[DEBUG] Conditions updated: {self.active_conditions}")
+                print(f"[DEBUG] Current shelter: {self.current_shelter}")
+            
+            # Get newly triggered conditions with their messages
+            newly_triggered = conditions_manager.get_newly_triggered_conditions(
+                previous_conditions, current_conditions, self
+            )
+            
         except Exception as e:
             print(f"Error evaluating conditions: {e}")
             self.active_conditions = []
         
         # Clear expired temporary modifiers
         # (This would be expanded with actual duration tracking)
+        
+        return newly_triggered
     
     def eat_food(self, nutrition_value: int):
         """Consume food to reduce hunger"""
@@ -571,6 +725,106 @@ Wetness: {wetness_level.name.title()}"""
         """Update current location"""
         self.current_hex = hex_id
         self.current_location = location_name
+    
+    def _get_survival_summary_string(self, hours: float, activity: str) -> str:
+        """Generate comprehensive survival stats summary string for debugging
+        
+        Args:
+            hours: Hours that passed
+            activity: Activity type
+            
+        Returns:
+            Formatted debug string with all survival stats
+        """
+        lines = []
+        lines.append(f"\n{'='*74}")
+        lines.append(f"SURVIVAL STATS SUMMARY (after {hours:.2f}h of '{activity}' activity)")
+        lines.append(f"{'='*74}")
+        
+        # Current conditions - EVALUATE FRESH (same as character panel) to avoid race conditions
+        lines.append(f"\nACTIVE CONDITIONS:")
+        current_conditions = []
+        try:
+            # Evaluate conditions fresh (same pattern as panels.py)
+            try:
+                from .conditions import get_conditions_manager
+            except ImportError:
+                from conditions import get_conditions_manager
+            
+            conditions_manager = get_conditions_manager()
+            current_conditions = conditions_manager.evaluate_conditions(self)
+            
+            if current_conditions:
+                for cond in current_conditions:
+                    lines.append(f"  • {cond}")
+            else:
+                lines.append(f"  (none)")
+        except Exception as e:
+            # Fallback to self.active_conditions if conditions system fails
+            if self.active_conditions:
+                for cond in self.active_conditions:
+                    lines.append(f"  • {cond}")
+            else:
+                lines.append(f"  (none)")
+                lines.append(f"  [Error evaluating conditions: {e}]")
+        
+        # Survival stats
+        lines.append(f"\nHUNGER: {self.survival.hunger}/1000")
+        lines.append(f"   Level: {self.survival.get_hunger_level().name}")
+        
+        lines.append(f"\nTHIRST: {self.survival.thirst}/1000")
+        lines.append(f"   Level: {self.survival.get_thirst_level().name}")
+        
+        lines.append(f"\nFATIGUE: {self.survival.fatigue}/1000 (HIGH = well rested)")
+        lines.append(f"   Level: {self.survival.get_fatigue_level().name}")
+        
+        # Temperature stats
+        lines.append(f"\nWARMTH: {self.survival.body_temperature}/1000")
+        lines.append(f"   Status: {self.survival.get_temperature_status().name}")
+        if self.current_weather:
+            temp_f = self.current_weather.temperature
+            temp_c = (temp_f - 32) * 5 / 9
+            feels_f = self.current_weather.feels_like
+            feels_c = (feels_f - 32) * 5 / 9
+            lines.append(f"   Ambient: {temp_f:.1f}°F / {temp_c:.1f}°C (feels like {feels_f:.1f}°F / {feels_c:.1f}°C)")
+        
+        # Environmental exposure
+        lines.append(f"\nWIND CHILL: {self.survival.wind_chill}/200")
+        if self.current_weather:
+            lines.append(f"   Wind: {self.current_weather.wind_speed} mph from {self.current_weather.wind_direction}")
+        
+        lines.append(f"\nWETNESS: {self.survival.wetness}/400")
+        lines.append(f"   Level: {self.survival.get_wetness_level().name}")
+        if self.current_weather:
+            lines.append(f"   Precipitation: {self.current_weather.precipitation} ({self.current_weather.precipitation_type})")
+        
+        # Shelter info - CHECK CONDITIONS (use fresh evaluation from above)
+        shelter_from_conditions = None
+        if "Excellent Shelter" in current_conditions:
+            shelter_from_conditions = "Excellent Shelter"
+        elif "Good Shelter" in current_conditions:
+            shelter_from_conditions = "Good Shelter"
+        elif "Natural Shelter" in current_conditions:
+            shelter_from_conditions = "Natural Shelter"
+        
+        if shelter_from_conditions:
+            lines.append(f"\nSHELTER: {shelter_from_conditions} (from location)")
+        elif hasattr(self, 'current_shelter') and self.current_shelter:
+            # Fallback to old system if present (obsolete)
+            lines.append(f"\nSHELTER: {self.current_shelter.get('quality', 'unknown')} ({self.current_shelter.get('type', 'unknown')})")
+        else:
+            lines.append(f"\nSHELTER: None (exposed)")
+        
+        # Time info
+        lines.append(f"\nTIME: Day {self.game_day}, {int(self.game_hour):02d}:{int((self.game_hour % 1) * 60):02d}")
+        lines.append(f"   Season: {self.game_season}")
+        lines.append(f"   Last meal: {self.last_meal_hours:.1f}h ago")
+        lines.append(f"   Last drink: {self.last_drink_hours:.1f}h ago")
+        lines.append(f"   Last sleep: {self.last_sleep_hours:.1f}h ago")
+        
+        lines.append(f"{'='*74}\n")
+        
+        return "\n".join(lines)
 
 
 def test_player_state():
@@ -689,7 +943,6 @@ def test_player_state():
     print(f"Body temperature: {old_temp} -> {player.survival.body_temperature}")
     print(f"Wetness: {old_wetness} -> {player.survival.wetness}")
     print(f"Temperature status: {player.survival.get_temperature_status().name}")
-    print(f"Hypothermia risk: {player.survival.hypothermia_risk}%")
     
     # Test 7: Active conditions
     print("\n7. Testing active conditions:")
