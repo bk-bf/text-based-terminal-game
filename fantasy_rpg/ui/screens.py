@@ -213,7 +213,7 @@ class InventoryScreen(ModalScreen):
         self._initial_character = character
         self.selected_index = 0
         self.selected_category = "equipment"  # Start in equipment
-        self.show_detail_panel = False
+        self.show_detail_panel = True  # Show details by default
         self.equipment_items = []  # Equipment items
         self.inventory_items = []  # Inventory items
         self._build_item_lists()
@@ -264,8 +264,8 @@ class InventoryScreen(ModalScreen):
         slots = [
             ("main_hand", "Main Hand"),
             ("off_hand", "Off Hand"),
-            ("body", "Body"),
             ("head", "Helmet"),
+            ("body", "Body"),
             ("feet", "Boots"),
             ("hands", "Gloves"),
             ("ring_1", "Ring 1"),
@@ -314,8 +314,8 @@ class InventoryScreen(ModalScreen):
         slots = [
             ("main_hand", "Main Hand"),
             ("off_hand", "Off Hand"),
-            ("body", "Body"),
             ("head", "Helmet"),
+            ("body", "Body"),
             ("feet", "Boots"),
             ("hands", "Gloves"),
             ("ring_1", "Ring 1"),
@@ -369,7 +369,7 @@ class InventoryScreen(ModalScreen):
                         else:
                             inventory_text += f"  {item_line}\n"
                 else:
-                    inventory_text += "No items in inventory\n"
+                    inventory_text += "(Empty)\n"
                 
                 # Inventory stats - simplified with gold
                 try:
@@ -389,7 +389,7 @@ class InventoryScreen(ModalScreen):
                     inventory_text += f"\n0/0 lbs (Light), 0 gp"
                 
             else:
-                inventory_text += "No items in inventory\n"
+                inventory_text += "(Empty)\n"
                 
         except Exception as e:
             inventory_text += f"Error: {str(e)}\n"
@@ -565,7 +565,6 @@ class InventoryScreen(ModalScreen):
                     
                     self._build_item_lists()
                     self.selected_index = 0  # Reset selection
-                    self.show_detail_panel = False  # Hide details
                     self._update_display()  # Update UI
                 else:
                     self.app.log_message(f"Failed to unequip {item_data['name']}")
@@ -593,7 +592,6 @@ class InventoryScreen(ModalScreen):
                         self._build_item_lists()
                         self.selected_category = "equipment"  # Switch to equipment view
                         self.selected_index = 0
-                        self.show_detail_panel = False  # Hide details
                         self._update_display()  # Update UI
                     else:
                         self.app.log_message(f"Failed to equip {item_data['name']}")

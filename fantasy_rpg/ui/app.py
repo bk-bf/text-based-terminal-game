@@ -19,45 +19,50 @@ try:
     from ..actions.input_controller import InputController
     from ..actions.action_logger import get_action_logger
     from ..actions.action_handler import ActionResult
+    from .colors import THEME_COLORS
 except ImportError:
     from screens import MainGameScreen, InventoryScreen, CharacterScreen, QuitConfirmationScreen, LoadGameConfirmationScreen
     from fantasy_rpg.actions.input_controller import InputController
     from fantasy_rpg.actions.action_logger import get_action_logger
     from fantasy_rpg.actions.action_handler import ActionResult
+    from fantasy_rpg.ui.colors import THEME_COLORS
 
 
 class FantasyRPGApp(App):
     """Main Textual application with input handling"""
     
     CSS = """
-    Screen {
+    Screen {{
         layout: vertical;
-    }
+        background: {background};
+    }}
     
-    #title-bar {
+    #title-bar {{
         dock: top;
         height: 1;
-        background: $primary;
+        background: {accent};
         color: $text;
         text-align: center;
-    }
+    }}
     
-    Horizontal {
+    Horizontal {{
         height: 1fr;
-    }
+    }}
     
-    CharacterPanel {
+    CharacterPanel {{
         width: 25%;
         height: 1fr;
-        border: solid $primary;
+        border: solid {border};
         padding: 1;
-    }
+        background: {background};
+    }}
     
-    GameLogPanel {
+    GameLogPanel {{
         width: 50%;
         height: 1fr;
-        border: solid $primary;
+        border: solid {border};
         padding: 1;
+        background: {background};
         scrollbar-size: 1 0;
         scrollbar-color: transparent;
         scrollbar-color-hover: $background 50%;
@@ -65,131 +70,142 @@ class FantasyRPGApp(App):
         scrollbar-background: transparent;
         scrollbar-background-hover: transparent;
         scrollbar-background-active: transparent;
-    }
+    }}
     
-    POIPanel {
+    POIPanel {{
         width: 25%;
         height: 1fr;
-        border: solid $primary;
+        border: solid {border};
         padding: 1;
-    }
+        background: {background};
+    }}
     
-    #command-input {
+    #command-input {{
         dock: bottom;
-        height: 1;
-        margin: 0 1;
-        padding: 0;
-        border: none;
-        background: $surface;
-    }
+        height: 3;
+        padding: 0 1;
+        border: solid {border};
+        background: {background};
+    }}
     
     /* Load game confirmation dialog styles */
-    LoadGameConfirmationScreen {
+    LoadGameConfirmationScreen {{
         align: center middle;
-    }
+    }}
     
     /* Quit confirmation dialog styles */
-    QuitConfirmationScreen {
+    QuitConfirmationScreen {{
         align: center middle;
-    }
+    }}
     
-    #quit-dialog {
-        background: $surface;
-        border: thick $primary;
+    #quit-dialog {{
+        background: {dialog_bg};
+        border: thick {border};
         width: 35;
         height: 10;
         padding: 1;
-    }
+    }}
     
-    #quit-message {
+    #quit-message {{
         text-align: center;
         margin-bottom: 1;
-    }
+    }}
     
-    #quit-options {
+    #quit-options {{
         text-align: center;
         margin: 1 0;
-    }
+    }}
     
-    #quit-instruction {
+    #quit-instruction {{
         text-align: center;
         color: $text-muted;
         margin-top: 1;
-    }
+    }}
     
     /* Inventory screen styles */
-    InventoryScreen {
+    InventoryScreen {{
         align: center middle;
-    }
+    }}
     
-    #inventory-dialog {
-        background: $surface;
-        border: solid $primary;
-        width: 80;
-        height: 25;
+    #inventory-dialog {{
+        background: {dialog_bg};
+        border: solid {border};
+        width: 120;
+        height: 30;
         padding: 1;
-    }
+    }}
     
-    #inventory-title {
+    #inventory-title {{
         text-align: center;
         margin-bottom: 1;
-    }
+    }}
     
-    #equipment-column {
-        width: 50%;
+    #equipment-column {{
+        width: 1fr;
         padding: 0 1;
-    }
+    }}
     
-    #inventory-column {
-        width: 50%;
+    #inventory-column {{
+        width: 1fr;
         padding: 0 1;
-    }
+    }}
     
-    #inventory-instruction {
+    #detail-column {{
+        width: 1fr;
+        padding: 0 1;
+    }}
+    
+    #item-details {{
+        border: solid {border};
+        background: {background};
+        padding: 1;
+    }}
+    
+    #inventory-instruction {{
         text-align: center;
         color: $text-muted;
         margin-top: 1;
-    }
+    }}
     
     /* Character screen styles */
-    CharacterScreen {
+    CharacterScreen {{
         align: center middle;
-    }
+    }}
     
-    #character-dialog {
-        background: $surface;
-        border: solid $primary;
+    #character-dialog {{
+        background: {dialog_bg};
+        border: solid {border};
         width: 90;
         height: 35;
         padding: 1;
-    }
+    }}
     
-    #character-title {
+    #character-title {{
         text-align: center;
         margin-bottom: 1;
-    }
+    }}
     
-    #character-left-column {
+    #character-left-column {{
         width: 50%;
         padding: 0 1;
-    }
+    }}
     
-    #character-right-column {
+    #character-right-column {{
         width: 50%;
         padding: 0 1;
-    }
+    }}
     
-    #character-features {
+    #character-features {{
         padding: 0 1;
         margin-top: 1;
-    }
+    }}
     
-    #character-instruction {
+    #character-instruction {{
         text-align: center;
         color: $text-muted;
         margin-top: 1;
-    }
-    """
+    }}
+    """.format(**THEME_COLORS)
     
     def __init__(self):
         super().__init__()

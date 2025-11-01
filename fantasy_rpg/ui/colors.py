@@ -4,6 +4,14 @@ Fantasy RPG - Color Definitions
 Custom color palette for survival status indicators and UI elements.
 """
 
+# UI Theme Colors
+THEME_COLORS = {
+    "background": "#0a0a0a",      # Very dark gray background for panels
+    "dialog_bg": "#121212",       # Slightly lighter dark gray for dialogs
+    "border": "#6E8CFB",          # Muted golden border color
+    "accent": "#6E8CFB",          # Muted gold accent (same as border) 9b8451
+}
+
 # Survival Status Colors (from best to worst)
 SURVIVAL_COLORS = {
     "EXCELLENT": "#00AA00",    # Dark green - excellent status
