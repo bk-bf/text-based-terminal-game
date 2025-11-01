@@ -344,18 +344,26 @@ class CharacterCreationFlow:
             item = available_items.get(item_id)
             
             if item:
-                # Add the item to inventory with quantity
+                # Add the item to inventory with quantity - include ALL fields for proper InventoryItem creation
                 inventory_entry = {
                     "item_id": item_id,
                     "name": item.name,
                     "type": item.item_type,
                     "quantity": quantity,
                     "weight": item.weight,
+                    "value": item.value,
+                    "description": item.description,
+                    "properties": item.properties or [],
+                    "equippable": item.equippable,
+                    "slot": item.slot,
                     "ac_bonus": item.ac_bonus,
+                    "armor_type": getattr(item, 'armor_type', None),
                     "damage": item.damage_dice,
                     "damage_type": item.damage_type,
-                    "properties": item.properties or [],
-                    "description": item.description
+                    "magical": item.magical,
+                    "enchantment_bonus": item.enchantment_bonus,
+                    "special_properties": item.special_properties or [],
+                    "capacity_bonus": getattr(item, 'capacity_bonus', 0.0)
                 }
                 starting_inventory.append(inventory_entry)
                 print(f"  Added: {item.name} x{quantity}")
@@ -493,10 +501,17 @@ def create_character_quick(name: str, race_name: str = "Human", class_name: str 
             value=0,  # Default value
             quantity=item_data["quantity"],
             description=item_data.get("description", ""),
+            properties=item_data.get("properties", []),
             equippable=item_data["type"] in ["weapon", "armor", "shield"],
+            slot=item_data.get("slot"),
             ac_bonus=item_data.get("ac_bonus", 0),
+            armor_type=item_data.get("armor_type"),
             damage_dice=item_data.get("damage"),
-            damage_type=item_data.get("damage_type")
+            damage_type=item_data.get("damage_type"),
+            magical=item_data.get("magical", False),
+            enchantment_bonus=item_data.get("enchantment_bonus", 0),
+            special_properties=item_data.get("special_properties", []),
+            capacity_bonus=item_data.get("capacity_bonus", 0.0)
         )
         character.inventory.items.append(item)
     

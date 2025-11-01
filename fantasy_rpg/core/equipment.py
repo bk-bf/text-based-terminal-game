@@ -9,97 +9,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 from pathlib import Path
 
-
-@dataclass
-class Item:
-    """Base item class for all equipment and inventory items"""
-    name: str
-    item_type: str  # 'weapon', 'armor', 'shield', 'accessory', 'consumable', etc.
-    description: str = ""
-    weight: float = 0.0
-    value: int = 0
-    
-    # Equipment properties
-    equippable: bool = False
-    slot: Optional[str] = None  # Which slot this item can be equipped to
-    
-    # Combat properties
-    ac_bonus: int = 0
-    armor_type: Optional[str] = None  # 'light', 'medium', 'heavy'
-    damage_dice: Optional[str] = None  # '1d8', '2d6', etc.
-    damage_type: Optional[str] = None  # 'slashing', 'piercing', 'bludgeoning'
-    
-    # Magical properties
-    magical: bool = False
-    enchantment_bonus: int = 0
-    special_properties: List[str] = field(default_factory=list)
-    
-    # Container properties
-    capacity_bonus: float = 0.0  # Additional carrying capacity for containers
-    
-    @classmethod
-    def from_dict(cls, data: dict) -> 'Item':
-        """Create Item from dictionary data"""
-        return cls(
-            name=data['name'],
-            item_type=data['type'],
-            description=data.get('description', ''),
-            weight=data.get('weight', 0.0),
-            value=data.get('value', 0),
-            equippable=data.get('equippable', False),
-            slot=data.get('slot'),
-            ac_bonus=data.get('ac_bonus', 0),
-            armor_type=data.get('armor_type'),
-            damage_dice=data.get('damage_dice'),
-            damage_type=data.get('damage_type'),
-            magical=data.get('magical', False),
-            enchantment_bonus=data.get('enchantment_bonus', 0),
-            special_properties=data.get('special_properties', []),
-            capacity_bonus=data.get('capacity_bonus', 0.0)
-        )
-    
-    def can_equip_to_slot(self, slot: str) -> bool:
-        """Check if this item can be equipped to the specified slot"""
-        if not self.equippable:
-            return False
-        
-        # Handle special cases
-        if self.slot == 'ring' and slot in ['ring_1', 'ring_2']:
-            return True
-        if self.slot == 'hand' and slot in ['main_hand', 'off_hand']:
-            return True
-        
-        return self.slot == slot
-    
-    def get_ac_contribution(self, character=None) -> int:
-        """Calculate AC contribution from this item"""
-        base_ac = 0
-        
-        if self.item_type == 'armor':
-            if self.armor_type == 'light':
-                # Light armor: armor AC + full DEX modifier (including magical bonuses)
-                dex_mod = character.get_effective_ability_modifier('dexterity') if character else 0
-                base_ac = self.ac_bonus + dex_mod
-            elif self.armor_type == 'medium':
-                # Medium armor: armor AC + DEX modifier (max 2, including magical bonuses)
-                dex_mod = min(2, character.get_effective_ability_modifier('dexterity')) if character else 0
-                base_ac = self.ac_bonus + dex_mod
-            elif self.armor_type == 'heavy':
-                # Heavy armor: armor AC only
-                base_ac = self.ac_bonus
-        elif self.item_type == 'shield':
-            # Shield adds to AC
-            base_ac = self.ac_bonus
-        elif self.item_type == 'accessory':
-            # Accessories (rings, amulets) provide AC bonuses from ac_bonus field only
-            # enchantment_bonus is used for other bonuses (saves, etc.)
-            base_ac = self.ac_bonus
-        
-        # Add magical enhancement bonus for armor only (weapons handle this differently)
-        if self.magical and self.enchantment_bonus > 0 and self.item_type == 'armor':
-            base_ac += self.enchantment_bonus
-        
-        return base_ac
+# Import Item from item.py - single source of truth
+from .item import Item, ItemLoader as BaseItemLoader
 
 
 @dataclass
@@ -413,111 +324,69 @@ class Equipment:
         return "\n".join(lines)
 
 
-class ItemLoader:
-    """Loads item data from JSON files"""
+
+
+# ItemLoader is now just an alias to the one from item.py for backwards compatibility
+ItemLoader = BaseItemLoader
+
+
+# Manual testing function
+def test_equipment_system():
+    """Test the equipment system"""
+    print("=== Testing Equipment System ===")
     
-    def __init__(self, data_dir: str = None):
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                self.data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                self.data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                self.data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                self.data_dir = parent_data_dir
-        else:
-            self.data_dir = Path(data_dir)
-        self._items_cache: Optional[Dict[str, Item]] = None
+    # Create equipment instance
+    equipment = Equipment()
     
-    def load_items(self) -> Dict[str, Item]:
-        """Load all item definitions from items.json"""
-        if self._items_cache is not None:
-            return self._items_cache
-        
-        items_file = self.data_dir / "items.json"
-        if not items_file.exists():
-            print(f"Warning: {items_file} not found, using default items")
-            return self._get_default_items()
-        
-        try:
-            with open(items_file, 'r') as f:
-                data = json.load(f)
-            
-            items = {}
-            for item_key, item_data in data.get('items', {}).items():
-                items[item_key] = Item.from_dict(item_data)
-            
-            print(f"Loaded {len(items)} items from {items_file}")
-            self._items_cache = items
-            return items
-            
-        except Exception as e:
-            print(f"Error loading items from {items_file}: {e}")
-            return self._get_default_items()
+    print(f"Equipment slots: {equipment.get_slot_names()}")
+    print(f"Initial equipment:")
+    print(equipment.display_equipment())
     
-    def get_item(self, item_name: str) -> Optional[Item]:
-        """Get a specific item by name (case-insensitive)"""
-        items = self.load_items()
-        item_key = item_name.lower().replace(' ', '_')
-        return items.get(item_key)
+    # Load some items
+    item_loader = ItemLoader()
+    items = item_loader.load_items()
+    print(f"\nAvailable items: {list(items.keys())}")
     
-    def _get_default_items(self) -> Dict[str, Item]:
-        """Fallback default items if JSON file is missing"""
-        leather_armor = Item(
-            name="Leather Armor",
-            item_type="armor",
-            description="Basic leather armor",
-            ac_bonus=11,
-            armor_type="light",
-            weight=10.0,
-            value=10,
-            equippable=True,
-            slot="body"
-        )
-        
-        longsword = Item(
-            name="Longsword",
-            item_type="weapon",
-            description="A versatile sword",
-            damage_dice="1d8",
-            damage_type="slashing",
-            weight=3.0,
-            value=15,
-            equippable=True,
-            slot="main_hand",
-            special_properties=["versatile"]
-        )
-        
-        shield = Item(
-            name="Shield",
-            item_type="shield",
-            description="A sturdy wooden shield",
-            ac_bonus=2,
-            weight=6.0,
-            value=10,
-            equippable=True,
-            slot="off_hand"
-        )
-        
-        return {
-            "leather_armor": leather_armor,
-            "longsword": longsword,
-            "shield": shield
-        }
+    # Test equipping items
+    print(f"\n--- Testing Item Equipping ---")
+    
+    # Get some items to equip
+    leather_armor = item_loader.get_item("leather_armor")
+    longsword = item_loader.get_item("longsword")
+    shield = item_loader.get_item("shield")
+    
+    if leather_armor:
+        success, message = equipment.equip_item(leather_armor, "body")
+        print(f"Equip leather armor: {message}")
+    
+    if longsword:
+        success, message = equipment.equip_item(longsword, "main_hand")
+        print(f"Equip longsword: {message}")
+    
+    if shield:
+        success, message = equipment.equip_item(shield, "off_hand")
+        print(f"Equip shield: {message}")
+    
+    print(f"\nAfter equipping items:")
+    print(equipment.display_equipment())
+    
+    # Test unequipping
+    print(f"\n--- Testing Item Unequipping ---")
+    unequipped, message = equipment.unequip_item("off_hand")
+    print(f"Unequip result: {message}")
+    if unequipped:
+        print(f"Unequipped: {unequipped.name}")
+    
+    print(f"\nAfter unequipping shield:")
+    print(equipment.display_equipment())
+    
+    print("✓ Equipment system tests passed!")
+    return equipment
+
+
+if __name__ == "__main__":
+    test_equipment_system()
+
 
 
 # Manual testing function

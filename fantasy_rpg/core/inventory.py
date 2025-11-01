@@ -27,6 +27,7 @@ class InventoryItem:
     equippable: bool = False
     slot: Optional[str] = None
     ac_bonus: int = 0
+    armor_type: Optional[str] = None  # 'light', 'medium', 'heavy'
     damage_dice: Optional[str] = None
     damage_type: Optional[str] = None
     
@@ -34,6 +35,9 @@ class InventoryItem:
     magical: bool = False
     enchantment_bonus: int = 0
     special_properties: List[str] = field(default_factory=list)
+    
+    # Container properties
+    capacity_bonus: float = 0.0  # Additional carrying capacity for containers
     
     def get_total_weight(self) -> float:
         """Get total weight for this stack of items"""
@@ -74,11 +78,13 @@ class InventoryItem:
             equippable=self.equippable,
             slot=self.slot,
             ac_bonus=self.ac_bonus,
+            armor_type=self.armor_type,
             damage_dice=self.damage_dice,
             damage_type=self.damage_type,
             magical=self.magical,
             enchantment_bonus=self.enchantment_bonus,
-            special_properties=self.special_properties.copy()
+            special_properties=self.special_properties.copy(),
+            capacity_bonus=self.capacity_bonus
         )
         
         # Reduce this item's quantity
@@ -100,12 +106,43 @@ class InventoryItem:
             'equippable': self.equippable,
             'slot': self.slot,
             'ac_bonus': self.ac_bonus,
+            'armor_type': self.armor_type,
             'damage_dice': self.damage_dice,
             'damage_type': self.damage_type,
             'magical': self.magical,
             'enchantment_bonus': self.enchantment_bonus,
-            'special_properties': self.special_properties
+            'special_properties': self.special_properties,
+            'capacity_bonus': self.capacity_bonus
         }
+    
+    def to_item(self):
+        """Convert InventoryItem to Item object for equipment system"""
+        # Import from item.py - now the single source of truth
+        try:
+            from .item import Item
+        except ImportError:
+            from item import Item
+        
+        return Item(
+            name=self.name,
+            item_type=self.item_type,
+            weight=self.weight,
+            value=self.value,
+            description=self.description,
+            properties=self.properties,
+            pools=[],  # Not needed for equipped items
+            drop_weight=1,
+            ac_bonus=self.ac_bonus,
+            armor_type=self.armor_type,
+            damage_dice=self.damage_dice,
+            damage_type=self.damage_type,
+            equippable=self.equippable,
+            slot=self.slot,
+            magical=self.magical,
+            enchantment_bonus=self.enchantment_bonus,
+            special_properties=self.special_properties,
+            capacity_bonus=self.capacity_bonus
+        )
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'InventoryItem':
@@ -122,11 +159,13 @@ class InventoryItem:
             equippable=data.get('equippable', False),
             slot=data.get('slot'),
             ac_bonus=data.get('ac_bonus', 0),
+            armor_type=data.get('armor_type'),
             damage_dice=data.get('damage_dice'),
             damage_type=data.get('damage_type'),
             magical=data.get('magical', False),
             enchantment_bonus=data.get('enchantment_bonus', 0),
-            special_properties=data.get('special_properties', [])
+            special_properties=data.get('special_properties', []),
+            capacity_bonus=data.get('capacity_bonus', 0.0)
         )
 
 
@@ -498,12 +537,14 @@ class InventoryManager:
             properties=getattr(item, 'properties', []),
             equippable=item.equippable,
             slot=item.slot,
-            ac_bonus=item.ac_bonus,
+            ac_bonus=getattr(item, 'ac_bonus', 0) or 0,
+            armor_type=getattr(item, 'armor_type', None),
             damage_dice=item.damage_dice,
             damage_type=item.damage_type,
             magical=item.magical,
             enchantment_bonus=item.enchantment_bonus,
-            special_properties=item.special_properties
+            special_properties=item.special_properties or [],
+            capacity_bonus=getattr(item, 'capacity_bonus', 0.0)
         )
     
     def add_item_by_id(self, inventory: Inventory, item_id: str, quantity: int = 1) -> bool:
@@ -512,48 +553,6 @@ class InventoryManager:
         if inventory_item:
             return inventory.add_item(inventory_item)
         return False
-    
-    def convert_old_inventory(self, old_inventory: List[Dict]) -> Inventory:
-        """Convert old inventory format to new Inventory class"""
-        new_inventory = Inventory()
-        
-        print("Converting old inventory format to new system...")
-        
-        for old_item in old_inventory:
-            # Extract data from old format
-            item_id = old_item.get('item_id', old_item.get('name', '').lower().replace(' ', '_'))
-            name = old_item.get('name', 'Unknown Item')
-            item_type = old_item.get('type', 'misc')
-            weight = old_item.get('weight', 0.0)
-            value = old_item.get('value', old_item.get('cost', 0))
-            quantity = old_item.get('quantity', 1)
-            description = old_item.get('description', '')
-            
-            # Create new inventory item
-            inventory_item = InventoryItem(
-                item_id=item_id,
-                name=name,
-                item_type=item_type,
-                weight=weight,
-                value=value,
-                quantity=quantity,
-                description=description,
-                properties=old_item.get('properties', []),
-                equippable=old_item.get('equippable', False),
-                slot=old_item.get('slot'),
-                ac_bonus=old_item.get('ac_bonus', 0),
-                damage_dice=old_item.get('damage_dice', old_item.get('damage')),
-                damage_type=old_item.get('damage_type'),
-                magical=old_item.get('magical', False),
-                enchantment_bonus=old_item.get('enchantment_bonus', 0),
-                special_properties=old_item.get('special_properties', [])
-            )
-            
-            new_inventory.add_item(inventory_item)
-            print(f"  Converted: {name} x{quantity}")
-        
-        print(f"Conversion complete: {len(new_inventory.items)} item stacks")
-        return new_inventory
 
 
 def create_starting_inventory(character_class_name: str, strength_score: int = 10) -> Inventory:
@@ -625,35 +624,8 @@ def test_inventory_integration():
     print(f"\nInventory after adding items:")
     print(inventory.display_inventory())
     
-    # Test old inventory conversion
-    print(f"\n2. Testing Old Inventory Conversion:")
-    old_inventory = [
-        {
-            'item_id': 'healing_potion',
-            'name': 'Potion of Healing',
-            'type': 'consumable',
-            'weight': 0.5,
-            'value': 50,
-            'quantity': 3,
-            'description': 'Restores 2d4+2 hit points'
-        },
-        {
-            'item_id': 'arrows',
-            'name': 'Arrows',
-            'type': 'ammunition',
-            'weight': 0.05,
-            'value': 1,
-            'quantity': 20,
-            'description': 'Standard arrows for bows'
-        }
-    ]
-    
-    converted_inventory = manager.convert_old_inventory(old_inventory)
-    print(f"\nConverted inventory:")
-    print(converted_inventory.display_inventory())
-    
     # Test starting inventory creation
-    print(f"\n3. Testing Starting Inventory Creation:")
+    print(f"\n2. Testing Starting Inventory Creation:")
     fighter_inventory = create_starting_inventory('Fighter', strength_score=16)
     print(f"\nFighter starting inventory:")
     print(fighter_inventory.display_inventory())

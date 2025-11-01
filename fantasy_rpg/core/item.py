@@ -29,6 +29,7 @@ class Item:
     
     # Equipment-specific attributes (None for non-equipment items)
     ac_bonus: Optional[int] = None
+    armor_type: Optional[str] = None  # 'light', 'medium', 'heavy'
     damage_dice: Optional[str] = None  # Changed from 'damage' to match JSON
     damage_type: Optional[str] = None
     equippable: bool = False
@@ -36,6 +37,9 @@ class Item:
     magical: bool = False
     enchantment_bonus: int = 0
     special_properties: Optional[List[str]] = None
+    
+    # Container properties
+    capacity_bonus: float = 0.0  # Additional carrying capacity for containers
     
     def __post_init__(self):
         """Initialize empty lists if not provided."""
@@ -89,6 +93,51 @@ class Item:
         valid_slots = slot_mappings.get(self.item_type, [])
         return slot in valid_slots
     
+    def can_equip_to_slot(self, slot: str) -> bool:
+        """Check if this item can be equipped to the specified slot (alias for equipment.py compatibility)"""
+        if not self.equippable:
+            return False
+        
+        # Handle special cases
+        if self.slot == 'ring' and slot in ['ring_1', 'ring_2']:
+            return True
+        if self.slot == 'hand' and slot in ['main_hand', 'off_hand']:
+            return True
+        if self.slot == 'body' and slot in ['body', 'armor']:
+            return True
+        
+        return self.slot == slot
+    
+    def get_ac_contribution(self, character=None) -> int:
+        """Calculate AC contribution from this item"""
+        base_ac = 0
+        
+        if self.item_type == 'armor':
+            if self.armor_type == 'light':
+                # Light armor: armor AC + full DEX modifier (including magical bonuses)
+                dex_mod = character.get_effective_ability_modifier('dexterity') if character else 0
+                base_ac = (self.ac_bonus or 0) + dex_mod
+            elif self.armor_type == 'medium':
+                # Medium armor: armor AC + DEX modifier (max 2, including magical bonuses)
+                dex_mod = min(2, character.get_effective_ability_modifier('dexterity')) if character else 0
+                base_ac = (self.ac_bonus or 0) + dex_mod
+            elif self.armor_type == 'heavy':
+                # Heavy armor: armor AC only
+                base_ac = self.ac_bonus or 0
+        elif self.item_type == 'shield':
+            # Shield adds to AC
+            base_ac = self.ac_bonus or 0
+        elif self.item_type == 'accessory':
+            # Accessories (rings, amulets) provide AC bonuses from ac_bonus field only
+            # enchantment_bonus is used for other bonuses (saves, etc.)
+            base_ac = self.ac_bonus or 0
+        
+        # Add magical enhancement bonus for armor only (weapons handle this differently)
+        if self.magical and self.enchantment_bonus > 0 and self.item_type == 'armor':
+            base_ac += self.enchantment_bonus
+        
+        return base_ac
+    
     def get_ac_bonus(self) -> int:
         """Get the AC bonus this item provides (0 if none)."""
         return self.ac_bonus or 0
@@ -127,13 +176,15 @@ class Item:
             "pools": self.pools or [],
             "drop_weight": self.drop_weight,
             "ac_bonus": self.ac_bonus,
+            "armor_type": self.armor_type,
             "damage_dice": self.damage_dice,
             "damage_type": self.damage_type,
             "equippable": self.equippable,
             "slot": self.slot,
             "magical": self.magical,
             "enchantment_bonus": self.enchantment_bonus,
-            "special_properties": self.special_properties or []
+            "special_properties": self.special_properties or [],
+            "capacity_bonus": self.capacity_bonus
         }
     
     @classmethod
@@ -149,13 +200,15 @@ class Item:
             pools=data.get("pools", []),
             drop_weight=data.get("drop_weight", 1),
             ac_bonus=data.get("ac_bonus"),
+            armor_type=data.get("armor_type"),
             damage_dice=data.get("damage_dice"),
             damage_type=data.get("damage_type"),
             equippable=data.get("equippable", False),
             slot=data.get("slot"),
             magical=data.get("magical", False),
             enchantment_bonus=data.get("enchantment_bonus", 0),
-            special_properties=data.get("special_properties", [])
+            special_properties=data.get("special_properties", []),
+            capacity_bonus=data.get("capacity_bonus", 0.0)
         )
 
 
@@ -255,13 +308,15 @@ def create_item(name: str, item_type: str, weight: float, **kwargs) -> Item:
         pools=kwargs.get('pools', []),
         drop_weight=kwargs.get('drop_weight', 1),
         ac_bonus=kwargs.get('ac_bonus'),
+        armor_type=kwargs.get('armor_type'),
         damage_dice=kwargs.get('damage_dice', kwargs.get('damage')),  # Support both names
         damage_type=kwargs.get('damage_type'),
         equippable=kwargs.get('equippable', True),
         slot=kwargs.get('slot'),
         magical=kwargs.get('magical', False),
         enchantment_bonus=kwargs.get('enchantment_bonus', 0),
-        special_properties=kwargs.get('special_properties', [])
+        special_properties=kwargs.get('special_properties', []),
+        capacity_bonus=kwargs.get('capacity_bonus', 0.0)
     )
     print(f"Created item: {item.get_description()}")
     return item

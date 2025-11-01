@@ -145,7 +145,7 @@ Polish the synergy between player actions and object properties from the compreh
   - Add context-sensitive action availability based on object properties
   - _Requirements: 3.3, 3.4, 3.5_
 
-- [ ] 7.2 Implement object property bonuses
+- [x] 7.2 Implement object property bonuses
   - Lit fireplaces provide warmth condition
   - Beds provide quicker fatigue recovery but also demand higher wake-up DC 
   - Wells and water sources restore thirst with quality variations
