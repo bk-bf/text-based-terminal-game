@@ -234,6 +234,8 @@ class ConditionsManager:
                 return self._check_warmth_source_in_location(player_state)
             elif trigger in ["provides_some_shelter", "provides_good_shelter", "provides_excellent_shelter"]:
                 return self._check_shelter_flag_in_location(player_state, trigger)
+            elif trigger == "manual":
+                return False  # Manual conditions are applied explicitly
             
             # Create a safe evaluation context with the player state values
             context = {
@@ -246,11 +248,92 @@ class ConditionsManager:
                 'has_warmth_source_in_location': self._check_warmth_source_in_location(player_state)
             }
             
-            # Evaluate the condition using the context
-            return eval(trigger, {"__builtins__": {}}, context)
+            # Safely evaluate the condition trigger expression
+            return self._safe_eval_trigger(trigger, context)
             
         except Exception as e:
             print(f"Error evaluating trigger '{trigger}': {e}")
+            return False
+    
+    def _safe_eval_trigger(self, expression: str, context: dict) -> bool:
+        """
+        Safely evaluate a condition trigger expression without using eval().
+        Only allows comparison and logical operators with whitelisted variables.
+        
+        Args:
+            expression: The trigger expression (e.g., "hunger <= 200 and hunger > 50")
+            context: Dictionary of allowed variable names and their values
+            
+        Returns:
+            Boolean result of the expression evaluation
+        """
+        import ast
+        import operator
+        
+        # Whitelist of allowed operators
+        allowed_ops = {
+            ast.Lt: operator.lt,      # <
+            ast.LtE: operator.le,     # <=
+            ast.Gt: operator.gt,      # >
+            ast.GtE: operator.ge,     # >=
+            ast.Eq: operator.eq,      # ==
+            ast.NotEq: operator.ne,   # !=
+            ast.And: lambda: None,    # and (handled specially)
+            ast.Or: lambda: None,     # or (handled specially)
+        }
+        
+        def eval_node(node):
+            """Recursively evaluate AST nodes"""
+            if isinstance(node, ast.Constant):
+                # Allow numeric constants
+                if isinstance(node.value, (int, float)):
+                    return node.value
+                raise ValueError(f"Unsupported constant type: {type(node.value)}")
+            
+            elif isinstance(node, ast.Name):
+                # Only allow whitelisted variable names from context
+                if node.id in context:
+                    return context[node.id]
+                raise ValueError(f"Variable '{node.id}' not in allowed context")
+            
+            elif isinstance(node, ast.Compare):
+                # Handle comparison operations (e.g., a < b, a <= b <= c)
+                left = eval_node(node.left)
+                for op, comparator in zip(node.ops, node.comparators):
+                    if type(op) not in allowed_ops:
+                        raise ValueError(f"Unsupported operator: {type(op)}")
+                    right = eval_node(comparator)
+                    if not allowed_ops[type(op)](left, right):
+                        return False
+                    left = right  # For chained comparisons
+                return True
+            
+            elif isinstance(node, ast.BoolOp):
+                # Handle boolean operations (and, or)
+                if type(node.op) not in allowed_ops:
+                    raise ValueError(f"Unsupported boolean operator: {type(node.op)}")
+                
+                if isinstance(node.op, ast.And):
+                    return all(eval_node(value) for value in node.values)
+                elif isinstance(node.op, ast.Or):
+                    return any(eval_node(value) for value in node.values)
+            
+            elif isinstance(node, ast.UnaryOp):
+                # Handle unary operations (e.g., not)
+                if isinstance(node.op, ast.Not):
+                    return not eval_node(node.operand)
+                raise ValueError(f"Unsupported unary operator: {type(node.op)}")
+            
+            raise ValueError(f"Unsupported AST node type: {type(node)}")
+        
+        try:
+            # Parse the expression into an AST
+            tree = ast.parse(expression, mode='eval')
+            # Evaluate the AST safely
+            result = eval_node(tree.body)
+            return bool(result)
+        except (SyntaxError, ValueError) as e:
+            print(f"Invalid trigger expression '{expression}': {e}")
             return False
     
     def _check_warmth_source_in_location(self, player_state) -> bool:
