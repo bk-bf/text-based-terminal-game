@@ -118,6 +118,16 @@ class GameEngine:
         # UI state change notification system
         self.ui_update_callbacks = []
         
+        # Phase 3 coordinators - initialized after GameEngine is ready
+        self.movement = None
+        self.locations = None
+        self.objects = None
+        self.saves = None
+        
+        # Phase 4 placeholders (not implemented yet)
+        self.npcs = None
+        self.quests = None
+        
         # GameEngine initialized - no logging needed for internal initialization
     
     def register_ui_update_callback(self, callback):
@@ -262,7 +272,23 @@ class GameEngine:
         
         self.is_initialized = True
         
+        # Initialize Phase 3 coordinators
+        self._initialize_coordinators()
+        
         return self.game_state
+    
+    def _initialize_coordinators(self):
+        """Initialize Phase 3 coordinator systems"""
+        # Late imports to avoid circular dependencies
+        from game.movement_coordinator import MovementCoordinator
+        from game.location_coordinator import LocationCoordinator
+        from game.object_interaction_system import ObjectInteractionSystem
+        from game.save_manager import SaveManager
+        
+        self.movement = MovementCoordinator(self)
+        self.locations = LocationCoordinator(self)
+        self.objects = ObjectInteractionSystem(self)
+        self.saves = SaveManager(self)
     
     def get_status(self) -> Dict[str, Any]:
         """
@@ -421,102 +447,10 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized."
-        
-        gs = self.game_state
-        
-        # Exit current location if in one
-        if gs.world_position.current_location_id:
-            gs.world_position.current_location_id = None
-            gs.world_position.current_location_data = None
-            gs.world_position.current_area_id = "entrance"  # Reset to default
-        
-        # Get current coordinates and calculate target coordinates
-        current_coords = gs.world_position.coords
-        if not current_coords:
-            return False, "Invalid current position."
-        
-        target_coords = self._calculate_target_coords(current_coords, direction)
-        
-        if not target_coords:
-            return False, f"Cannot move {direction} from here."
-        
-        # Convert to hex IDs for WorldCoordinator compatibility
-        current_hex_id = f"{current_coords[0]:02d}{current_coords[1]:02d}"
-        target_hex_id = f"{target_coords[0]:02d}{target_coords[1]:02d}"
-        
-        # Validate movement is possible
-        if not self.world_coordinator.can_travel_to_hex(current_hex_id, target_hex_id):
-            return False, f"Cannot travel {direction} - the way is blocked or too far."
-        
-        # Check if character is capable of movement
-        if gs.character.hp <= 0:
-            return False, "You are unconscious and cannot move."
-        
-        # Calculate travel time based on terrain and conditions
-        travel_time = self._calculate_travel_time(current_hex_id, target_hex_id)
-        
-        # Use existing time system to advance time (which handles survival effects)
-        if self.time_system:
-            time_result = self.time_system.perform_activity("travel", duration_override=travel_time)
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Travel failed.")
-        else:
-            # Fallback: just advance game time
-            self._advance_game_time(travel_time)
-        
-        # Move to new hex
-        new_hex_data = self.world_coordinator.get_hex_info(target_hex_id)
-        new_locations = self.world_coordinator.get_hex_locations(target_hex_id)
-        
-        gs.world_position.hex_id = target_hex_id
-        gs.world_position.coords = target_coords
-        gs.world_position.hex_data = new_hex_data
-        gs.world_position.available_locations = new_locations
-        
-        # Generate new weather for the new location
-        climate_info = self.world_coordinator.get_climate_info(target_hex_id)
-        if climate_info:
-            base_temp = climate_info.get("base_temperature", 65.0)
-            climate_type = climate_info.get("zone_type", "temperate")
-        else:
-            base_temp = 65.0
-            climate_type = "temperate"
-        
-        from world.weather_core import generate_weather_state
-        new_weather = generate_weather_state(
-            base_temp, 
-            gs.game_time.season, 
-            climate_type
-        )
-        gs.current_weather = new_weather
-        
-        # Update PlayerState weather so survival effects work properly
-        gs.player_state.update_weather(new_weather)
-        
-        # Update player state location to match new world position
-        gs.player_state.current_hex = target_hex_id
-        gs.player_state.current_location = new_hex_data.get("name", "Unknown Location")
-        
-        # Synchronize game time with player state time
-        gs.game_time.day = gs.player_state.game_day
-        gs.game_time.hour = int(gs.player_state.game_hour)
-        gs.game_time.minute = int((gs.player_state.game_hour % 1) * 60)
-        gs.game_time.season = gs.player_state.game_season
-        
-        # Build natural language response
-        travel_desc = self._get_travel_description(direction, new_hex_data, travel_time)
-        
-        # Check if character died during travel
-        if gs.character.hp <= 0:
-            self._notify_ui_state_change("character_death")
-            return False, f"{travel_desc}\n\n💀 You collapsed and died during the journey!"
-        
-        # Notify UI of location change
-        self._notify_ui_state_change("location_change")
-        
-        return True, travel_desc
+        # Delegate to MovementCoordinator
+        if self.movement:
+            return self.movement.move_player(direction)
+        return False, "Movement system not initialized."
     
     def enter_location(self, location_id: str = None) -> Tuple[bool, str]:
         """
@@ -528,71 +462,10 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized."
-        
-        gs = self.game_state
-        
-        # Check if already in a location
-        if gs.world_position.current_location_id:
-            return False, "You are already inside a location. Use 'exit' to leave first."
-        
-        # Get available locations in current hex (fresh from WorldCoordinator)
-        current_hex_id = gs.world_position.hex_id
-        available_locations = self.world_coordinator.get_hex_locations(current_hex_id)
-        if not available_locations:
-            return False, "There are no locations to enter in this hex."
-        
-        # Select location to enter
-        target_location = None
-        if location_id:
-            # Find specific location by ID
-            for loc in available_locations:
-                if loc.get("id") == location_id or loc.get("name", "").lower() == location_id.lower():
-                    target_location = loc
-                    break
-            if not target_location:
-                return False, f"Location '{location_id}' not found in this hex."
-        else:
-            # Enter first available location
-            target_location = available_locations[0]
-        
-        # Generate or load persistent location data
-        location_data = self._get_or_generate_location_data(target_location)
-        
-        # Enter the location
-        gs.world_position.current_location_id = target_location.get("id")
-        gs.world_position.current_location_data = location_data
-        gs.world_position.current_area_id = location_data.get("starting_area", "entrance")
-        
-        # Build entry message
-        location_name = location_data.get("name", "Unknown Location")
-        location_desc = location_data.get("description", "An unremarkable area.")
-        
-        entry_message = f"You enter {location_name}.\n\n{location_desc}"
-        
-        # Add object information if available
-        areas = location_data.get("areas", {})
-        starting_area_id = location_data.get("starting_area", "entrance")
-        if starting_area_id in areas:
-            area_data = areas[starting_area_id]
-            objects = area_data.get("objects", [])
-            if objects:
-                object_names = [obj.get("name", "something") for obj in objects[:3]]  # Show first 3
-                if len(objects) > 3:
-                    entry_message += f"\n\nYou notice {', '.join(object_names)}, and more."
-                else:
-                    entry_message += f"\n\nYou notice {', '.join(object_names)}."
-        
-        # Shelter conditions now work automatically like "Lit Fire" - no manual setup needed
-        
-        # Debug location info
-        self._debug_location_info(location_data)
-        
-        # Notify UI of location entry
-        self._notify_ui_state_change("location_entry")
-        
-        return True, entry_message
+        # Delegate to LocationCoordinator
+        if self.locations:
+            return self.locations.enter_location(location_id)
+        return False, "Location system not initialized."
     
     def exit_location(self) -> Tuple[bool, str]:
         """
@@ -601,137 +474,17 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized."
-        
-        gs = self.game_state
-        
-        # Check if in a location
-        if not gs.world_position.current_location_id:
-            return False, "You are not inside a location."
-        
-        # Check if location allows exit
-        location_data = gs.world_position.current_location_data
-        if location_data and not location_data.get("exit_flag", True):
-            return False, "You cannot exit this location directly to the overworld."
-        
-        # Exit to overworld
-        location_name = location_data.get("name", "the location") if location_data else "the location"
-        gs.world_position.current_location_id = None
-        gs.world_position.current_location_data = None
-        gs.world_position.current_area_id = "entrance"  # Reset to default
-        
-        # Get current hex description for context
-        hex_name = gs.world_position.hex_data.get("name", "the area")
-        
-        # Shelter conditions now work automatically like "Lit Fire" - no manual removal needed
-        
-        # Notify UI of location exit
-        self._notify_ui_state_change("location_exit")
-        
-        return True, f"You exit {location_name} and return to {hex_name}."
+        # Delegate to LocationCoordinator
+        if self.locations:
+            return self.locations.exit_location()
+        return False, "Location system not initialized."
     
     def move_between_locations(self, direction: str) -> Tuple[bool, str]:
         """Move between different locations within the same hex"""
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized."
-        
-        gs = self.game_state
-        
-        # Check if player is inside a location
-        if not gs.world_position.current_location_id:
-            return False, "You are not inside a location."
-        
-        # Get all locations in current hex
-        hex_id = gs.world_position.hex_id
-        available_locations = gs.world_position.available_locations
-        
-        if not available_locations or len(available_locations) < 2:
-            return False, "There are no other locations to travel to from here."
-        
-        # Find current location in the list
-        current_location_id = gs.world_position.current_location_id
-        current_location_index = None
-        
-        for i, loc in enumerate(available_locations):
-            if loc.get("id") == current_location_id:
-                current_location_index = i
-                break
-        
-        if current_location_index is None:
-            return False, "Current location not found in available locations."
-        
-        # Create a simple location graph - arrange locations in cardinal directions
-        location_graph = self._create_location_graph(available_locations, current_location_index)
-        
-        # Check if movement in requested direction is possible
-        if direction not in location_graph:
-            available_directions = list(location_graph.keys())
-            if available_directions:
-                return False, f"You cannot go {direction} from here. Available directions: {', '.join(available_directions)}"
-            else:
-                return False, "There are no exits from this location. Use 'exit' to return to the overworld."
-        
-        # Get target location
-        target_location = location_graph[direction]
-        
-        # Check if character is capable of movement
-        if gs.character.hp <= 0:
-            return False, "You are unconscious and cannot move."
-        
-        # Calculate travel time for location movement (base 15 minutes = 0.25 hours)
-        travel_time = self._calculate_location_travel_time()
-        
-        # Use existing time system to advance time (which handles survival effects)
-        if self.time_system:
-            time_result = self.time_system.perform_activity("travel", duration_override=travel_time)
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Travel failed.")
-        else:
-            # Fallback: just advance game time
-            self._advance_game_time(travel_time)
-        
-        # Move to target location
-        target_location_data = self._get_or_generate_location_data(target_location)
-        
-        # Update player position
-        gs.world_position.current_location_id = target_location.get("id")
-        gs.world_position.current_location_data = target_location_data
-        gs.world_position.current_area_id = target_location_data.get("starting_area", "entrance")
-        
-        # Debug location info for location-to-location movement
-        self._debug_location_info(target_location_data)
-        
-        # Build movement message
-        target_name = target_location.get("name", "Unknown Location")
-        target_desc = target_location_data.get("description", "An unremarkable area.")
-        
-        # Add time indication to message
-        time_desc = self._get_location_travel_description(travel_time)
-        message = f"You travel {direction} to {target_name}.{time_desc}\n\n{target_desc}"
-        
-        # Check if character died during travel
-        if gs.character.hp <= 0:
-            self._notify_ui_state_change("character_death")
-            return False, f"{message}\n\n💀 You collapsed and died during the journey!"
-        
-        # Show objects in new location
-        areas = target_location_data.get("areas", {})
-        starting_area_id = target_location_data.get("starting_area", "entrance")
-        if starting_area_id in areas:
-            area_data = areas[starting_area_id]
-            objects = area_data.get("objects", [])
-            if objects:
-                object_names = [obj.get("name", "something") for obj in objects[:3]]
-                if len(objects) > 3:
-                    message += f"\n\nYou notice {', '.join(object_names)}, and more."
-                else:
-                    message += f"\n\nYou notice {', '.join(object_names)}."
-        
-        # Notify UI of location movement
-        self._notify_ui_state_change("location_movement")
-        
-        return True, message
+        # Delegate to LocationCoordinator
+        if self.locations:
+            return self.locations.move_between_locations(direction)
+        return False, "Location system not initialized."
     
     def rest_in_location(self) -> Tuple[bool, str]:
         """Handle resting/sleeping in current location with fatigue-based wake-up checks"""
@@ -845,7 +598,7 @@ class GameEngine:
     
     def interact_with_object(self, object_name: str, action: str) -> Tuple[bool, str]:
         """
-        Interact with an object in current area based on its properties
+        Interact with an object in current area based on its properties.
         
         Args:
             object_name: Name of object to interact with
@@ -854,60 +607,10 @@ class GameEngine:
         Returns:
             (success, message)
         """
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized."
-        
-        gs = self.game_state
-        
-        # Check if player is inside a location
-        if not gs.world_position.current_location_id:
-            return False, "You must be inside a location to interact with objects."
-        
-        # Get current area objects
-        current_area_id = gs.world_position.current_area_id
-        location_data = gs.world_position.current_location_data
-        
-        if not location_data or "areas" not in location_data:
-            return False, "No objects available in this area."
-        
-        areas = location_data.get("areas", {})
-        if current_area_id not in areas:
-            return False, "Current area not found."
-        
-        area_data = areas[current_area_id]
-        objects = area_data.get("objects", [])
-        
-        # Find the target object
-        target_object = None
-        for obj in objects:
-            if obj.get("name", "").lower() == object_name.lower():
-                target_object = obj
-                break
-        
-        if not target_object:
-            return False, f"You don't see any '{object_name}' here."
-        
-        # Route to appropriate handler based on action and object properties
-        properties = target_object.get("properties", {})
-        
-        if action in ["forage", "harvest", "gather", "pick"]:
-            return self._handle_forage(target_object, properties)
-        elif action in ["search", "loot"]:
-            return self._handle_search(target_object, properties)
-        elif action in ["examine", "inspect", "look"]:
-            return self._handle_examine(target_object, properties)
-        elif action in ["unlock", "pick_lock"]:
-            return self._handle_unlock(target_object, properties)
-        elif action in ["chop", "cut"]:
-            return self._handle_chop(target_object, properties)
-        elif action in ["take", "get"]:
-            return self._handle_take(target_object, properties)
-        elif action in ["drink", "water"]:
-            return self._handle_drink(target_object, properties)
-        elif action in ["use"]:
-            return self._handle_use(target_object, properties)
-        else:
-            return False, f"You can't {action} the {target_object.get('name', 'object')}."
+        # Delegate to ObjectInteractionSystem
+        if self.objects:
+            return self.objects.interact_with_object(object_name, action)
+        return False, "Object interaction system not initialized."
     
     def _handle_forage(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
         """Handle foraging/harvesting from objects"""
@@ -1595,44 +1298,10 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        if not self.is_initialized or not self.game_state:
-            return False, "Game not initialized - cannot save."
-        
-        try:
-            import json
-            from datetime import datetime
-            
-            gs = self.game_state
-            
-            # Create save data structure
-            save_data = {
-                "version": "1.0",
-                "saved_at": datetime.now().isoformat(),
-                "game_info": {
-                    "world_seed": gs.world_seed,
-                    "created_at": gs.created_at.isoformat(),
-                    "play_time_minutes": gs.play_time_minutes
-                },
-                "character": self._serialize_character(gs.character),
-                "player_state": self._serialize_player_state(gs.player_state),
-                "world_position": self._serialize_world_position(gs.world_position),
-                "game_time": self._serialize_game_time(gs.game_time),
-                "weather": self._serialize_weather(gs.current_weather),
-                "world_data": self._serialize_world_data()
-            }
-            
-            # Save to JSON file
-            filename = f"{save_name}.json"
-            with open(filename, 'w') as f:
-                json.dump(save_data, f, indent=2, default=str)
-            
-            # Update last saved time
-            gs.last_saved = datetime.now()
-            
-            return True, f"Game saved to {filename}"
-            
-        except Exception as e:
-            return False, f"Failed to save game: {str(e)}"
+        # Delegate to SaveManager
+        if self.saves:
+            return self.saves.save_game(save_name)
+        return False, "Save system not initialized."
     
     def load_game(self, save_name: str = "save") -> Tuple[bool, str]:
         """
@@ -1644,67 +1313,19 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        try:
-            import json
-            from datetime import datetime
-            
-            filename = f"{save_name}.json"
-            
-            # Check if save file exists
-            if not os.path.exists(filename):
-                return False, f"Save file {filename} not found."
-            
-            # Load save data
-            with open(filename, 'r') as f:
-                save_data = json.load(f)
-            
-            # Validate save file version
-            if save_data.get("version") != "1.0":
-                return False, f"Incompatible save file version: {save_data.get('version', 'unknown')}"
-            
-            # Create world coordinator without generating new world
-            world_seed = save_data["game_info"]["world_seed"]
-            
-            # Create WorldCoordinator with skip_generation flag
-            self.world_coordinator = WorldCoordinator(
-                world_size=self.world_size,
-                seed=world_seed,
-                skip_generation=True  # Don't generate - we'll restore from save
-            )
-            
-            # Deserialize game state components
-            character = self._deserialize_character(save_data["character"])
-            player_state = self._deserialize_player_state(save_data["player_state"], character)
-            world_position = self._deserialize_world_position(save_data["world_position"])
-            game_time = self._deserialize_game_time(save_data["game_time"])
-            weather = self._deserialize_weather(save_data["weather"])
-            
-            # Initialize time system
-            from game.time_system import TimeSystem
-            self.time_system = TimeSystem(player_state)
-            
-            # Restore world data from save file
-            self._deserialize_world_data(save_data["world_data"])
-            
-            # Create game state
-            self.game_state = GameState(
-                character=character,
-                player_state=player_state,
-                world_position=world_position,
-                game_time=game_time,
-                current_weather=weather,
-                world_seed=world_seed,
-                created_at=datetime.fromisoformat(save_data["game_info"]["created_at"]),
-                last_saved=datetime.fromisoformat(save_data["saved_at"]),
-                play_time_minutes=save_data["game_info"]["play_time_minutes"]
-            )
-            
-            self.is_initialized = True
-            
-            return True, f"Game loaded from {filename}"
-            
-        except Exception as e:
-            return False, f"Failed to load game: {str(e)}"
+        # Delegate to SaveManager
+        if not self.saves:
+            # Initialize SaveManager if not already done
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        
+        success, message = self.saves.load_game(save_name)
+        
+        # Initialize coordinators after successful load
+        if success and self.is_initialized:
+            self._initialize_coordinators()
+        
+        return success, message
 
 
     # Serialization helper methods for save/load

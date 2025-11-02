@@ -1,0 +1,75 @@
+============================================================
+FANTASY RPG - ADVENTURE LOG
+============================================================
+
+Log saved: 2025-11-02 03:23:36
+Total messages: 52
+
+============================================================
+
+Initializing GameEngine...
+Creating GameEngine...
+Found save.json - asking player...
+Player chose to load saved game...
+✓ Game loaded from save.json
+Updating UI character...
+Creating InputController...
+✓ GameEngine integration complete!
+
+Your adventure continues...
+
+**Forest 1010**
+
+Dense woodland with mixed trees
+
+The weather is 46°F (8°C) with a breeze from the w.
+
+You can enter Farmyard, Abandoned Farmhouse here.
+
+You are Aldric, a Human Fighter
+Current location: Forest 1010
+
+Type 'help' for available commands.
+Type 'look' to examine your surroundings.
+
+> u
+> u
+Use what? Specify an object name.
+No useful items found in object.
+
+> i
+Equipped Longsword to main_hand
+Equipped Chain Mail to body
+Equipped Shield to off_hand
+> n
+> n
+Movement failed: '<' not supported between instances of 'int' and 'tuple'
+No useful items found in object.
+
+> e
+> e
+Movement failed: '<' not supported between instances of 'int' and 'tuple'
+No useful items found in object.
+
+> en
+🏠 Farmyard | Provides: some_shelter | exit_flag:True, size:large, terrain:open
+> en
+You enter Farmyard.
+
+Overgrown fields surround a dilapidated farmhouse. A broken fence encloses the property.
+
+You notice Broken Fence, Broken Fence, Tavern Hearth, and more.
+Some time passes.
+✓ You find respite from the elements here. The shelter blocks the worst of the weather.
+
+> ex
+> ex
+Examine what? Specify an object name.
+No useful items found in object.
+
+> dump_log
+> dump_log
+
+============================================================
+End of Adventure Log
+============================================================
