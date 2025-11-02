@@ -201,7 +201,7 @@ saves/
 *.sav
 game_data/
 user_data/
-shortkey_debug.txt
+
 
 
 # IDE files

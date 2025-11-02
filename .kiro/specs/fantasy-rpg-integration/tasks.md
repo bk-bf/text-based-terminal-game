@@ -179,7 +179,7 @@ Implement comprehensive natural language output for all game feedback and UI ret
   - Validate immersive narrative flow
   - _Requirements: 6.3, 6.5_
 
-### 9. Build Actions System
+### 9. Build Actions System (Postpone)
 Implement construction and crafting mechanics for objects.
 
 - [ ] 9.1 Create build action framework

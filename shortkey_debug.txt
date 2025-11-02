@@ -1,0 +1,51 @@
+=== OBJECT DEBUG OUTPUT ===
+
+Object: Tilted Writing Desk
+Shortkey: 'fu'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'old_furniture', 'name': 'Tilted Writing Desk', 'shortkey': 'fu', 'description': 'Various pieces of household furniture covered in dust and cobwebs.', 'interactive': True, 'properties': {'can_search': True, 'can_examine': True, 'can_chop_wood': True, 'search_dc': 12, 'examine_dc': 8, 'chop_dc': 13, 'may_contain_items': True}, 'item_drops': []}
+--------------------------------------------------
+Object: Collapsed Bookcase
+Shortkey: 'fu'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'old_furniture', 'name': 'Collapsed Bookcase', 'shortkey': 'fu', 'description': 'Various pieces of household furniture covered in dust and cobwebs.', 'interactive': True, 'properties': {'can_search': True, 'can_examine': True, 'can_chop_wood': True, 'search_dc': 12, 'examine_dc': 8, 'chop_dc': 13, 'may_contain_items': True}, 'item_drops': []}
+--------------------------------------------------
+Object: Broken Fence
+Shortkey: 'bf'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'broken_fence', 'name': 'Broken Fence', 'shortkey': 'bf', 'description': 'Sections of wooden fencing that have fallen into disrepair.', 'interactive': False, 'properties': {'blocks_movement': False, 'provides_cover': 'partial', 'can_repair': True}, 'item_drops': []}
+--------------------------------------------------
+Object: Rusted Bed Springs
+Shortkey: 'fu'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'old_furniture', 'name': 'Rusted Bed Springs', 'shortkey': 'fu', 'description': 'Various pieces of household furniture covered in dust and cobwebs.', 'interactive': True, 'properties': {'can_search': True, 'can_examine': True, 'can_chop_wood': True, 'search_dc': 12, 'examine_dc': 8, 'chop_dc': 13, 'may_contain_items': True}, 'item_drops': []}
+--------------------------------------------------
+Object: Damaged Sideboard
+Shortkey: 'fu'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops', 'searched']
+Full dict: {'id': 'old_furniture', 'name': 'Damaged Sideboard', 'shortkey': 'fu', 'description': 'Various pieces of household furniture covered in dust and cobwebs.', 'interactive': True, 'properties': {'can_search': True, 'can_examine': True, 'can_chop_wood': True, 'search_dc': 12, 'examine_dc': 8, 'chop_dc': 13, 'may_contain_items': True}, 'item_drops': [], 'searched': True}
+--------------------------------------------------
+Object: Simple Bed
+Shortkey: 'bd'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'bed', 'name': 'Simple Bed', 'shortkey': 'bd', 'description': 'A basic wooden bed frame with a straw mattress. It looks reasonably comfortable.', 'interactive': True, 'properties': {'can_sleep': True, 'can_search': True, 'can_examine': True, 'rest_bonus': 2, 'comfort_level': 'basic', 'search_dc': 12, 'examine_dc': 8}, 'item_drops': [{'id': 'dagger', 'name': 'Dagger', 'description': 'A simple, versatile weapon that can be thrown or used in melee.', 'value': 2, 'weight': 1}]}
+--------------------------------------------------
+Object: Broken Fence
+Shortkey: 'bf'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'broken_fence', 'name': 'Broken Fence', 'shortkey': 'bf', 'description': 'Sections of wooden fencing that have fallen into disrepair.', 'interactive': False, 'properties': {'blocks_movement': False, 'provides_cover': 'partial', 'can_repair': True}, 'item_drops': []}
+--------------------------------------------------
+Object: Broken Fence
+Shortkey: 'bf'
+Full dict keys: ['id', 'name', 'shortkey', 'description', 'interactive', 'properties', 'item_drops']
+Full dict: {'id': 'broken_fence', 'name': 'Broken Fence', 'shortkey': 'bf', 'description': 'Sections of wooden fencing that have fallen into disrepair.', 'interactive': False, 'properties': {'blocks_movement': False, 'provides_cover': 'partial', 'can_repair': True}, 'item_drops': []}
+--------------------------------------------------
+
+=== PARSE COMMAND DEBUG ===
+Original command: 'wait 8h'
+Action: 'wait' -> 'wait'
+Arguments: ['8h']
+Current object_shortcuts: {'fu': 'Damaged Sideboard', 'bf': 'Broken Fence', 'bd': 'Simple Bed'}
+  Arg '8h' -> lookup '8h' -> result: None
+Final expanded: wait ['8h']
+--------------------------------------------------
