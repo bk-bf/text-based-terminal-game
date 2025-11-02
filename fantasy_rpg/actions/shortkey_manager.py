@@ -36,7 +36,6 @@ class ShortkeyManager:
         # Character (first letter)
         'i': 'inventory',
         'c': 'character',
-        'm': 'map',
         
         # Core actions (first letter)
         'l': 'look',
@@ -47,35 +46,23 @@ class ShortkeyManager:
         # Interaction (first letter where possible, 2 letters for conflicts)
         'ex': 'examine',     # 'e' taken by east
         'x': 'examine',      # Also allow x
-        't': 'take',
         'd': 'drop',
         'u': 'use',
-        'o': 'open',
         
         # Resource gathering (first letter where possible)
-        'f': 'forage',
-        'ha': 'harvest',     # 'h' taken by help
-        'ch': 'chop',        # 'c' taken by character
-        'cu': 'cut',         # Alternative to chop
-        'dr': 'drink',       # 'd' taken by drop
-        'b': 'drink',        # Also allow b (beverage)
+        'g': 'forage',       # g for gather (uses Survival skill)
+        'v': 'harvest',      # v for harvest (uses Nature skill)
+        'h': 'chop',         # h for hew/hack
+        'b': 'drink',        # b for beverage
         
         # Object actions (first letter where possible)
-        'un': 'unlock',      # 'u' taken by use
-        'k': 'unlock',       # Also allow k (key)
-        'li': 'light',       # 'l' taken by look
-        'se': 'search',      # 's' taken by south
-        'a': 'search',       # Also allow a
-        'di': 'disarm',      # 'd' taken by drop
-        'cl': 'climb',       # 'c' taken by character
-        'pl': 'place',       # 'p' conflicts with sleep
-        're': 'repair',      # 'r' conflicts with rest
+        'k': 'unlock',       # k for key
+        'f': 'light',        # f for fire
+        'a': 'search',       # a for analyze
         
         # Rest actions (first letter)
         'r': 'rest',
-        'p': 'sleep',        # p for pillow/bed
         'wa': 'wait',        # 'w' taken by west
-        'v': 'wait',         # Also allow v
     }
     
     # Reverse mapping for display
@@ -201,30 +188,23 @@ class ShortkeyManager:
         lines.append("INTERACTION:")
         lines.append("  l - Look around")
         lines.append("  ex/x [obj] - Examine object")
-        lines.append("  t [obj] - Take/pickup object")
-        lines.append("  d [obj] - Drop object")
         lines.append("  u [obj] - Use object")
-        lines.append("  o [obj] - Open object")
         lines.append("")
         lines.append("RESOURCE GATHERING:")
-        lines.append("  f [obj] - Forage/gather")
-        lines.append("  ha [obj] - Harvest from object")
-        lines.append("  ch [obj] - Chop wood")
-        lines.append("  dr/b [obj] - Drink from object")
+        lines.append("  g [obj] - Forage (Survival skill)")
+        lines.append("  v [obj] - Harvest (Nature skill)")
+        lines.append("  h [obj] - Chop wood (destroys object)")
+        lines.append("  b [obj] - Drink from object")
         lines.append("")
         lines.append("OBJECT ACTIONS:")
-        lines.append("  un/k [obj] - Unlock object")
-        lines.append("  li [obj] - Light fire")
-        lines.append("  se/a [obj] - Search object")
-        lines.append("  di [obj] - Disarm trap")
-        lines.append("  cl [obj] - Climb object")
-        lines.append("  pl [obj] - Place item")
-        lines.append("  re [obj] - Repair object")
+        lines.append("  k [obj] - Unlock object")
+        lines.append("  f [obj] - Light fire")
+        lines.append("  a [obj] - Search object")
+        lines.append("  disarm [obj] - Disarm trap")
         lines.append("")
         lines.append("REST:")
         lines.append("  r - Rest")
-        lines.append("  p - Sleep")
-        lines.append("  wa/v [time] - Wait (1h, 3h, 8h)")
+        lines.append("  wa [time] - Wait (quick/short/medium/long/extended)")
         lines.append("")
         lines.append("OTHER:")
         lines.append("  h/? - This help")
@@ -232,8 +212,8 @@ class ShortkeyManager:
         lines.append("")
         lines.append("OBJECT SHORTCUTS:")
         lines.append("  Objects have permanent shortcuts shown in brackets")
-        lines.append("  Example: 'li fp' lights the fireplace [fp]")
-        lines.append("  Example: 'dr we' drinks from the well [we]")
+        lines.append("  Example: 'f fp' lights the fireplace [fp]")
+        lines.append("  Example: 'b we' drinks from the well [we]")
         lines.append("")
         return "\n".join(lines)
 

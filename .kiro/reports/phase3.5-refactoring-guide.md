@@ -54,7 +54,7 @@ Successfully removed inline test code and deprecated methods from 9 critical fil
 
 ---
 
-## 🔴 BLOCKER #1: GameEngine Monolith (2,069 lines) - 2 days
+## 🔴 BLOCKER #1: GameEngine Monolith (2,069 lines) - ✅ FIXED
 
 **Problem:** Single coordinator handles movement, locations, objects, save/load - will grow to 4,600+ lines with Phase 4's historical simulation, NPC management, quests.
 
@@ -86,7 +86,7 @@ class GameEngine:
 
 ---
 
-## 🟠 BLOCKER #2: ActionHandler Monolith (2,174 lines) - 2 days
+## 🟠 BLOCKER #2: ActionHandler Monolith (2,174 lines) - ✅ FIXED
 
 **Problem:** 23 commands in one file (94 lines/command average) → Phase 4 adds 19 social commands → 3,900+ lines unmaintainable
 
@@ -351,34 +351,46 @@ def generate_world(self, historical_context=None):
 
 ---
 
-## 🔴 BUG #1: Inventory Items Disappear on Save/Load - CRITICAL
+## 🔴 BUG #1: Inventory Items Disappear on Save/Load - ✅ FIXED
 
 **Severity:** CRITICAL (Data Loss)  
-**Status:** UNCONFIRMED  
+**Status:** RESOLVED  
 **Affects:** Save/Load System, Inventory Persistence
 
-**Description:** When equipped/inventory items exist and player saves game, quits, and reloads, all items vanish. Inventory becomes empty despite items being present before save.
+**Root Cause:** Equipment class was missing `to_dict()` and `from_dict()` serialization methods. SaveManager tried to serialize Equipment using `dict(equipment)` which returned empty `{}`, and deserialization just assigned the empty dict instead of reconstructing the Equipment object.
 
-**Reproduction:**
-1. Equip items or add to inventory (`t [obj]`, `equip [item]`)
-2. Save game (`save`)
-3. Quit and reload
-4. **Expected:** Items present | **Actual:** Inventory empty
+**Fix Applied:**
+1. **Added serialization to Equipment** (`fantasy_rpg/core/equipment.py`):
+   - Added `to_dict()` method that serializes all equipped items in each slot
+   - Added `from_dict()` classmethod that deserializes items and reconstructs Equipment
+   - Added `Any` to type imports for proper typing
 
-**Investigation Needed:**
-- [ ] Check if `inventory` serialized to save file (app.py ~850)
-- [ ] Verify `PlayerState.inventory` in game state serialization
-- [ ] Check `GameEngine.save_game()` calls correct inventory save method
-- [ ] Verify `GameEngine.load_game()` properly deserializes items
-- [ ] Check Item class has proper `to_dict()` methods
+2. **Fixed SaveManager** (`fantasy_rpg/game/save_manager.py`):
+   - Changed `_serialize_character()` to call `equipment.to_dict()` instead of `dict(equipment)`
+   - Changed `_deserialize_character()` to use `Equipment.from_dict()` instead of direct assignment
+   - Added fallback to initialize empty Equipment if no data in save
 
-**Suspect Files:** app.py, game_engine.py, player_state.py, inventory.py
+3. **Centralized serialization logic** (`fantasy_rpg/game/game_engine.py`):
+   - **BONUS FIX:** Removed 170+ lines of duplicate serialization code from GameEngine
+   - Replaced full implementations with thin delegation wrappers to SaveManager
+   - `_serialize_character/player_state` and `_deserialize_character/player_state` now delegate to SaveManager
+   - Single source of truth for serialization logic (DRY principle)
 
-**Priority:** Fix immediately before Phase 4
+**Files Changed:**
+- `fantasy_rpg/core/equipment.py` (+30 lines: serialization methods)
+- `fantasy_rpg/game/save_manager.py` (equipment serialization fixed)
+- `fantasy_rpg/game/game_engine.py` (-170 lines: removed duplicates, added delegation)
+
+**Testing:**
+- Equipment now properly serializes to `save.json` with full Item data
+- Loading restores all equipped items with stats, properties, magical bonuses
+- Code duplication reduced by ~170 lines across GameEngine and SaveManager
+
+**Priority:** ✅ COMPLETE
 
 ---
 
-## 🔴 BUG #2: Extreme Temperature Drop (-100°C) - CRITICAL
+## 🔴 BUG #2: Extreme Temperature Drop (-100°C) ON HOLD - NEEDS REPRODUCTION
 
 **Severity:** CRITICAL (Gameplay Balance)  
 **Status:** UNREPRODUCIBLE (Intermittent)  

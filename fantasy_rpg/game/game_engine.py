@@ -1328,165 +1328,39 @@ class GameEngine:
         return success, message
 
 
-    # Serialization helper methods for save/load
+    # Serialization helper methods (delegated to SaveManager)
     def _serialize_character(self, character) -> dict:
-        """Serialize character object to dictionary"""
-        # Properly serialize inventory using centralized system
-        inventory_data = []
-        if hasattr(character, 'inventory') and character.inventory:
-            if hasattr(character.inventory, 'items'):
-                inventory_data = [item.to_dict() for item in character.inventory.items]
-        
-        # Properly serialize equipment
-        equipment_data = {}
-        if hasattr(character, 'equipment') and character.equipment:
-            equipment_data = dict(character.equipment) if isinstance(character.equipment, dict) else {}
-        
-        return {
-            "name": character.name,
-            "race": character.race,
-            "character_class": character.character_class,
-            "background": getattr(character, 'background', 'Folk Hero'),
-            "level": character.level,
-            "experience_points": character.experience_points,
-            "hp": character.hp,
-            "max_hp": character.max_hp,
-            "armor_class": character.armor_class,
-            "proficiency_bonus": character.proficiency_bonus,
-            "strength": character.strength,
-            "dexterity": character.dexterity,
-            "constitution": character.constitution,
-            "intelligence": character.intelligence,
-            "wisdom": character.wisdom,
-            "charisma": character.charisma,
-            "inventory": inventory_data,
-            "equipment": equipment_data
-        }
-    
+        """Delegate character serialization to SaveManager."""
+        if self.saves:
+            return self.saves._serialize_character(character)
+        # Lazy create a SaveManager if needed
+        from game.save_manager import SaveManager
+        tmp = SaveManager(self)
+        return tmp._serialize_character(character)
+
     def _deserialize_character(self, data: dict):
-        """Deserialize character from dictionary"""
-        from core.character import Character
-        
-        character = Character(
-            name=data["name"],
-            race=data["race"],
-            character_class=data["character_class"],
-            background=data.get("background", "Folk Hero"),
-            level=data["level"],
-            experience_points=data["experience_points"],
-            hp=data["hp"],
-            max_hp=data["max_hp"],
-            armor_class=data["armor_class"],
-            proficiency_bonus=data["proficiency_bonus"],
-            strength=data["strength"],
-            dexterity=data["dexterity"],
-            constitution=data["constitution"],
-            intelligence=data["intelligence"],
-            wisdom=data["wisdom"],
-            charisma=data["charisma"]
-        )
-        
-        # Initialize inventory system
-        character.initialize_inventory()
-        
-        # Restore inventory items using unified Item class
-        if "inventory" in data and data["inventory"]:
-            from core.item import Item
-            for item_data in data["inventory"]:
-                item = Item.from_dict(item_data)
-                character.inventory.items.append(item)
-        
-        # Restore equipment
-        if "equipment" in data:
-            character.equipment = data["equipment"]
-            
-        return character
-    
+        """Delegate character deserialization to SaveManager."""
+        if self.saves:
+            return self.saves._deserialize_character(data)
+        from game.save_manager import SaveManager
+        tmp = SaveManager(self)
+        return tmp._deserialize_character(data)
+
     def _serialize_player_state(self, player_state) -> dict:
-        """Serialize player state to dictionary"""
-        # Safely get survival attributes with defaults
-        survival_data = {}
-        survival = player_state.survival
-        
-        # Core survival needs
-        survival_data["hunger"] = getattr(survival, "hunger", 500)
-        survival_data["thirst"] = getattr(survival, "thirst", 500)
-        survival_data["fatigue"] = getattr(survival, "fatigue", 500)
-        
-        # Temperature regulation
-        survival_data["body_temperature"] = getattr(survival, "body_temperature", 500)
-        survival_data["warmth"] = getattr(survival, "warmth", 500)
-        
-        # Environmental exposure
-        survival_data["wetness"] = getattr(survival, "wetness", 0)
-        survival_data["wind_chill"] = getattr(survival, "wind_chill", 0)
-        
-        return {
-            "survival": survival_data,
-            "game_time": {
-                "game_hour": getattr(player_state, "game_hour", 12.0),
-                "game_day": getattr(player_state, "game_day", 1),
-                "game_season": getattr(player_state, "game_season", "spring")
-            },
-            "location": {
-                "current_hex": player_state.current_hex,
-                "current_location": player_state.current_location
-            },
-            "activity": {
-                "last_meal_hours": getattr(player_state, "last_meal_hours", 0),
-                "last_drink_hours": getattr(player_state, "last_drink_hours", 0),
-                "last_sleep_hours": getattr(player_state, "last_sleep_hours", 0),
-                "activity_level": getattr(player_state, "activity_level", "normal")
-            },
-            "status_effects": getattr(player_state, "status_effects", []),
-            "temporary_modifiers": getattr(player_state, "temporary_modifiers", {})
-        }
-    
+        """Delegate player state serialization to SaveManager."""
+        if self.saves:
+            return self.saves._serialize_player_state(player_state)
+        from game.save_manager import SaveManager
+        tmp = SaveManager(self)
+        return tmp._serialize_player_state(player_state)
+
     def _deserialize_player_state(self, data: dict, character):
-        """Deserialize player state from dictionary"""
-        from game.player_state import PlayerState
-        
-        player_state = PlayerState(character=character, game_engine=self)
-        
-        # Restore survival stats
-        survival_data = data["survival"]
-        player_state.survival.hunger = survival_data["hunger"]
-        player_state.survival.thirst = survival_data["thirst"]
-        player_state.survival.fatigue = survival_data["fatigue"]
-        player_state.survival.body_temperature = survival_data["body_temperature"]
-        player_state.survival.warmth = survival_data["warmth"]
-        player_state.survival.wetness = survival_data["wetness"]
-        player_state.survival.wind_chill = survival_data["wind_chill"]
-        
-        # Restore game time data
-        if "game_time" in data:
-            time_data = data["game_time"]
-            player_state.game_hour = time_data["game_hour"]
-            player_state.game_day = time_data["game_day"]
-            player_state.game_season = time_data["game_season"]
-            # Note: turn_counter removed as this is not a turn-based game
-        
-        # Restore location data
-        if "location" in data:
-            location_data = data["location"]
-            player_state.current_hex = location_data["current_hex"]
-            player_state.current_location = location_data["current_location"]
-        
-        # Restore activity data
-        if "activity" in data:
-            activity_data = data["activity"]
-            player_state.last_meal_hours = activity_data["last_meal_hours"]
-            player_state.last_drink_hours = activity_data["last_drink_hours"]
-            player_state.last_sleep_hours = activity_data["last_sleep_hours"]
-            player_state.activity_level = activity_data["activity_level"]
-        
-        # Restore status effects and modifiers
-        if "status_effects" in data:
-            player_state.status_effects = data["status_effects"]
-        if "temporary_modifiers" in data:
-            player_state.temporary_modifiers = data["temporary_modifiers"]
-        
-        return player_state
+        """Delegate player state deserialization to SaveManager."""
+        if self.saves:
+            return self.saves._deserialize_player_state(data, character)
+        from game.save_manager import SaveManager
+        tmp = SaveManager(self)
+        return tmp._deserialize_player_state(data, character)
     
     def _serialize_world_position(self, world_position: WorldPosition) -> dict:
         """Serialize world position to dictionary"""

@@ -181,19 +181,3 @@ Add a single-letter shortkey that doesn't conflict. Options in priority order:
 
 ***
 
-### **Summary Table**
-
-| Bug # | Severity | Status         | Component       | Action                                          |
-| ----- | -------- | -------------- | --------------- | ----------------------------------------------- |
-| #1    | CRITICAL | Unconfirmed    | Save/Load       | Debug save serialization immediately            |
-| #2    | CRITICAL | Unreproducible | Temperature     | Set up logging framework, defer if intermittent |
-| #3    | HIGH     | Confirmed      | Shortkey System | Change 'f'→light, 'fo'→forage mapping           |
-| #4    | MEDIUM   | Confirmed      | Shortkey System | Update help text, document 'wa' shortcut        |
-
-**Estimated Fix Times:**
-- Bug #1: 2-4 hours (tracing serialization)
-- Bug #2: 3-6 hours (temperature logging + analysis)
-- Bug #3: 0.5 hours (rename shortkey in one file)
-- Bug #4: 0.25 hours (update help text)
-
-**Total Phase 3.5 Bug Fixing: 5.5 - 10.5 hours**

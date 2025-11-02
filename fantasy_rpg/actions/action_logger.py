@@ -227,11 +227,12 @@ class ActionLogger:
                             self.game_log.add_message(line.strip())
     
     def _log_foraging_result(self, action_result):
-        """Log foraging action results"""
+        """Log foraging action results - only add extra messages for actual foraging, not all failures"""
         items_found = action_result.get('items_found', [])
         object_name = action_result.get('object_name', 'object')
         experience_gained = action_result.get('experience_gained', 0)
         
+        # Only log if we have items_found data (indicating this was actually a forage/harvest action)
         if action_result.success and items_found:
             self.game_log.add_message(f"Items foraged from {object_name}:")
             for item in items_found:
@@ -239,8 +240,7 @@ class ActionLogger:
             
             if experience_gained > 0:
                 self.game_log.add_message(f"[+{experience_gained} XP]")
-        elif not action_result.success and object_name:
-            self.game_log.add_message(f"No useful items found in {object_name}.")
+        # Don't add "No useful items found" - the main message already explains what happened
     
     def _log_shelter_result(self, action_result):
         """Log shelter action results"""

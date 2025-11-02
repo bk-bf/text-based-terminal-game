@@ -157,10 +157,16 @@ class SaveManager:
             if hasattr(character.inventory, 'items'):
                 inventory_data = [item.to_dict() for item in character.inventory.items]
         
-        # Properly serialize equipment
+        # Properly serialize equipment using Equipment.to_dict()
         equipment_data = {}
         if hasattr(character, 'equipment') and character.equipment:
-            equipment_data = dict(character.equipment) if isinstance(character.equipment, dict) else {}
+            # Equipment has to_dict() method now
+            from core.equipment import Equipment
+            if isinstance(character.equipment, Equipment):
+                equipment_data = character.equipment.to_dict()
+            else:
+                # Fallback for unexpected types
+                equipment_data = {}
         
         return {
             "name": character.name,
@@ -216,9 +222,14 @@ class SaveManager:
                 item = Item.from_dict(item_data)
                 character.inventory.items.append(item)
         
-        # Restore equipment
-        if "equipment" in data:
-            character.equipment = data["equipment"]
+        # Restore equipment using Equipment.from_dict()
+        if "equipment" in data and data["equipment"]:
+            from core.equipment import Equipment
+            character.equipment = Equipment.from_dict(data["equipment"])
+        else:
+            # Initialize empty equipment if none saved
+            from core.equipment import Equipment
+            character.equipment = Equipment()
         
         return character
     
