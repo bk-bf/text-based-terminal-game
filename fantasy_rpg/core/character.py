@@ -7,16 +7,18 @@ Character creation and management functionality.
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 try:
-    from .inventory import Inventory, InventoryItem, InventoryManager
+    from .inventory import Inventory, InventoryManager
+    from .item import Item
 except ImportError:
     # Handle running directly from core directory
     try:
-        from inventory import Inventory, InventoryItem, InventoryManager
+        from inventory import Inventory, InventoryManager
+        from item import Item
     except ImportError:
         # Create minimal stubs if inventory system not available
         class Inventory:
             def __init__(self): pass
-        class InventoryItem:
+        class Item:
             def __init__(self): pass
         class InventoryManager:
             def __init__(self): pass
@@ -603,7 +605,7 @@ class Character:
         
         return success
     
-    def remove_item_from_inventory(self, item_id: str, quantity: int = 1) -> Optional[InventoryItem]:
+    def remove_item_from_inventory(self, item_id: str, quantity: int = 1) -> Optional[Item]:
         """Remove an item from inventory"""
         if self.inventory is None:
             print("No inventory initialized")

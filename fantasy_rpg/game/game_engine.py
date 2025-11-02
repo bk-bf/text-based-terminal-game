@@ -20,6 +20,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
+# Import debug utilities
+try:
+    sys.path.insert(0, os.path.join(parent_dir, '..'))
+    from tests.debug_utils import log_shortkey_debug
+except ImportError:
+    # Fallback if tests module not available
+    def log_shortkey_debug(message: str, mode: str = "a"):
+        pass  # No-op if debug utils not available
+
 # Import only non-circular dependencies at module level
 from world.world_coordinator import WorldCoordinator
 from world.weather_core import WeatherState, generate_weather_state
@@ -1352,23 +1361,25 @@ class GameEngine:
             # Format objects with their permanent shortkeys from JSON
             formatted_objects = []
             
-            # DEBUG: Write to file for inspection
-            with open("shortkey_debug.txt", "w") as f:
-                f.write("=== OBJECT DEBUG OUTPUT ===\n\n")
-                for obj in objects:
-                    obj_name = obj.get("name", "Unknown")
-                    shortkey = obj.get("shortkey", "")
-                    
-                    f.write(f"Object: {obj_name}\n")
-                    f.write(f"Shortkey: '{shortkey}'\n")
-                    f.write(f"Full dict keys: {list(obj.keys())}\n")
-                    f.write(f"Full dict: {obj}\n")
-                    f.write("-" * 50 + "\n")
-                    
-                    if shortkey:
-                        formatted_objects.append(f"{obj_name} [{shortkey}]")
-                    else:
-                        formatted_objects.append(obj_name)
+            # DEBUG: Write to file for inspection (toggled in tests/debug_utils.py)
+            debug_output = "=== OBJECT DEBUG OUTPUT ===\n\n"
+            for obj in objects:
+                obj_name = obj.get("name", "Unknown")
+                shortkey = obj.get("shortkey", "")
+                
+                debug_output += f"Object: {obj_name}\n"
+                debug_output += f"Shortkey: '{shortkey}'\n"
+                debug_output += f"Full dict keys: {list(obj.keys())}\n"
+                debug_output += f"Full dict: {obj}\n"
+                debug_output += "-" * 50 + "\n"
+                
+                if shortkey:
+                    formatted_objects.append(f"{obj_name} [{shortkey}]")
+                else:
+                    formatted_objects.append(obj_name)
+            
+            # Write debug output if enabled
+            log_shortkey_debug(debug_output, mode="w")
             
             content_parts.append(f"You notice {', '.join(formatted_objects)}.")
         
@@ -1757,11 +1768,11 @@ class GameEngine:
         # Initialize inventory system
         character.initialize_inventory()
         
-        # Restore inventory items using centralized system
+        # Restore inventory items using unified Item class
         if "inventory" in data and data["inventory"]:
-            from core.inventory import InventoryItem
+            from core.item import Item
             for item_data in data["inventory"]:
-                item = InventoryItem.from_dict(item_data)
+                item = Item.from_dict(item_data)
                 character.inventory.items.append(item)
         
         # Restore equipment

@@ -2,6 +2,7 @@
 Fantasy RPG - Inventory System
 
 Inventory management with weight tracking, item stacking, and encumbrance limits.
+Uses the unified Item class from core.item.
 """
 
 from dataclasses import dataclass, field
@@ -10,170 +11,15 @@ from collections import defaultdict
 import json
 from pathlib import Path
 
-
-@dataclass
-class InventoryItem:
-    """Represents an item in inventory with quantity and metadata"""
-    item_id: str
-    name: str
-    item_type: str
-    weight: float
-    value: int
-    quantity: int = 1
-    description: str = ""
-    properties: List[str] = field(default_factory=list)
-    
-    # Equipment-specific attributes (None for non-equipment items)
-    equippable: bool = False
-    slot: Optional[str] = None
-    ac_bonus: int = 0
-    armor_type: Optional[str] = None  # 'light', 'medium', 'heavy'
-    damage_dice: Optional[str] = None
-    damage_type: Optional[str] = None
-    
-    # Magical properties
-    magical: bool = False
-    enchantment_bonus: int = 0
-    special_properties: List[str] = field(default_factory=list)
-    
-    # Container properties
-    capacity_bonus: float = 0.0  # Additional carrying capacity for containers
-    
-    def get_total_weight(self) -> float:
-        """Get total weight for this stack of items"""
-        return self.weight * self.quantity
-    
-    def get_total_value(self) -> int:
-        """Get total value for this stack of items"""
-        return self.value * self.quantity
-    
-    def can_stack_with(self, other: 'InventoryItem') -> bool:
-        """Check if this item can stack with another item"""
-        # Items can stack if they have the same ID and are stackable
-        return (self.item_id == other.item_id and 
-                self.is_stackable() and 
-                other.is_stackable())
-    
-    def is_stackable(self) -> bool:
-        """Check if this item type can be stacked"""
-        # Consumables, ammunition, tools, and materials can typically stack
-        stackable_types = ['consumable', 'ammunition', 'tool', 'component', 'material']
-        return self.item_type in stackable_types
-    
-    def split(self, quantity: int) -> Optional['InventoryItem']:
-        """Split this stack, returning a new InventoryItem with the specified quantity"""
-        if quantity <= 0 or quantity >= self.quantity:
-            return None
-        
-        # Create new item with split quantity
-        split_item = InventoryItem(
-            item_id=self.item_id,
-            name=self.name,
-            item_type=self.item_type,
-            weight=self.weight,
-            value=self.value,
-            quantity=quantity,
-            description=self.description,
-            properties=self.properties.copy(),
-            equippable=self.equippable,
-            slot=self.slot,
-            ac_bonus=self.ac_bonus,
-            armor_type=self.armor_type,
-            damage_dice=self.damage_dice,
-            damage_type=self.damage_type,
-            magical=self.magical,
-            enchantment_bonus=self.enchantment_bonus,
-            special_properties=self.special_properties.copy(),
-            capacity_bonus=self.capacity_bonus
-        )
-        
-        # Reduce this item's quantity
-        self.quantity -= quantity
-        
-        return split_item
-    
-    def to_dict(self) -> Dict:
-        """Convert to dictionary for saving"""
-        return {
-            'item_id': self.item_id,
-            'name': self.name,
-            'type': self.item_type,
-            'weight': self.weight,
-            'value': self.value,
-            'quantity': self.quantity,
-            'description': self.description,
-            'properties': self.properties,
-            'equippable': self.equippable,
-            'slot': self.slot,
-            'ac_bonus': self.ac_bonus,
-            'armor_type': self.armor_type,
-            'damage_dice': self.damage_dice,
-            'damage_type': self.damage_type,
-            'magical': self.magical,
-            'enchantment_bonus': self.enchantment_bonus,
-            'special_properties': self.special_properties,
-            'capacity_bonus': self.capacity_bonus
-        }
-    
-    def to_item(self):
-        """Convert InventoryItem to Item object for equipment system"""
-        # Import from item.py - now the single source of truth
-        try:
-            from .item import Item
-        except ImportError:
-            from item import Item
-        
-        return Item(
-            name=self.name,
-            item_type=self.item_type,
-            weight=self.weight,
-            value=self.value,
-            description=self.description,
-            properties=self.properties,
-            pools=[],  # Not needed for equipped items
-            drop_weight=1,
-            ac_bonus=self.ac_bonus,
-            armor_type=self.armor_type,
-            damage_dice=self.damage_dice,
-            damage_type=self.damage_type,
-            equippable=self.equippable,
-            slot=self.slot,
-            magical=self.magical,
-            enchantment_bonus=self.enchantment_bonus,
-            special_properties=self.special_properties,
-            capacity_bonus=self.capacity_bonus
-        )
-    
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'InventoryItem':
-        """Create from dictionary data"""
-        return cls(
-            item_id=data['item_id'],
-            name=data['name'],
-            item_type=data.get('type', 'misc'),
-            weight=data.get('weight', 0.0),
-            value=data.get('value', 0),
-            quantity=data.get('quantity', 1),
-            description=data.get('description', ''),
-            properties=data.get('properties', []),
-            equippable=data.get('equippable', False),
-            slot=data.get('slot'),
-            ac_bonus=data.get('ac_bonus', 0),
-            armor_type=data.get('armor_type'),
-            damage_dice=data.get('damage_dice'),
-            damage_type=data.get('damage_type'),
-            magical=data.get('magical', False),
-            enchantment_bonus=data.get('enchantment_bonus', 0),
-            special_properties=data.get('special_properties', []),
-            capacity_bonus=data.get('capacity_bonus', 0.0)
-        )
+# Import unified Item class
+from .item import Item
 
 
 @dataclass
 class Inventory:
     """Character inventory with weight tracking and encumbrance"""
     
-    items: List[InventoryItem] = field(default_factory=list)
+    items: List[Item] = field(default_factory=list)
     max_weight: float = 150.0  # Default carrying capacity in pounds
     
     def __post_init__(self):
@@ -219,7 +65,7 @@ class Inventory:
         additional_weight = weight_per_item * quantity
         return (self.get_total_weight() + additional_weight) <= self.max_weight
     
-    def add_item(self, item: InventoryItem) -> bool:
+    def add_item(self, item: Item) -> bool:
         """Add an item to inventory, stacking if possible"""
         # Check weight limit
         if not self.can_add_item(item.item_id, item.quantity, item.weight):
@@ -248,7 +94,7 @@ class Inventory:
         print(f"Added {item.quantity} {item.name} to inventory")
         return True
     
-    def remove_item(self, item_id: str, quantity: int = 1) -> Optional[InventoryItem]:
+    def remove_item(self, item_id: str, quantity: int = 1) -> Optional[Item]:
         """Remove an item from inventory"""
         for i, item in enumerate(self.items):
             if item.item_id == item_id:
@@ -267,7 +113,7 @@ class Inventory:
         print(f"Item {item_id} not found in inventory")
         return None
     
-    def get_item(self, item_id: str) -> Optional[InventoryItem]:
+    def get_item(self, item_id: str) -> Optional[Item]:
         """Get an item from inventory by ID"""
         for item in self.items:
             if item.item_id == item_id:
@@ -279,15 +125,15 @@ class Inventory:
         item = self.get_item(item_id)
         return item is not None and item.quantity >= quantity
     
-    def get_items_by_type(self, item_type: str) -> List[InventoryItem]:
+    def get_items_by_type(self, item_type: str) -> List[Item]:
         """Get all items of a specific type"""
         return [item for item in self.items if item.item_type == item_type]
     
-    def get_equippable_items(self) -> List[InventoryItem]:
+    def get_equippable_items(self) -> List[Item]:
         """Get all equippable items"""
         return [item for item in self.items if item.equippable]
     
-    def get_consumable_items(self) -> List[InventoryItem]:
+    def get_consumable_items(self) -> List[Item]:
         """Get all consumable items"""
         return self.get_items_by_type('consumable')
     
@@ -365,7 +211,7 @@ class Inventory:
         inventory = cls(max_weight=data.get('max_weight', 150.0))
         
         for item_data in data.get('items', []):
-            item = InventoryItem.from_dict(item_data)
+            item = Item.from_dict(item_data)
             inventory.items.append(item)
         
         return inventory
@@ -378,41 +224,26 @@ class InventoryManager:
         """Initialize with optional ItemLoader"""
         if item_loader is None:
             try:
-                from .equipment import ItemLoader
+                from .item import ItemLoader
             except ImportError:
                 # Handle direct execution (python inventory.py)
-                from equipment import ItemLoader
+                from item import ItemLoader
             self.item_loader = ItemLoader()
         else:
             self.item_loader = item_loader
     
-    def create_inventory_item_from_id(self, item_id: str, quantity: int = 1) -> Optional[InventoryItem]:
-        """Create an InventoryItem from an item ID using ItemLoader"""
+    def create_inventory_item_from_id(self, item_id: str, quantity: int = 1) -> Optional[Item]:
+        """Create an Item from an item ID using ItemLoader"""
         item = self.item_loader.get_item(item_id)
         if not item:
             print(f"Warning: Item '{item_id}' not found in item database")
             return None
         
-        return InventoryItem(
-            item_id=item_id,
-            name=item.name,
-            item_type=item.item_type,
-            weight=item.weight,
-            value=item.value,
-            quantity=quantity,
-            description=item.description,
-            properties=getattr(item, 'properties', []),
-            equippable=item.equippable,
-            slot=item.slot,
-            ac_bonus=getattr(item, 'ac_bonus', 0) or 0,
-            armor_type=getattr(item, 'armor_type', None),
-            damage_dice=item.damage_dice,
-            damage_type=item.damage_type,
-            magical=item.magical,
-            enchantment_bonus=item.enchantment_bonus,
-            special_properties=item.special_properties or [],
-            capacity_bonus=getattr(item, 'capacity_bonus', 0.0)
-        )
+        # Create a copy with the specified quantity
+        # The item from ItemLoader already has all the fields we need
+        item.item_id = item_id
+        item.quantity = quantity
+        return item
     
     def add_item_by_id(self, inventory: Inventory, item_id: str, quantity: int = 1) -> bool:
         """Add an item to inventory by ID"""

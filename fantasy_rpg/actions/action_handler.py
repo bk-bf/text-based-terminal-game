@@ -1884,7 +1884,7 @@ Example: 'li fp' lights the fireplace, 'dr we' drinks from the well"""
                                 character.inventory.items.remove(item)
                             return True
             
-            # Method 3: Direct access to inventory.items list (InventoryItem objects)
+            # Method 3: Direct access to inventory.items list (unified Item objects)
             if hasattr(character, 'inventory') and hasattr(character.inventory, 'items'):
                 for item in character.inventory.items:
                     if hasattr(item, 'item_id') and item.item_id == "firewood":

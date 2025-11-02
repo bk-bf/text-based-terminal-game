@@ -13,15 +13,18 @@ from pathlib import Path
 @dataclass
 class Item:
     """
-    Base class for all items in the game.
+    Unified item class for all items in the game.
     
-    Handles weight, properties, and basic item functionality that all
-    equipment, consumables, and other items will inherit from.
+    Handles weight, properties, quantity tracking, and basic item functionality
+    for equipment, consumables, and other items. This is the single source of
+    truth for all item representations (previously Item, InventoryItem, GameItem).
     """
     name: str
     item_type: str  # 'weapon', 'armor', 'shield', 'consumable', etc.
     weight: float
-    value: int = 0  # Changed from 'cost' to match JSON
+    value: int = 0
+    item_id: str = ""  # Unique identifier (auto-generated from name if empty)
+    quantity: int = 1  # Quantity for stacking
     description: str = ""
     properties: Optional[List[str]] = None
     pools: Optional[List[str]] = None  # Pool tags for spawning/drops
@@ -30,7 +33,7 @@ class Item:
     # Equipment-specific attributes (None for non-equipment items)
     ac_bonus: Optional[int] = None
     armor_type: Optional[str] = None  # 'light', 'medium', 'heavy'
-    damage_dice: Optional[str] = None  # Changed from 'damage' to match JSON
+    damage_dice: Optional[str] = None
     damage_type: Optional[str] = None
     equippable: bool = False
     slot: Optional[str] = None
@@ -42,13 +45,71 @@ class Item:
     capacity_bonus: float = 0.0  # Additional carrying capacity for containers
     
     def __post_init__(self):
-        """Initialize empty lists if not provided."""
+        """Initialize empty lists if not provided and set item_id."""
         if self.properties is None:
             self.properties = []
         if self.pools is None:
             self.pools = []
         if self.special_properties is None:
             self.special_properties = []
+        # Auto-generate item_id from name if not provided
+        if not self.item_id:
+            self.item_id = self.name.lower().replace(" ", "_")
+    
+    def get_total_weight(self) -> float:
+        """Get total weight for this stack of items"""
+        return self.weight * self.quantity
+    
+    def get_total_value(self) -> int:
+        """Get total value for this stack of items"""
+        return self.value * self.quantity
+    
+    def can_stack_with(self, other: 'Item') -> bool:
+        """Check if this item can stack with another item"""
+        # Items can stack if they have the same ID and are stackable
+        return (self.item_id == other.item_id and 
+                self.is_stackable() and 
+                other.is_stackable())
+    
+    def is_stackable(self) -> bool:
+        """Check if this item type can be stacked"""
+        # Consumables, ammunition, tools, and materials can typically stack
+        stackable_types = ['consumable', 'ammunition', 'tool', 'component', 'material']
+        return self.item_type in stackable_types
+    
+    def split(self, quantity: int) -> Optional['Item']:
+        """Split this stack, returning a new Item with the specified quantity"""
+        if quantity <= 0 or quantity >= self.quantity:
+            return None
+        
+        # Create new item with split quantity (copying all attributes)
+        split_item = Item(
+            item_id=self.item_id,
+            name=self.name,
+            item_type=self.item_type,
+            weight=self.weight,
+            value=self.value,
+            quantity=quantity,
+            description=self.description,
+            properties=self.properties.copy() if self.properties else [],
+            pools=self.pools.copy() if self.pools else [],
+            drop_weight=self.drop_weight,
+            equippable=self.equippable,
+            slot=self.slot,
+            ac_bonus=self.ac_bonus,
+            armor_type=self.armor_type,
+            damage_dice=self.damage_dice,
+            damage_type=self.damage_type,
+            magical=self.magical,
+            enchantment_bonus=self.enchantment_bonus,
+            special_properties=self.special_properties.copy() if self.special_properties else [],
+            capacity_bonus=self.capacity_bonus
+        )
+        
+        # Reduce this item's quantity
+        self.quantity -= quantity
+        
+        return split_item
     
     def has_property(self, property_name: str) -> bool:
         """Check if this item has a specific property."""
@@ -168,11 +229,14 @@ class Item:
     def to_dict(self) -> Dict[str, Any]:
         """Convert item to dictionary for saving."""
         return {
+            "item_id": self.item_id,
             "name": self.name,
             "type": self.item_type,
             "weight": self.weight,
             "value": self.value,
+            "quantity": self.quantity,
             "description": self.description,
+            "properties": self.properties or [],
             "pools": self.pools or [],
             "drop_weight": self.drop_weight,
             "ac_bonus": self.ac_bonus,
@@ -191,10 +255,12 @@ class Item:
     def from_dict(cls, data: Dict[str, Any]) -> 'Item':
         """Create item from dictionary data."""
         return cls(
+            item_id=data.get("item_id", ""),
             name=data["name"],
             item_type=data.get("type", "misc"),
             weight=data.get("weight", 0.0),
             value=data.get("value", 0),
+            quantity=data.get("quantity", 1),
             description=data.get("description", ""),
             properties=data.get("properties", []),
             pools=data.get("pools", []),

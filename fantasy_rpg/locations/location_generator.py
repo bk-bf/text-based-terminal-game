@@ -1,16 +1,28 @@
 """
-Fantasy RPG - JSON-Based Location Generator
+Fantasy RPG - Location Generator
 
-Generates locations from JSON templates using CDDA-style data-driven approach.
-Hex types map to location categories, which contain weighted location templates.
+Generates locations from JSON templates with objects, items, and entities.
+Uses the unified Item class from core.item.
 """
 
 import json
+import os
 import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
-import os
+
+# Import unified Item class
+try:
+    from fantasy_rpg.core.item import Item
+except ImportError:
+    try:
+        from core.item import Item
+    except ImportError:
+        # For direct execution
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        from core.item import Item
 
 # Configuration constants
 MIN_OBJECTS_PER_LOCATION = 10  # Minimum number of objects to spawn per location
@@ -44,24 +56,14 @@ class TerrainType(Enum):
 
 @dataclass
 class GameObject:
-    """Object within an area (furniture, features, etc.)"""
+    """Interactive object in a location"""
     id: str
     name: str
     shortkey: str = ""  # Permanent shortkey from JSON
     description: str = ""
     interactive: bool = True
     properties: Dict[str, Any] = field(default_factory=dict)
-    item_drops: List['GameItem'] = field(default_factory=list)
-
-
-@dataclass
-class GameItem:
-    """Item that can be picked up"""
-    id: str
-    name: str
-    description: str = ""
-    value: int = 0
-    weight: float = 0.0
+    item_drops: List[Item] = field(default_factory=list)  # Changed from GameItem to Item
 
 
 @dataclass
@@ -72,7 +74,7 @@ class GameEntity:
     description: str = ""
     hostile: bool = False
     stats: Dict[str, int] = field(default_factory=dict)
-    item_drops: List['GameItem'] = field(default_factory=list)
+    item_drops: List[Item] = field(default_factory=list)  # Changed from GameItem to Item
 
 
 @dataclass
@@ -85,7 +87,7 @@ class Area:
     terrain: TerrainType
     exits: Dict[str, str] = field(default_factory=dict)  # direction -> area_id
     objects: List[GameObject] = field(default_factory=list)
-    items: List[GameItem] = field(default_factory=list)
+    items: List[Item] = field(default_factory=list)  # Changed from GameItem to Item
     entities: List[GameEntity] = field(default_factory=list)
     
     def get_full_description(self) -> str:
@@ -566,18 +568,34 @@ class LocationGenerator:
             if "item_drops" in data:
                 entity.item_drops = self._generate_item_drops(data["item_drops"])
             return entity
-        elif item_class == GameItem:
-            return GameItem(
-                id=item_id,
+        elif item_class == Item:
+            # Create Item from pool data
+            return Item(
+                item_id=item_id,
                 name=data.get("name", item_id.replace("_", " ").title()),
-                description=data.get("description", ""),
+                item_type=data.get("type", "misc"),
+                weight=data.get("weight", 0.0),
                 value=data.get("value", 0),
-                weight=data.get("weight", 0.0)
+                quantity=1,
+                description=data.get("description", ""),
+                properties=data.get("properties", []),
+                pools=data.get("pools", []),
+                drop_weight=data.get("drop_weight", 1),
+                ac_bonus=data.get("ac_bonus"),
+                armor_type=data.get("armor_type"),
+                damage_dice=data.get("damage_dice"),
+                damage_type=data.get("damage_type"),
+                equippable=data.get("equippable", False),
+                slot=data.get("slot"),
+                magical=data.get("magical", False),
+                enchantment_bonus=data.get("enchantment_bonus", 0),
+                special_properties=data.get("special_properties", []),
+                capacity_bonus=data.get("capacity_bonus", 0.0)
             )
         
         return None
     
-    def _generate_item_drops(self, drop_config: Dict) -> List[GameItem]:
+    def _generate_item_drops(self, drop_config: Dict) -> List[Item]:
         """Generate items that can be dropped from objects/entities"""
         if not drop_config:
             return []
@@ -616,7 +634,7 @@ class LocationGenerator:
             for item_data in possible_items:
                 current += item_data["weight"]
                 if roll <= current:
-                    drops.append(self._create_from_pool_data(item_data, GameItem))
+                    drops.append(self._create_from_pool_data(item_data, Item))
                     break
         
         return drops

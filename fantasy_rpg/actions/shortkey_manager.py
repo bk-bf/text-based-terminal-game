@@ -7,6 +7,17 @@ Provides a seamless UX where every action and object can be referenced with mini
 
 from typing import Dict, List, Optional, Tuple
 import string
+import sys
+import os
+
+# Import debug utilities
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+    from tests.debug_utils import log_shortkey_debug
+except ImportError:
+    # Fallback if tests module not available
+    def log_shortkey_debug(message: str, mode: str = "a"):
+        pass  # No-op if debug utils not available
 
 
 class ShortkeyManager:
@@ -126,13 +137,15 @@ class ShortkeyManager:
         # Check if first part is an action shortkey
         action = self.ACTION_SHORTCUTS.get(first, first)
         
-        # DEBUG: Write shortkey mappings to file
-        with open("shortkey_debug.txt", "a") as f:
-            f.write("\n=== PARSE COMMAND DEBUG ===\n")
-            f.write(f"Original command: '{command_str}'\n")
-            f.write(f"Action: '{first}' -> '{action}'\n")
-            f.write(f"Arguments: {rest}\n")
-            f.write(f"Current object_shortcuts: {self.object_shortcuts}\n")
+        # DEBUG: Write shortkey mappings to file (toggled in tests/debug_utils.py)
+        log_shortkey_debug(
+            f"\n=== PARSE COMMAND DEBUG ===\n"
+            f"Original command: '{command_str}'\n"
+            f"Action: '{first}' -> '{action}'\n"
+            f"Arguments: {rest}\n"
+            f"Current object_shortcuts: {self.object_shortcuts}\n",
+            mode="a"
+        )
         
         # Process arguments - expand object shortcuts (keep original case for lookup)
         expanded_args = []
@@ -141,8 +154,7 @@ class ShortkeyManager:
             obj_name = self.object_shortcuts.get(arg.lower())  # Shortkeys are lowercase
             
             # DEBUG
-            with open("shortkey_debug.txt", "a") as f:
-                f.write(f"  Arg '{arg}' -> lookup '{arg.lower()}' -> result: {obj_name}\n")
+            log_shortkey_debug(f"  Arg '{arg}' -> lookup '{arg.lower()}' -> result: {obj_name}\n")
             
             if obj_name:
                 expanded_args.append(obj_name)
@@ -150,9 +162,10 @@ class ShortkeyManager:
                 expanded_args.append(arg)
         
         # DEBUG final result
-        with open("shortkey_debug.txt", "a") as f:
-            f.write(f"Final expanded: {action} {expanded_args}\n")
-            f.write("-" * 50 + "\n")
+        log_shortkey_debug(
+            f"Final expanded: {action} {expanded_args}\n"
+            f"{'-' * 50}\n"
+        )
         
         return (action, expanded_args)
     

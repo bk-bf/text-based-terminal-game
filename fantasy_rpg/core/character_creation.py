@@ -344,7 +344,7 @@ class CharacterCreationFlow:
             item = available_items.get(item_id)
             
             if item:
-                # Add the item to inventory with quantity - include ALL fields for proper InventoryItem creation
+                # Add the item to inventory with quantity - unified Item class
                 inventory_entry = {
                     "item_id": item_id,
                     "name": item.name,
@@ -490,10 +490,10 @@ def create_character_quick(name: str, race_name: str = "Human", class_name: str 
     creation_flow = CharacterCreationFlow()
     starting_equipment = creation_flow.generate_starting_equipment(character, char_class)
     
-    # Add items directly to the new inventory system
-    from core.inventory import InventoryItem
+    # Add items directly to the new inventory system using unified Item class
+    from core.item import Item
     for item_data in starting_equipment:
-        item = InventoryItem(
+        item = Item(
             item_id=item_data["item_id"],
             name=item_data["name"],
             item_type=item_data["type"],

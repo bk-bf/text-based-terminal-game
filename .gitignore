@@ -214,3 +214,4 @@ user_data/
 # Project-specific
 *.log
 debug.txt
+shortkey_debug.txt

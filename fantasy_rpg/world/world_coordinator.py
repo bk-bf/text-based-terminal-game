@@ -316,19 +316,25 @@ class WorldCoordinator:
         return objects_dict
     
     def _convert_items_to_dict(self, items: List) -> List[Dict]:
-        """Convert GameItem objects to dictionaries"""
+        """Convert Item objects to dictionaries (using unified Item class)"""
         items_dict = []
         for item in items:
             if hasattr(item, '__dict__'):
-                # Convert GameItem to dictionary
-                item_dict = {
-                    "id": getattr(item, 'id', 'unknown'),
-                    "name": getattr(item, 'name', 'Unknown Item'),
-                    "description": getattr(item, 'description', ''),
-                    "value": getattr(item, 'value', 0),
-                    "weight": getattr(item, 'weight', 0.0)
-                }
-                items_dict.append(item_dict)
+                # Convert Item to dictionary using its to_dict method if available
+                if hasattr(item, 'to_dict'):
+                    items_dict.append(item.to_dict())
+                else:
+                    # Fallback for legacy items
+                    item_dict = {
+                        "item_id": getattr(item, 'item_id', getattr(item, 'id', 'unknown')),
+                        "name": getattr(item, 'name', 'Unknown Item'),
+                        "type": getattr(item, 'item_type', 'misc'),
+                        "description": getattr(item, 'description', ''),
+                        "value": getattr(item, 'value', 0),
+                        "weight": getattr(item, 'weight', 0.0),
+                        "quantity": getattr(item, 'quantity', 1)
+                    }
+                    items_dict.append(item_dict)
             else:
                 # Already a dictionary
                 items_dict.append(item)

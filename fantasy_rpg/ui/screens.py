@@ -525,36 +525,18 @@ class InventoryScreen(ModalScreen):
                     if not hasattr(self.character, 'inventory') or self.character.inventory is None:
                         self.character.initialize_inventory()
                     
-                    # Add the unequipped item back to inventory
-                    # Need to convert Item to InventoryItem
+                    # Add the unequipped item back to inventory (unified Item class)
                     # CRITICAL: Check 'is not None' because empty inventory (len=0) is falsy!
                     if hasattr(self.character, 'inventory') and self.character.inventory is not None:
-                        from fantasy_rpg.core.inventory import InventoryItem
+                        from fantasy_rpg.core.item import Item
                         import uuid
                         
-                        # Create InventoryItem from Item with unique ID for each instance
-                        inv_item = InventoryItem(
-                            item_id=f"{unequipped.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
-                            name=unequipped.name,
-                            item_type=unequipped.item_type,
-                            weight=unequipped.weight,
-                            value=unequipped.value,
-                            quantity=1,
-                            description=unequipped.description,
-                            properties=unequipped.properties.copy(),
-                            equippable=unequipped.equippable,
-                            slot=unequipped.slot,
-                            ac_bonus=unequipped.ac_bonus,
-                            armor_type=unequipped.armor_type,
-                            damage_dice=unequipped.damage_dice,
-                            damage_type=unequipped.damage_type,
-                            magical=unequipped.magical,
-                            enchantment_bonus=unequipped.enchantment_bonus,
-                            special_properties=unequipped.special_properties.copy(),
-                            capacity_bonus=unequipped.capacity_bonus
-                        )
+                        # unequipped is already an Item, just ensure item_id is set
+                        if not unequipped.item_id:
+                            unequipped.item_id = f"{unequipped.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}"
+                        unequipped.quantity = 1  # Set quantity for inventory
                         
-                        added = self.character.inventory.add_item(inv_item)
+                        added = self.character.inventory.add_item(unequipped)
                         
                         if added:
                             self.app.log_message(f"Unequipped {item_data['name']} (returned to inventory)")
@@ -570,13 +552,8 @@ class InventoryScreen(ModalScreen):
                     self.app.log_message(f"Failed to unequip {item_data['name']}")
                 
             elif item_data["type"] in ["weapon", "armor", "shield"]:
-                # Convert InventoryItem to Item if needed
-                if hasattr(item, 'to_item'):
-                    # It's an InventoryItem, convert to Item
-                    equipment_item = item.to_item()
-                else:
-                    # Already an Item
-                    equipment_item = item
+                # Item is already unified Item class - no conversion needed
+                equipment_item = item
                 
                 # Equip the item - use character.equip_item() which initializes equipment
                 slot = self._determine_equip_slot(equipment_item)
