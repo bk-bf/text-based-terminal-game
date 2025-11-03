@@ -325,17 +325,10 @@ class Equipment:
     
     def to_dict(self) -> Dict[str, Any]:
         """Serialize equipment to dictionary for saving"""
-        equipment_data = {}
-        
-        for slot in self._slots:
-            item = self.get_item_in_slot(slot)
-            if item:
-                # Serialize each equipped item
-                equipment_data[slot] = item.to_dict()
-            else:
-                equipment_data[slot] = None
-        
-        return equipment_data
+        return {
+            slot: item.to_dict() if (item := self.get_item_in_slot(slot)) else None
+            for slot in self._slots
+        }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Equipment':
