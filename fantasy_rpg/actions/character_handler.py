@@ -72,10 +72,9 @@ class CharacterHandler(BaseActionHandler):
         
         # Find the first available object with matching name
         for obj in objects:
-            if obj.get("name", "").lower() == object_name.lower():
-                # Check if this object is still available for interaction
-                if not obj.get("depleted", False) and not obj.get("searched", False) and not obj.get("chopped", False) and not obj.get("wood_taken", False):
-                    return obj
+            if obj.get("name", "").lower() == object_name.lower() and (not obj.get("depleted", False) and not obj.get("searched", False) and not obj.get("chopped", False) and not obj.get("wood_taken", False)):
+                return obj
+
         
         # If no available objects found, return the first match anyway (for error messages)
         for obj in objects:
