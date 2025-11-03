@@ -153,9 +153,9 @@ class SaveManager:
         """Serialize character object to dictionary"""
         # Properly serialize inventory
         inventory_data = []
-        if hasattr(character, 'inventory') and character.inventory:
-            if hasattr(character.inventory, 'items'):
-                inventory_data = [item.to_dict() for item in character.inventory.items]
+        if hasattr(character, 'inventory') and character.inventory and hasattr(character.inventory, 'items'):
+            inventory_data = [item.to_dict() for item in character.inventory.items]
+
         
         # Properly serialize equipment using Equipment.to_dict()
         equipment_data = {}
