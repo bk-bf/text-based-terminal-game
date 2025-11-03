@@ -227,9 +227,9 @@ class MovementCoordinator:
                 weather_modifier = 1.2
         
         # Wind modifier
-        if hasattr(weather, 'wind_speed'):
-            if weather.wind_speed > 30:  # Strong winds
-                weather_modifier *= 1.2
+        if hasattr(weather, 'wind_speed') and weather.wind_speed > 30:
+            weather_modifier *= 1.2
+
         
         return base_time * weather_modifier
     
