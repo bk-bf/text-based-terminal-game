@@ -2,11 +2,54 @@
 Fantasy RPG - Utility Classes
 
 Utility classes for dice rolling, coordinates, and other common functionality.
+
+## Coordinate Representation Guide
+
+This codebase uses three different coordinate representations for different purposes:
+
+1. **HexCoords - Tuple[int, int]**
+   - USE FOR: Hex grid position tracking, world map calculations, movement
+   - EXAMPLES: `world.get_hex((5, 10))`, `current_coords = (12, 8)`
+   - LOCATIONS: WorldCoordinator, MovementCoordinator, Hex.coords
+   - WHY: Lightweight, hashable (dict keys), minimal overhead for frequent lookups
+   
+2. **Coordinates - Dataclass**
+   - USE FOR: Rich coordinate operations, distance calculations, transformations
+   - EXAMPLES: `Coordinates(x=5, y=10).distance_to(other_coords)`
+   - LOCATIONS: Utility functions, pathfinding algorithms, spatial queries
+   - WHY: Type safety, built-in validation, extensible with methods
+   
+3. **Direction - String Literal**
+   - USE FOR: User input, area navigation, exit mapping
+   - EXAMPLES: `exits={"n": "forest_clearing", "e": "cave_entrance"}`
+   - LOCATIONS: Area.exits, movement commands, location navigation
+   - WHY: Human-readable, compact, natural for cardinal/ordinal directions
+   
+**When to convert:**
+- HexCoords → Coordinates: When you need distance calculations or rich operations
+- Coordinates → HexCoords: When storing in Hex.coords or using as dict keys
+- Direction → HexCoords: When translating user movement commands to world positions
 """
 
 import random
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Literal
+
+# Type aliases for coordinate representations
+HexCoords = Tuple[int, int]
+"""
+Tuple-based hex coordinates (x, y) for world grid positions.
+Lightweight and hashable for use as dictionary keys.
+"""
+
+Direction = Literal[
+    "north", "n", "south", "s", "east", "e", "west", "w",
+    "northeast", "ne", "northwest", "nw", "southeast", "se", "southwest", "sw"
+]
+"""
+Cardinal and ordinal direction strings for movement and area exits.
+Supports both full names and abbreviated forms.
+"""
 
 
 class Dice:
@@ -145,10 +188,31 @@ def roll_d20(advantage: bool = False, disadvantage: bool = False) -> int:
 @dataclass
 class Coordinates:
     """
-    Coordinate utility class for hex grid navigation.
+    Rich coordinate dataclass for hex grid operations.
     
-    Provides coordinate manipulation and distance calculation
-    for the hex-based world map system.
+    Use this class when you need distance calculations, coordinate transformations,
+    or other spatial operations. For simple position tracking, prefer HexCoords
+    (Tuple[int, int]) which is lighter and hashable for dictionary keys.
+    
+    **Usage Examples:**
+    
+    ```python
+    # Rich operations - use Coordinates
+    pos = Coordinates(x=5, y=10)
+    distance = pos.distance_to(Coordinates(x=8, y=12))
+    
+    # Simple position tracking - use HexCoords
+    hex_coords: HexCoords = (5, 10)
+    world.hexes[hex_coords] = Hex(coords=hex_coords, biome="forest")
+    
+    # Converting between representations
+    coords = Coordinates(x=5, y=10)
+    hex_coords: HexCoords = coords.to_tuple()  # (5, 10)
+    ```
+    
+    **See Also:**
+    - HexCoords type alias for lightweight tuple-based coordinates
+    - Direction type alias for movement/navigation strings
     """
     x: int
     y: int
@@ -158,8 +222,13 @@ class Coordinates:
         self.x = int(self.x)
         self.y = int(self.y)
     
-    def to_tuple(self) -> Tuple[int, int]:
-        """Convert to tuple format."""
+    def to_tuple(self) -> HexCoords:
+        """
+        Convert to HexCoords tuple format for use in world grid lookups.
+        
+        Returns:
+            Tuple[int, int] suitable for Hex.coords or as dictionary keys
+        """
         return (self.x, self.y)
     
     def distance_to(self, other: 'Coordinates') -> int:

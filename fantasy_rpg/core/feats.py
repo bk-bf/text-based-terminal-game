@@ -4,10 +4,10 @@ Fantasy RPG - Feat System
 Feat definitions and management functionality.
 """
 
-import json
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from pathlib import Path
+from fantasy_rpg.utils.data_loader import DataLoader
 
 
 @dataclass
@@ -42,34 +42,11 @@ class Feat:
         print(f"Applied feat '{self.name}' to {character.name}")
 
 
-class FeatLoader:
+class FeatLoader(DataLoader):
     """Loads feat data from JSON files"""
     
     def __init__(self, data_dir: str = None):
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                self.data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                self.data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                self.data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                self.data_dir = parent_data_dir
-        else:
-            self.data_dir = Path(data_dir)
+        super().__init__(data_dir)
         self._feats_cache: Optional[Dict[str, Feat]] = None
     
     def load_feats(self) -> Dict[str, Feat]:
@@ -77,25 +54,22 @@ class FeatLoader:
         if self._feats_cache is not None:
             return self._feats_cache
         
-        feats_file = self.data_dir / "feats.json"
-        if not feats_file.exists():
-            print(f"Warning: {feats_file} not found, using default feats")
-            return self._get_default_feats()
-        
         try:
-            with open(feats_file, 'r') as f:
-                data = json.load(f)
+            data = self.load_json("feats.json")
             
             feats = {}
             for feat_key, feat_data in data['feats'].items():
                 feats[feat_key] = Feat.from_dict(feat_data)
             
-            print(f"Loaded {len(feats)} feats from {feats_file}")
+            print(f"Loaded {len(feats)} feats from {self.data_dir / 'feats.json'}")
             self._feats_cache = feats
             return feats
             
+        except FileNotFoundError:
+            print(f"Warning: feats.json not found in {self.data_dir}, using default feats")
+            return self._get_default_feats()
         except Exception as e:
-            print(f"Error loading feats from {feats_file}: {e}")
+            print(f"Error loading feats from {self.data_dir / 'feats.json'}: {e}")
             return self._get_default_feats()
     
     def get_feat(self, feat_name: str) -> Optional[Feat]:

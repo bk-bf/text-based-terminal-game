@@ -6,8 +6,8 @@ Item base class and related functionality for equipment and inventory management
 
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
-import json
 from pathlib import Path
+from fantasy_rpg.utils.data_loader import DataLoader
 
 
 @dataclass
@@ -278,63 +278,32 @@ class Item:
         )
 
 
-class ItemLoader:
+class ItemLoader(DataLoader):
     """Loads item definitions from JSON files."""
-    
-    def __init__(self, data_dir: Path = None):
-        """Initialize with data directory path."""
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                data_dir = parent_data_dir
-        
-        self.data_dir = data_dir
-        self._cache = {}
     
     def load_items(self) -> Dict[str, Item]:
         """Load all item definitions from items.json."""
-        if 'items' not in self._cache:
-            items_file = self.data_dir / "items.json"
-            
-            if not items_file.exists():
-                print(f"Warning: {items_file} not found, using empty item list")
-                self._cache['items'] = {}
-                return self._cache['items']
-            
+        cache_key = 'items'
+        
+        if cache_key not in self._cache:
             try:
-                with open(items_file, 'r') as f:
-                    data = json.load(f)
+                data = self.load_json("items.json")
                 
                 items = {}
                 for item_id, item_data in data.get("items", {}).items():
                     items[item_id] = Item.from_dict(item_data)
                 
-                self._cache['items'] = items
-                print(f"Loaded {len(items)} items from {items_file}")
+                self._cache[cache_key] = items
+                print(f"Loaded {len(items)} items from {self.data_dir / 'items.json'}")
                 
+            except FileNotFoundError:
+                print(f"Warning: items.json not found in {self.data_dir}, using empty item list")
+                self._cache[cache_key] = {}
             except Exception as e:
-                print(f"Error loading items from {items_file}: {e}")
-                self._cache['items'] = {}
+                print(f"Error loading items from {self.data_dir / 'items.json'}: {e}")
+                self._cache[cache_key] = {}
         
-        return self._cache['items']
+        return self._cache[cache_key]
     
     def get_item(self, item_id: str) -> Optional[Item]:
         """Get a specific item by ID."""

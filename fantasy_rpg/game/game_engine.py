@@ -308,7 +308,7 @@ class GameEngine:
         # Extract individual descriptions from the survival levels
         hunger_level = gs.player_state.survival.get_hunger_level()
         thirst_level = gs.player_state.survival.get_thirst_level()
-        temp_status = gs.player_state.survival.get_temperature_status()
+        temp_status = gs.player_state.survival.get_body_temperature_status()
         
         # Convert to natural language
         hunger_desc = hunger_level.name.replace('_', ' ').title()
@@ -1489,53 +1489,6 @@ class GameEngine:
             if not hasattr(self.world_coordinator, 'persistent_locations'):
                 self.world_coordinator.persistent_locations = {}
             self.world_coordinator.persistent_locations.update(data["persistent_locations"])
-    
-    def _check_and_apply_shelter_conditions(self, location_data: Dict):
-        """Check for shelter conditions when entering a location and apply them"""
-        if not location_data:
-            return
-        
-        # Get shelter information from location
-        shelter_type = location_data.get("shelter_type")
-        shelter_quality = location_data.get("shelter_quality")
-        
-        if not shelter_type or not shelter_quality:
-            return
-        
-        # Map shelter quality to condition names
-        quality_to_condition = {
-            "minimal": "Natural Shelter",
-            "basic": "Natural Shelter", 
-            "good": "Good Shelter",
-            "excellent": "Excellent Shelter"
-        }
-        
-        condition_name = quality_to_condition.get(shelter_quality)
-        if not condition_name:
-            return
-        
-        # Apply the shelter condition by updating the player state
-        # The conditions system will automatically detect this when evaluating conditions
-        gs = self.game_state
-        if hasattr(gs.player_state, 'current_shelter'):
-            gs.player_state.current_shelter = {
-                "type": shelter_type,
-                "quality": shelter_quality,
-                "condition": condition_name
-            }
-        else:
-            # Add shelter tracking to player state if it doesn't exist
-            gs.player_state.current_shelter = {
-                "type": shelter_type,
-                "quality": shelter_quality,
-                "condition": condition_name
-            }
-    
-    def _remove_shelter_conditions(self):
-        """Remove shelter conditions when exiting a location"""
-        gs = self.game_state
-        if hasattr(gs.player_state, 'current_shelter'):
-            gs.player_state.current_shelter = None
     
     def _debug_location_info(self, location_data: Dict):
         """Debug location flags and properties"""

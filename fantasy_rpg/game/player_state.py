@@ -129,8 +129,25 @@ class SurvivalNeeds:
         else:
             return SurvivalLevel.CRITICAL   # Exhausted
     
-    def get_temperature_status(self) -> TemperatureStatus:
-        """Get temperature comfort status"""
+    def get_body_temperature_status(self) -> TemperatureStatus:
+        """
+        Get player's body temperature comfort status.
+        
+        This returns an enum representing how the character's internal body temperature
+        feels, accounting for all environmental factors (weather, shelter, clothing, wetness).
+        This is the PLAYER-FACING temperature value, not the ambient environmental temp.
+        
+        Returns:
+            TemperatureStatus enum (FREEZING, VERY_COLD, COLD, COOL, COMFORTABLE, 
+                                   WARM, HOT, VERY_HOT, OVERHEATING)
+            
+        Usage Context:
+            - Player survival feedback ("You feel cold")
+            - UI temperature display
+            - Condition system (hypothermia/heat exhaustion triggers)
+            - NOT for world/climate temperatures (use ClimateSystem.get_ambient_temperature)
+            - NOT for hex-level data (use WorldCoordinator.get_hex_ambient_temperature)
+        """
         if self.body_temperature <= 100:
             return TemperatureStatus.FREEZING
         elif self.body_temperature <= 200:
@@ -184,7 +201,6 @@ class PlayerState:
     current_hex: str = "0847"
     current_location: str = "Forest Clearing"
     current_weather: Optional[WeatherState] = None
-    current_shelter: Optional[Dict[str, str]] = None  # Shelter tracking for condition system
     
     # Activity tracking
     last_meal_hours: int = 0  # Hours since last meal
@@ -608,7 +624,6 @@ class PlayerState:
             # Debug output
             if self.debug_survival:
                 print(f"[DEBUG] Conditions updated: {self.active_conditions}")
-                print(f"[DEBUG] Current shelter: {self.current_shelter}")
             
             # Get newly triggered conditions with their messages
             newly_triggered = conditions_manager.get_newly_triggered_conditions(
@@ -649,7 +664,7 @@ class PlayerState:
         hunger_level = self.survival.get_hunger_level()
         thirst_level = self.survival.get_thirst_level()
         fatigue_level = self.survival.get_fatigue_level()
-        temp_status = self.survival.get_temperature_status()
+        temp_status = self.survival.get_body_temperature_status()
         wetness_level = self.survival.get_wetness_level()
         
         summary = f"""survival status:
@@ -780,7 +795,7 @@ Wetness: {wetness_level.name.title()}"""
         
         # Temperature stats
         lines.append(f"\nWARMTH: {self.survival.body_temperature}/1000")
-        lines.append(f"   Status: {self.survival.get_temperature_status().name}")
+        lines.append(f"   Status: {self.survival.get_body_temperature_status().name}")
         if self.current_weather:
             temp_f = self.current_weather.temperature
             temp_c = (temp_f - 32) * 5 / 9
@@ -809,9 +824,6 @@ Wetness: {wetness_level.name.title()}"""
         
         if shelter_from_conditions:
             lines.append(f"\nSHELTER: {shelter_from_conditions} (from location)")
-        elif hasattr(self, 'current_shelter') and self.current_shelter:
-            # Fallback to old system if present (obsolete)
-            lines.append(f"\nSHELTER: {self.current_shelter.get('quality', 'unknown')} ({self.current_shelter.get('type', 'unknown')})")
         else:
             lines.append(f"\nSHELTER: None (exposed)")
         

@@ -5,12 +5,12 @@ Generates locations from JSON templates with objects, items, and entities.
 Uses the unified Item class from core.item.
 """
 
-import json
 import os
 import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
+from fantasy_rpg.utils.data_loader import DataLoader
 
 # Import unified Item class
 try:
@@ -79,13 +79,24 @@ class GameEntity:
 
 @dataclass
 class Area:
-    """Single area within a location"""
+    """
+    Single area within a location.
+    
+    **Direction Representation:**
+    Uses string direction keys ("n", "s", "e", "w", "ne", "nw", "se", "sw")
+    for exit mapping. This compact format is human-readable in JSON templates
+    and natural for cardinal/ordinal navigation. See `fantasy_rpg.utils.Direction`
+    for the full list of valid direction strings.
+    
+    Example:
+        exits = {"n": "forest_clearing", "e": "cave_entrance", "sw": "river_bank"}
+    """
     id: str
     name: str
     description: str
     size: AreaSize
     terrain: TerrainType
-    exits: Dict[str, str] = field(default_factory=dict)  # direction -> area_id
+    exits: Dict[str, str] = field(default_factory=dict)  # Direction -> area_id (e.g., "n" -> "forest_clearing")
     objects: List[GameObject] = field(default_factory=list)
     items: List[Item] = field(default_factory=list)  # Changed from GameItem to Item
     entities: List[GameEntity] = field(default_factory=list)
@@ -139,10 +150,11 @@ class Location:
         return self.areas.get(self.starting_area)
 
 
-class LocationGenerator:
+class LocationGenerator(DataLoader):
     """Generates locations from JSON templates"""
     
-    def __init__(self, seed: int = None):
+    def __init__(self, seed: int = None, data_dir=None):
+        super().__init__(data_dir)
         self.seed = seed or random.randint(1, 1000000)
         self.rng = random.Random(self.seed)
         
@@ -165,25 +177,13 @@ class LocationGenerator:
     def _load_location_templates(self) -> Dict[str, Any]:
         """Load location templates from JSON file"""
         try:
-            # Try to find the data file
-            possible_paths = [
-                "data/locations.json",
-                "../data/locations.json",
-                "../../data/locations.json",
-                "fantasy_rpg/data/locations.json"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        templates = json.load(f)
-                        # Also load object and entity pools
-                        self._load_content_pools()
-                        return templates
-            
-            print("Warning: locations.json not found, using minimal templates")
+            templates = self.load_json("locations.json")
+            # Also load object and entity pools
+            self._load_content_pools()
+            return templates
+        except FileNotFoundError:
+            print(f"Warning: locations.json not found in {self.data_dir}, using minimal templates")
             return self._get_minimal_templates()
-            
         except Exception as e:
             print(f"Error loading locations.json: {e}")
             return self._get_minimal_templates()
@@ -196,55 +196,28 @@ class LocationGenerator:
         
         # Load objects
         try:
-            possible_paths = [
-                "data/objects.json",
-                "../data/objects.json", 
-                "../../data/objects.json",
-                "fantasy_rpg/data/objects.json"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        objects_data = json.load(f)
-                        self._build_object_pools(objects_data.get("objects", {}))
-                    break
+            objects_data = self.load_json("objects.json")
+            self._build_object_pools(objects_data.get("objects", {}))
+        except FileNotFoundError:
+            print(f"Warning: objects.json not found in {self.data_dir}")
         except Exception as e:
             print(f"Warning: Could not load objects.json: {e}")
         
         # Load entities
         try:
-            possible_paths = [
-                "data/entities.json",
-                "../data/entities.json",
-                "../../data/entities.json", 
-                "fantasy_rpg/data/entities.json"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        entities_data = json.load(f)
-                        self._build_entity_pools(entities_data.get("entities", {}))
-                    break
+            entities_data = self.load_json("entities.json")
+            self._build_entity_pools(entities_data.get("entities", {}))
+        except FileNotFoundError:
+            print(f"Warning: entities.json not found in {self.data_dir}")
         except Exception as e:
             print(f"Warning: Could not load entities.json: {e}")
         
         # Load items
         try:
-            possible_paths = [
-                "data/items.json",
-                "../data/items.json",
-                "../../data/items.json",
-                "fantasy_rpg/data/items.json"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    with open(path, 'r') as f:
-                        items_data = json.load(f)
-                        self._build_item_pools(items_data.get("items", {}))
-                    break
+            items_data = self.load_json("items.json")
+            self._build_item_pools(items_data.get("items", {}))
+        except FileNotFoundError:
+            print(f"Warning: items.json not found in {self.data_dir}")
         except Exception as e:
             print(f"Warning: Could not load items.json: {e}")
     

@@ -754,8 +754,27 @@ class WorldCoordinator:
         
         return None
     
-    def get_temperature_at_hex(self, hex_id: str, season: str = "summer") -> float:
-        """Get temperature at a specific hex for a given season"""
+    def get_hex_ambient_temperature(self, hex_id: str, season: str = "summer") -> float:
+        """
+        Get ambient environmental temperature at a specific hex.
+        
+        This is a convenience wrapper around ClimateSystem.get_ambient_temperature()
+        that handles hex ID parsing and climate zone lookup. Returns the seasonal
+        average temperature for the hex's climate zone.
+        
+        Args:
+            hex_id: Hex identifier string (e.g., "0510" for column 5, row 10)
+            season: Season name ("spring", "summer", "autumn", "winter")
+        
+        Returns:
+            Ambient temperature in °F (average for the season), or 65.0 if hex not found
+            
+        Usage Context:
+            - Getting hex-level climate data
+            - World generation (location placement based on temperature)
+            - NOT for current weather conditions (use WeatherSystem)
+            - NOT for player body temperature (use PlayerState.get_body_temperature_status)
+        """
         try:
             col = int(hex_id[:2])
             row = int(hex_id[2:])

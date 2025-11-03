@@ -24,8 +24,13 @@ class Hex:
     Each hex contains coordinates, biome information, elevation,
     and optional location/features for detailed world generation.
     Now supports micro-level locations for detailed exploration.
+    
+    **Coordinate Representation:**
+    Uses HexCoords (Tuple[int, int]) for lightweight position tracking.
+    This format is hashable (suitable for dict keys) and has minimal overhead
+    for frequent world map lookups. See `fantasy_rpg.utils.HexCoords` for details.
     """
-    coords: Tuple[int, int]  # (x, y) coordinates in the world grid
+    coords: Tuple[int, int]  # HexCoords - (x, y) coordinates in the world grid
     biome: str  # Biome type (e.g., 'forest', 'plains', 'mountains')
     elevation: float = 0.0  # Elevation in arbitrary units
     location: Optional[Dict[str, Any]] = None  # Special location (town, dungeon, etc.)

@@ -4,10 +4,10 @@ Fantasy RPG - Character Class System
 Character class definitions with hit dice, proficiencies, and starting equipment.
 """
 
-import json
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from pathlib import Path
+from fantasy_rpg.utils.data_loader import DataLoader
 
 
 @dataclass
@@ -81,34 +81,11 @@ class CharacterClass:
         )
 
 
-class ClassLoader:
+class ClassLoader(DataLoader):
     """Loads character class data from JSON files"""
     
     def __init__(self, data_dir: str = None):
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                self.data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                self.data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                self.data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                self.data_dir = parent_data_dir
-        else:
-            self.data_dir = Path(data_dir)
+        super().__init__(data_dir)
         self._classes_cache: Optional[Dict[str, CharacterClass]] = None
     
     def load_classes(self) -> Dict[str, CharacterClass]:
@@ -116,25 +93,22 @@ class ClassLoader:
         if self._classes_cache is not None:
             return self._classes_cache
         
-        classes_file = self.data_dir / "classes.json"
-        if not classes_file.exists():
-            print(f"Warning: {classes_file} not found, using default classes")
-            return self._get_default_classes()
-        
         try:
-            with open(classes_file, 'r') as f:
-                data = json.load(f)
+            data = self.load_json("classes.json")
             
             classes = {}
             for class_key, class_data in data['classes'].items():
                 classes[class_key] = CharacterClass.from_dict(class_data)
             
-            print(f"Loaded {len(classes)} classes from {classes_file}")
+            print(f"Loaded {len(classes)} classes from {self.data_dir / 'classes.json'}")
             self._classes_cache = classes
             return classes
             
+        except FileNotFoundError:
+            print(f"Warning: classes.json not found in {self.data_dir}, using default classes")
+            return self._get_default_classes()
         except Exception as e:
-            print(f"Error loading classes from {classes_file}: {e}")
+            print(f"Error loading classes from {self.data_dir / 'classes.json'}: {e}")
             return self._get_default_classes()
     
     def get_class(self, class_name: str) -> Optional[CharacterClass]:
