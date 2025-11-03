@@ -352,19 +352,29 @@ class ClimateSystem:
         
         return climate_zones
     
-    def get_temperature_at_coords(self, coords: Tuple[int, int], 
+    def get_ambient_temperature(self, coords: Tuple[int, int], 
                                 elevation: float = 0.0,
                                 season: str = "summer") -> float:
         """
-        Get current temperature at specific coordinates.
+        Get ambient environmental temperature at specific world coordinates.
+        
+        This method calculates the baseline temperature from climate zones, elevation,
+        and seasonal variation. Use this for world generation and climate modeling.
+        Does NOT include weather modifiers (wind, rain, etc.) or player body temperature.
         
         Args:
-            coords: (x, y) coordinates
-            elevation: Elevation factor (0.0-1.0)
+            coords: (x, y) world coordinates
+            elevation: Elevation factor (0.0-1.0), higher elevations are cooler
             season: Season name ("spring", "summer", "autumn", "winter")
         
         Returns:
-            Temperature in °F
+            Ambient temperature in °F (average for the season)
+            
+        Usage Context:
+            - World generation (biome temperature ranges)
+            - Climate zone calculations
+            - NOT for player temperature effects (use PlayerState.get_body_temperature_status)
+            - NOT for current weather (use WeatherSystem)
         """
         climate_zone = self.generate_climate_zone(coords, elevation)
         temp_range = climate_zone.get_seasonal_temp(season)

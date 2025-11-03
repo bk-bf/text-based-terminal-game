@@ -4,10 +4,10 @@ Fantasy RPG - Race System
 Race definitions with ability bonuses and traits.
 """
 
-import json
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from pathlib import Path
+from fantasy_rpg.utils.data_loader import DataLoader
 
 
 @dataclass
@@ -61,34 +61,11 @@ class Race:
         )
 
 
-class RaceLoader:
+class RaceLoader(DataLoader):
     """Loads race data from JSON files"""
     
     def __init__(self, data_dir: str = None):
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                self.data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                self.data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                self.data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                self.data_dir = parent_data_dir
-        else:
-            self.data_dir = Path(data_dir)
+        super().__init__(data_dir)
         self._races_cache: Optional[Dict[str, Race]] = None
     
     def load_races(self) -> Dict[str, Race]:
@@ -96,25 +73,22 @@ class RaceLoader:
         if self._races_cache is not None:
             return self._races_cache
         
-        races_file = self.data_dir / "races.json"
-        if not races_file.exists():
-            print(f"Warning: {races_file} not found, using default races")
-            return self._get_default_races()
-        
         try:
-            with open(races_file, 'r') as f:
-                data = json.load(f)
+            data = self.load_json("races.json")
             
             races = {}
             for race_key, race_data in data['races'].items():
                 races[race_key] = Race.from_dict(race_data)
             
-            print(f"Loaded {len(races)} races from {races_file}")
+            print(f"Loaded {len(races)} races from {self.data_dir / 'races.json'}")
             self._races_cache = races
             return races
             
+        except FileNotFoundError:
+            print(f"Warning: races.json not found in {self.data_dir}, using default races")
+            return self._get_default_races()
         except Exception as e:
-            print(f"Error loading races from {races_file}: {e}")
+            print(f"Error loading races from {self.data_dir / 'races.json'}: {e}")
             return self._get_default_races()
     
     def get_race(self, race_name: str) -> Optional[Race]:

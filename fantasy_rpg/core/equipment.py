@@ -6,7 +6,7 @@ Equipment management with 9 equipment slots and item definitions.
 
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from pathlib import Path
 
 # Import Item from item.py - single source of truth
@@ -322,8 +322,30 @@ class Equipment:
             lines.append(f"Total Value: {self.get_total_value()} gp")
         
         return "\n".join(lines)
-
-
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize equipment to dictionary for saving"""
+        return {
+            slot: item.to_dict() if (item := self.get_item_in_slot(slot)) else None
+            for slot in self._slots
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Equipment':
+        """Deserialize equipment from dictionary when loading"""
+        equipment = cls()
+        
+        if not data:
+            return equipment
+        
+        for slot, item_data in data.items():
+            if item_data and slot in equipment._slots:
+                # Deserialize the item
+                item = Item.from_dict(item_data)
+                # Set it in the appropriate slot
+                setattr(equipment, slot, item)
+        
+        return equipment
 
 
 # ItemLoader is now just an alias to the one from item.py for backwards compatibility

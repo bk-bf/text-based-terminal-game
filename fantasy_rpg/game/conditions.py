@@ -407,28 +407,13 @@ class ConditionsManager:
             return False
     
     def _check_shelter_in_location(self, player_state, required_quality: str) -> bool:
-        """Check if current location provides shelter of the required quality"""
+        """Check if current location provides shelter of the required quality
+        
+        Uses location flags (provides_some_shelter, provides_good_shelter, provides_excellent_shelter)
+        as the single source of truth for shelter quality.
+        """
         try:
-            # First check if player_state has current_shelter tracking
-            if hasattr(player_state, 'current_shelter') and player_state.current_shelter:
-                shelter_quality = player_state.current_shelter.get("quality", "none")
-                
-                # Map quality levels
-                quality_levels = {
-                    "none": 0,
-                    "minimal": 1,
-                    "basic": 2,
-                    "good": 3,
-                    "excellent": 4
-                }
-                
-                current_level = quality_levels.get(shelter_quality, 0)
-                required_level = quality_levels.get(required_quality, 1)
-                
-                return current_level >= required_level
-            
-            # Fallback to checking game engine if shelter tracking not available
-            # Check if player_state has game_engine reference
+            # Get game engine reference
             if hasattr(player_state, 'game_engine') and player_state.game_engine:
                 game_engine = player_state.game_engine
             elif hasattr(player_state, 'character') and hasattr(player_state.character, 'game_engine'):
@@ -445,23 +430,24 @@ class ConditionsManager:
             if not location_data:
                 return False
             
-            # Check location shelter properties
-            shelter_type = location_data.get("shelter_type")
-            shelter_quality = location_data.get("shelter_quality", "none")
+            # Determine current shelter quality from location flags
+            current_quality = "none"
+            if location_data.get("provides_excellent_shelter", False):
+                current_quality = "excellent"
+            elif location_data.get("provides_good_shelter", False):
+                current_quality = "good"
+            elif location_data.get("provides_some_shelter", False):
+                current_quality = "some"
             
-            if not shelter_type or not shelter_quality:
-                return False
-            
-            # Map quality levels
+            # Map quality levels for comparison
             quality_levels = {
                 "none": 0,
-                "minimal": 1,
-                "basic": 2,
-                "good": 3,
-                "excellent": 4
+                "some": 1,
+                "good": 2,
+                "excellent": 3
             }
             
-            current_level = quality_levels.get(shelter_quality, 0)
+            current_level = quality_levels.get(current_quality, 0)
             required_level = quality_levels.get(required_quality, 1)
             
             return current_level >= required_level

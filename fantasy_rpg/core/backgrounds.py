@@ -4,10 +4,10 @@ Fantasy RPG - Background System
 Character background definitions and management functionality.
 """
 
-import json
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from pathlib import Path
+from fantasy_rpg.utils.data_loader import DataLoader
 
 
 @dataclass
@@ -52,34 +52,11 @@ class Background:
         )
 
 
-class BackgroundLoader:
+class BackgroundLoader(DataLoader):
     """Loads background data from JSON files"""
     
     def __init__(self, data_dir: str = None):
-        if data_dir is None:
-            # Try to find the data directory relative to this file
-            current_dir = Path(__file__).parent
-            
-            # Option 1: data directory in same parent as core (fantasy_rpg/data)
-            parent_data_dir = current_dir.parent / "data"
-            
-            # Option 2: data directory in core (fantasy_rpg/core/data)
-            core_data_dir = current_dir / "data"
-            
-            # Option 3: relative to working directory
-            relative_data_dir = Path("fantasy_rpg/data")
-            
-            if parent_data_dir.exists():
-                self.data_dir = parent_data_dir
-            elif core_data_dir.exists():
-                self.data_dir = core_data_dir
-            elif relative_data_dir.exists():
-                self.data_dir = relative_data_dir
-            else:
-                # Fallback - use parent data dir even if it doesn't exist yet
-                self.data_dir = parent_data_dir
-        else:
-            self.data_dir = Path(data_dir)
+        super().__init__(data_dir)
         self._backgrounds_cache: Optional[Dict[str, Background]] = None
     
     def load_backgrounds(self) -> Dict[str, Background]:
@@ -87,25 +64,22 @@ class BackgroundLoader:
         if self._backgrounds_cache is not None:
             return self._backgrounds_cache
         
-        backgrounds_file = self.data_dir / "backgrounds.json"
-        if not backgrounds_file.exists():
-            print(f"Warning: {backgrounds_file} not found, using default backgrounds")
-            return self._get_default_backgrounds()
-        
         try:
-            with open(backgrounds_file, 'r') as f:
-                data = json.load(f)
+            data = self.load_json("backgrounds.json")
             
             backgrounds = {}
             for bg_key, bg_data in data['backgrounds'].items():
                 backgrounds[bg_key] = Background.from_dict(bg_data)
             
-            print(f"Loaded {len(backgrounds)} backgrounds from {backgrounds_file}")
+            print(f"Loaded {len(backgrounds)} backgrounds from {self.data_dir / 'backgrounds.json'}")
             self._backgrounds_cache = backgrounds
             return backgrounds
             
+        except FileNotFoundError:
+            print(f"Warning: backgrounds.json not found in {self.data_dir}, using default backgrounds")
+            return self._get_default_backgrounds()
         except Exception as e:
-            print(f"Error loading backgrounds from {backgrounds_file}: {e}")
+            print(f"Error loading backgrounds from {self.data_dir / 'backgrounds.json'}: {e}")
             return self._get_default_backgrounds()
     
     def get_background(self, background_name: str) -> Optional[Background]:

@@ -237,8 +237,8 @@ class FantasyRPGApp(App):
             self.log_message("Input system not initialized.")
             return
         
-        # Log the command first
-        self.log_command(command)
+        # Don't log command here - action_logger will handle it in _handle_input_response
+        # to avoid duplicate command logging
         
         # Process input through the input controller (which now uses GameEngine)
         response = self.input_controller.process_input(command)

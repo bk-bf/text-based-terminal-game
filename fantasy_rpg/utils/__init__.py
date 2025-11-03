@@ -7,4 +7,8 @@ This package contains utility functions and helper classes used throughout the g
 # Import utility functions for easy access
 from .utils import *
 
-__all__ = ['roll_d20', 'roll_dice', 'format_modifier', 'calculate_distance']
+__all__ = [
+    'roll_d20', 'roll_dice', 'format_modifier', 'calculate_distance',
+    'Coordinates', 'Dice',
+    'HexCoords', 'Direction'  # Type aliases for coordinate representations
+]

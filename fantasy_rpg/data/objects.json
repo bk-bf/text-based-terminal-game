@@ -384,8 +384,8 @@
                 "Blazing Ancient Hearth",
                 "Hot Cooking Fireplace",
                 "Comforting Warming Hearth",
-                "Elegant Noble's Fireplace",
-                "Humble Peasant's Hearth"
+                "Lit Noble's Fireplace",
+                "Lit Peasant's Hearth"
             ],
             "shortkey": "lf",
             "description": "A well-built fireplace with a cheerful fire crackling within. The flames dance warmly, casting flickering light and radiating comfortable heat.",

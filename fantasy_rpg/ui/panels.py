@@ -205,14 +205,14 @@ CHA: {char.charisma} ({char.ability_modifier('charisma'):+d})"""
             hunger_desc = self._get_hunger_description(player_state.survival.get_hunger_level())
             thirst_desc = self._get_thirst_description(player_state.survival.get_thirst_level())
             fatigue_desc = self._get_fatigue_description(player_state.survival.get_fatigue_level())
-            warmth_desc = self._get_warmth_description(player_state.survival.get_temperature_status())
+            warmth_desc = self._get_warmth_description(player_state.survival.get_body_temperature_status())
             wetness_desc = self._get_wetness_description(player_state.survival.get_wetness_level())
             
             # Add color coding to survival descriptions
             hunger_colored = self._add_survival_color(hunger_desc, player_state.survival.get_hunger_level())
             thirst_colored = self._add_survival_color(thirst_desc, player_state.survival.get_thirst_level())
             fatigue_colored = self._add_survival_color(fatigue_desc, player_state.survival.get_fatigue_level())
-            warmth_colored = self._add_temperature_color(warmth_desc, player_state.survival.get_temperature_status())
+            warmth_colored = self._add_temperature_color(warmth_desc, player_state.survival.get_body_temperature_status())
             wetness_colored = self._add_wetness_color(wetness_desc, player_state.survival.get_wetness_level())
             
             survival_text = f"""
