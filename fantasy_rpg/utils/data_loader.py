@@ -38,7 +38,7 @@ class DataLoader:
             Path to data directory (may not exist yet)
         """
         if data_dir is not None:
-            return Path(data_dir) if not isinstance(data_dir, Path) else data_dir
+            return data_dir if isinstance(data_dir, Path) else Path(data_dir)
         
         current_dir = Path(__file__).parent
         candidates = [
