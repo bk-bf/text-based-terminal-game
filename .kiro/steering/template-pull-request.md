@@ -1,3 +1,9 @@
+# Pull Request Template
+
+> **Length Guideline:** Keep PR documents to **max 200 lines**. Focus on concise summaries with bullets/tables. Detailed documentation belongs in separate architecture/design docs referenced in the PR.
+
+---
+
 # Phase 3.6: Refactor Quality Cleanup
 
 **Branch:** `phase3.6/refactor-quality-cleanup`  

@@ -88,7 +88,6 @@ class Equipment:
                 other_ring_slot = 'ring_2' if slot == 'ring_1' else 'ring_1'
                 if not self.get_item_in_slot(other_ring_slot):
                     slot = other_ring_slot
-                    print(f"Ring slot {slot.replace('_', ' ')} occupied, equipping to {other_ring_slot.replace('_', ' ')}")
                 else:
                     return False, f"Both ring slots are occupied"
         # Armor type validation (character level requirements could be added here)
@@ -101,19 +100,15 @@ class Equipment:
         
         # Unequip current item if any
         current_item = self.get_item_in_slot(slot)
-        if current_item:
-            print(f"Unequipping {current_item.name} from {slot}")
         
         # Handle two-handed weapon equipping - clear off-hand
         if item.item_type == 'weapon' and 'two-handed' in item.special_properties and slot == 'main_hand':
             off_hand_item = self.get_item_in_slot('off_hand')
             if off_hand_item:
                 self.unequip_item('off_hand')
-                print(f"Automatically unequipped {off_hand_item.name} from off-hand for two-handed weapon")
         
         # Equip new item
         setattr(self, slot, item)
-        print(f"Equipped {item.name} to {slot} slot")
         return True, f"Successfully equipped {item.name}"
     
     def unequip_item(self, slot: str) -> tuple[Optional[Item], str]:
@@ -128,7 +123,6 @@ class Equipment:
         
         # Unequip the item
         setattr(self, slot, None)
-        print(f"Unequipped {item.name} from {slot}")
         return item, f"Successfully unequipped {item.name}"
     
     def can_equip_item(self, item: Item, slot: str, character=None) -> tuple[bool, str]:

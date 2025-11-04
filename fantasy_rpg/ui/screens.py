@@ -515,65 +515,64 @@ class InventoryScreen(ModalScreen):
         item = item_data["item"]
         
         try:
+            # Get character handler from game engine
+            if not hasattr(self.app, 'game_engine') or not self.app.game_engine:
+                self.app.log_message("Game engine not available")
+                return
+            
+            action_handler = self.app.game_engine.get_action_handler()
+            if not action_handler:
+                self.app.log_message("Action handler not available")
+                return
+            
+            character_handler = action_handler.registry.get_handler('character')
+            if not character_handler:
+                self.app.log_message("Character handler not available")
+                return
+            
             if item_data["source"] == "equipped":
-                # Unequip the item
+                # Unequip the item using handler
                 slot = item_data["slot"]
-                unequipped = self.character.unequip_item(slot)
+                result = character_handler.handle_unequip(slot)
                 
-                if unequipped:
-                    # Ensure inventory exists before adding
-                    if not hasattr(self.character, 'inventory') or self.character.inventory is None:
-                        self.character.initialize_inventory()
-                    
-                    # Add the unequipped item back to inventory (unified Item class)
-                    # CRITICAL: Check 'is not None' because empty inventory (len=0) is falsy!
-                    if hasattr(self.character, 'inventory') and self.character.inventory is not None:
-                        from fantasy_rpg.core.item import Item
-                        import uuid
-                        
-                        # unequipped is already an Item, just ensure item_id is set
-                        if not unequipped.item_id:
-                            unequipped.item_id = f"{unequipped.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}"
-                        unequipped.quantity = 1  # Set quantity for inventory
-                        
-                        added = self.character.inventory.add_item(unequipped)
-                        
-                        if added:
-                            self.app.log_message(f"Unequipped {item_data['name']} (returned to inventory)")
-                        else:
-                            self.app.log_message(f"Unequipped {item_data['name']} (but couldn't add to inventory - weight limit?)")
-                    else:
-                        self.app.log_message(f"Unequipped {item_data['name']} (no inventory to return to)")
-                    
+                # Log the action result through action_logger (same as process_command flow)
+                from fantasy_rpg.actions.action_logger import get_action_logger
+                action_logger = get_action_logger()
+                action_logger.log_action_result(
+                    result,
+                    character=self.app.character,
+                    command_text=f"unequip {item.name}",
+                    player_state=self.app.game_engine.game_state.player_state if self.app.game_engine else None
+                )
+                
+                if result.success:
                     self._build_item_lists()
                     self.selected_index = 0  # Reset selection
                     self._update_display()  # Update UI
                 else:
-                    self.app.log_message(f"Failed to unequip {item_data['name']}")
+                    self.app.log_message(result.message)
                 
             elif item_data["type"] in ["weapon", "armor", "shield"]:
-                # Item is already unified Item class - no conversion needed
-                equipment_item = item
+                # Equip the item using handler
+                result = character_handler.handle_equip(item.item_id)
                 
-                # Equip the item - use character.equip_item() which initializes equipment
-                slot = self._determine_equip_slot(equipment_item)
-                if slot:
-                    # Use character's equip_item method which handles equipment initialization
-                    success = self.character.equip_item(equipment_item, slot)
-                    if success:
-                        self.app.log_message(f"Equipped {item_data['name']} to {slot}")
-                        # Remove from inventory
-                        # CRITICAL: Check 'is not None' because empty inventory (len=0) is falsy!
-                        if hasattr(self.character, 'inventory') and self.character.inventory is not None:
-                            self.character.inventory.remove_item(item.item_id, 1)
-                        self._build_item_lists()
-                        self.selected_category = "equipment"  # Switch to equipment view
-                        self.selected_index = 0
-                        self._update_display()  # Update UI
-                    else:
-                        self.app.log_message(f"Failed to equip {item_data['name']}")
+                # Log the action result through action_logger (same as process_command flow)
+                from fantasy_rpg.actions.action_logger import get_action_logger
+                action_logger = get_action_logger()
+                action_logger.log_action_result(
+                    result,
+                    character=self.app.character,
+                    command_text=f"equip {item.name}",
+                    player_state=self.app.game_engine.game_state.player_state if self.app.game_engine else None
+                )
+                
+                if result.success:
+                    self._build_item_lists()
+                    self.selected_category = "equipment"  # Switch to equipment view
+                    self.selected_index = 0
+                    self._update_display()  # Update UI
                 else:
-                    self.app.log_message(f"Cannot determine slot for {item_data['name']}")
+                    self.app.log_message(result.message)
             
             elif item_data["type"] == "consumable":
                 # Use/consume the item

@@ -58,15 +58,13 @@ class MovementHandler(BaseActionHandler):
             try:
                 success, message = self.game_engine.locations.move_between_locations(direction)
                 
-                if success and self.game_engine.time_system:
-                    time_result = self.game_engine.time_system.perform_activity("travel", duration_override=0.5)
-                    if not time_result.get("success", True):
-                        return ActionResult(False, time_result.get("message", "Movement interrupted."))
+                # Note: LocationCoordinator already calls time_system.perform_activity() with calculated travel time
+                # So we don't need to do it again here
                 
                 return ActionResult(
                     success=True,
                     message=message,
-                    time_passed=0.5,
+                    time_passed=0.0,  # Time already handled by LocationCoordinator
                     action_type="location_movement"
                 )
             except Exception as e:
@@ -76,15 +74,13 @@ class MovementHandler(BaseActionHandler):
         try:
             success, message = self.game_engine.movement.move_player(direction)
             
-            if success and self.game_engine.time_system:
-                time_result = self.game_engine.time_system.perform_activity("travel", duration_override=2.0)
-                if not time_result.get("success", True):
-                    return ActionResult(False, time_result.get("message", "Movement interrupted."))
+            # Note: MovementCoordinator already calls time_system.perform_activity() with calculated travel time
+            # So we don't need to do it again here or log additional time passage
             
             return ActionResult(
                 success=success,
                 message=message,
-                time_passed=2.0,
+                time_passed=0.0,  # Time already handled by MovementCoordinator
                 action_type="movement",
                 movement_type="overworld",
                 direction=direction
