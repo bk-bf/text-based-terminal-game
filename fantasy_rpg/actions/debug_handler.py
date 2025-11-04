@@ -112,12 +112,16 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             f"  {i+1}. {obj.get('name', 'Unknown')} (id: {obj.get('id', 'unknown')})"
             for i, obj in enumerate(objects[:5])
         )
-        
+        if len(objects) > 5:
+            info.append(f"  ...and {len(objects) - 5} more")
+
         info.append(f"Items in area: {len(items)}")
         info.extend(
             f"  {i+1}. {item.get('name', 'Unknown')} (id: {item.get('id', 'unknown')})"
             for i, item in enumerate(items[:5])
         )
+        if len(items) > 5:
+            info.append(f"  ...and {len(items) - 5} more")
         
         return info
     
