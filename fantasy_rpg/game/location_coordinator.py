@@ -431,7 +431,11 @@ class LocationCoordinator:
             return f" (about {minutes} minutes)"
         
         hours, remaining_minutes = divmod(minutes, 60)
-        suffix = f" and {remaining_minutes} minutes" if remaining_minutes > 0 else ""
+        if remaining_minutes > 0:
+            minute_word = "minute" if remaining_minutes == 1 else "minutes"
+            suffix = f" and {remaining_minutes} {minute_word}"
+        else:
+            suffix = ""
         hour_word = "hour" if hours == 1 else "hours"
         return f" (about {hours} {hour_word}{suffix})"
     
