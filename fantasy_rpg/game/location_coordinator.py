@@ -80,15 +80,10 @@ class LocationCoordinator:
         # Add object information if available
         areas = location_data.get("areas", {})
         starting_area_id = location_data.get("starting_area", "entrance")
-        if starting_area_id in areas:
-            area_data = areas[starting_area_id]
-            objects = area_data.get("objects", [])
-            if objects:
-                object_names = [obj.get("name", "something") for obj in objects[:3]]  # Show first 3
-                if len(objects) > 3:
-                    entry_message += f"\n\nYou notice {', '.join(object_names)}, and more."
-                else:
-                    entry_message += f"\n\nYou notice {', '.join(object_names)}."
+        if starting_area_id in areas and (objects := areas[starting_area_id].get("objects", [])):
+            object_names = [obj.get("name", "something") for obj in objects[:3]]  # Show first 3
+            suffix = ", and more." if len(objects) > 3 else "."
+            entry_message += f"\n\nYou notice {', '.join(object_names)}{suffix}"
         
         # Debug location info
         self._debug_location_info(location_data)
@@ -133,6 +128,43 @@ class LocationCoordinator:
         
         return True, f"You exit {location_name} and return to {hex_name}."
     
+    def _find_current_location_index(self, available_locations: List[Dict], current_location_id: str) -> Optional[int]:
+        """Find the index of current location in available locations list"""
+        return next(
+            (i for i, loc in enumerate(available_locations) if loc.get("id") == current_location_id),
+            None
+        )
+    
+    def _process_location_travel(self, travel_time: float) -> Tuple[bool, str]:
+        """Process time passage and survival effects for location travel"""
+        if self.game_engine.time_system:
+            time_result = self.game_engine.time_system.perform_activity("travel", duration_override=travel_time)
+            if not time_result.get("success", True):
+                return False, time_result.get("message", "Travel failed.")
+        else:
+            # Fallback: just advance game time
+            self._advance_game_time(travel_time)
+        return True, ""
+    
+    def _build_location_arrival_message(self, target_location: Dict, target_location_data: Dict, 
+                                       direction: str, travel_time: float) -> str:
+        """Build descriptive message for arriving at a location"""
+        target_name = target_location.get("name", "Unknown Location")
+        target_desc = target_location_data.get("description", "An unremarkable area.")
+        time_desc = self._get_location_travel_description(travel_time)
+        
+        message = f"You travel {direction} to {target_name}.{time_desc}\n\n{target_desc}"
+        
+        # Show objects in new location
+        areas = target_location_data.get("areas", {})
+        starting_area_id = target_location_data.get("starting_area", "entrance")
+        if starting_area_id in areas and (objects := areas[starting_area_id].get("objects", [])):
+            object_names = [obj.get("name", "something") for obj in objects[:3]]
+            suffix = ", and more." if len(objects) > 3 else "."
+            message += f"\n\nYou notice {', '.join(object_names)}{suffix}"
+        
+        return message
+    
     def move_between_locations(self, direction: str) -> Tuple[bool, str]:
         """
         Move between different locations within the same hex.
@@ -159,13 +191,10 @@ class LocationCoordinator:
             return False, "There are no other locations to travel to from here."
         
         # Find current location in the list
-        current_location_id = gs.world_position.current_location_id
-        current_location_index = None
-        
-        for i, loc in enumerate(available_locations):
-            if loc.get("id") == current_location_id:
-                current_location_index = i
-                break
+        current_location_index = self._find_current_location_index(
+            available_locations, 
+            gs.world_position.current_location_id
+        )
         
         if current_location_index is None:
             return False, "Current location not found in available locations."
@@ -176,10 +205,11 @@ class LocationCoordinator:
         # Check if movement in requested direction is possible
         if direction not in location_graph:
             available_directions = list(location_graph.keys())
-            if available_directions:
-                return False, f"You cannot go {direction} from here. Available directions: {', '.join(available_directions)}"
-            else:
-                return False, "There are no exits from this location. Use 'exit' to return to the overworld."
+            return False, (
+                f"You cannot go {direction} from here. Available directions: {', '.join(available_directions)}"
+                if available_directions else
+                "There are no exits from this location. Use 'exit' to return to the overworld."
+            )
         
         # Get target location
         target_location = location_graph[direction]
@@ -188,17 +218,11 @@ class LocationCoordinator:
         if gs.character.hp <= 0:
             return False, "You are unconscious and cannot move."
         
-        # Calculate travel time for location movement (base 30 minutes = 0.5 hours)
+        # Calculate and process travel time
         travel_time = self._calculate_location_travel_time()
-        
-        # Use existing time system to advance time (which handles survival effects)
-        if self.game_engine.time_system:
-            time_result = self.game_engine.time_system.perform_activity("travel", duration_override=travel_time)
-            if not time_result.get("success", True):
-                return False, time_result.get("message", "Travel failed.")
-        else:
-            # Fallback: just advance game time
-            self._advance_game_time(travel_time)
+        success, error_msg = self._process_location_travel(travel_time)
+        if not success:
+            return False, error_msg
         
         # Move to target location
         target_location_data = self._get_or_generate_location_data(target_location)
@@ -212,30 +236,14 @@ class LocationCoordinator:
         self._debug_location_info(target_location_data)
         
         # Build movement message
-        target_name = target_location.get("name", "Unknown Location")
-        target_desc = target_location_data.get("description", "An unremarkable area.")
-        
-        # Add time indication to message
-        time_desc = self._get_location_travel_description(travel_time)
-        message = f"You travel {direction} to {target_name}.{time_desc}\n\n{target_desc}"
+        message = self._build_location_arrival_message(
+            target_location, target_location_data, direction, travel_time
+        )
         
         # Check if character died during travel
         if gs.character.hp <= 0:
             self.game_engine._notify_ui_state_change("character_death")
             return False, f"{message}\n\n💀 You collapsed and died during the journey!"
-        
-        # Show objects in new location
-        areas = target_location_data.get("areas", {})
-        starting_area_id = target_location_data.get("starting_area", "entrance")
-        if starting_area_id in areas:
-            area_data = areas[starting_area_id]
-            objects = area_data.get("objects", [])
-            if objects:
-                object_names = [obj.get("name", "something") for obj in objects[:3]]
-                if len(objects) > 3:
-                    message += f"\n\nYou notice {', '.join(object_names)}, and more."
-                else:
-                    message += f"\n\nYou notice {', '.join(object_names)}."
         
         # Notify UI of location movement
         self.game_engine._notify_ui_state_change("location_movement")
@@ -308,13 +316,10 @@ class LocationCoordinator:
         message = f"You move {direction} to {area_name}.\n\n{area_desc}"
         
         # List objects
-        objects = new_area.get("objects", [])
-        if objects:
+        if objects := new_area.get("objects", []):
             object_names = [obj.get("name", "something") for obj in objects[:3]]
-            if len(objects) > 3:
-                message += f"\n\nYou see {', '.join(object_names)}, and more."
-            else:
-                message += f"\n\nYou see {', '.join(object_names)}."
+            suffix = ", and more." if len(objects) > 3 else "."
+            message += f"\n\nYou see {', '.join(object_names)}{suffix}"
         
         return True, message
     
@@ -424,13 +429,11 @@ class LocationCoordinator:
         
         if minutes < 60:
             return f" (about {minutes} minutes)"
-        else:
-            hours = minutes // 60
-            remaining_minutes = minutes % 60
-            if remaining_minutes > 0:
-                return f" (about {hours} hour{'s' if hours != 1 else ''} and {remaining_minutes} minutes)"
-            else:
-                return f" (about {hours} hour{'s' if hours != 1 else ''})"
+        
+        hours, remaining_minutes = divmod(minutes, 60)
+        suffix = f" and {remaining_minutes} minutes" if remaining_minutes > 0 else ""
+        hour_word = "hour" if hours == 1 else "hours"
+        return f" (about {hours} {hour_word}{suffix})"
     
     def _get_or_generate_location_data(self, location_template: Dict[str, Any]) -> Dict[str, Any]:
         """Get persistent location data or generate it if first visit"""
@@ -503,30 +506,34 @@ class LocationCoordinator:
             from actions.action_logger import get_action_logger
             action_logger = get_action_logger()
             
-            location_name = location_data.get("name", "Unknown Location")
-            
-            # Collect ALL flags that start with "provides_"
-            all_flags = []
-            for key, value in location_data.items():
-                if key.startswith("provides_") and value:
-                    all_flags.append(key.replace("provides_", ""))
-            
-            # Also check for other relevant flags
-            other_flags = []
-            for flag in ["exit_flag", "spawn_weight", "size", "terrain", "type"]:
-                if flag in location_data:
-                    other_flags.append(f"{flag}:{location_data[flag]}")
-            
-            debug_msg = f"🏠 {location_name}"
-            if all_flags:
-                debug_msg += f" | Provides: {', '.join(all_flags)}"
-            else:
-                debug_msg += " | No provides_ flags"
-            
-            if other_flags:
-                debug_msg += f" | {', '.join(other_flags[:3])}"  # Show first 3 to avoid spam
-                
+            debug_msg = self._build_location_debug_message(location_data)
             action_logger.log_message(debug_msg)
                 
         except ImportError:
             pass
+    
+    def _build_location_debug_message(self, location_data: Dict) -> str:
+        """Build debug message showing location flags and properties"""
+        location_name = location_data.get("name", "Unknown Location")
+        
+        # Collect ALL flags that start with "provides_"
+        all_flags = [
+            key.replace("provides_", "")
+            for key, value in location_data.items()
+            if key.startswith("provides_") and value
+        ]
+        
+        # Also check for other relevant flags
+        other_flags = [
+            f"{flag}:{location_data[flag]}"
+            for flag in ["exit_flag", "spawn_weight", "size", "terrain", "type"]
+            if flag in location_data
+        ]
+        
+        debug_msg = f"🏠 {location_name}"
+        debug_msg += f" | Provides: {', '.join(all_flags)}" if all_flags else " | No provides_ flags"
+        
+        if other_flags:
+            debug_msg += f" | {', '.join(other_flags[:3])}"  # Show first 3 to avoid spam
+        
+        return debug_msg

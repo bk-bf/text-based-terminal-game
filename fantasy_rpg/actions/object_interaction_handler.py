@@ -19,8 +19,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_examine(self, *args) -> ActionResult:
         """Handle examining objects - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -43,8 +42,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_search(self, *args) -> ActionResult:
         """Handle searching objects - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -64,8 +62,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_use(self, *args) -> ActionResult:
         """Handle using objects - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -86,8 +83,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_forage(self, *args) -> ActionResult:
         """Handle foraging - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -110,8 +106,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_harvest(self, *args) -> ActionResult:
         """Handle harvesting - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -133,8 +128,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_chop(self, *args) -> ActionResult:
         """Handle chopping wood - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -156,8 +150,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_drink(self, *args) -> ActionResult:
         """Handle drinking from water sources - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -181,8 +174,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_unlock(self, *args) -> ActionResult:
         """Handle unlocking/lockpicking - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -206,8 +198,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_light_fire(self, *args) -> ActionResult:
         """Handle lighting fires - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:
@@ -222,8 +213,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_disarm_trap(self, *args) -> ActionResult:
         """Handle disarming traps - delegates to ObjectInteractionSystem"""
-        error = self._require_location()
-        if error:
+        if error := self._require_location():
             return error
         
         if not args:

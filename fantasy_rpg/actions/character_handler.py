@@ -71,17 +71,21 @@ class CharacterHandler(BaseActionHandler):
         objects = area_data.get("objects", [])
         
         # Find the first available object with matching name
-        for obj in objects:
-            if obj.get("name", "").lower() == object_name.lower() and (not obj.get("depleted", False) and not obj.get("searched", False) and not obj.get("chopped", False) and not obj.get("wood_taken", False)):
-                return obj
-
+        available_obj = next(
+            (obj for obj in objects 
+             if obj.get("name", "").lower() == object_name.lower() and 
+             (not obj.get("depleted", False) and not obj.get("searched", False) and 
+              not obj.get("chopped", False) and not obj.get("wood_taken", False))),
+            None
+        )
+        if available_obj:
+            return available_obj
         
         # If no available objects found, return the first match anyway (for error messages)
-        for obj in objects:
-            if obj.get("name", "").lower() == object_name.lower():
-                return obj
-        
-        return None
+        return next(
+            (obj for obj in objects if obj.get("name", "").lower() == object_name.lower()),
+            None
+        )
     
     def _apply_rest_benefit(self, rest_bonus: int = 2):
         """Apply rest benefit to character fatigue/health"""

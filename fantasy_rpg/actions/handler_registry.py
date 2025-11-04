@@ -34,10 +34,7 @@ class ActionHandlerRegistry:
             if method is None:
                 raise ValueError(f"Handler {handler_instance.__class__.__name__} missing method {method_name}")
             
-            if command in self._registry:
-                # Allow override with warning (useful for debug/test handlers)
-                pass
-            
+            # Allow override - useful for debug/test handlers
             self._registry[command] = method
     
     def route_command(self, command: str, args: list) -> Optional[ActionResult]:

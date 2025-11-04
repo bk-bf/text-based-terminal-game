@@ -138,15 +138,13 @@ class MovementHandler(BaseActionHandler):
                 self._update_location_shortcuts()
                 
                 # Inside a location - show location description and contents
-                location_data = gs.world_position.current_location_data
-                if location_data:
+                if location_data := gs.world_position.current_location_data:
                     location_name = location_data.get("name", "Unknown Location")
                     location_desc = location_data.get("description", "An unremarkable area.")
                     description = f"**{location_name}**\n\n{location_desc}"
                     
                     # Add location contents
-                    contents = self.game_engine.get_location_contents()
-                    if contents:
+                    if contents := self.game_engine.get_location_contents():
                         description += f"\n\n{contents}"
                 else:
                     description = "You are inside a location, but cannot see much."
@@ -172,24 +170,24 @@ class MovementHandler(BaseActionHandler):
             # Delegate to LocationCoordinator
             success, message = self.game_engine.locations.enter_location()
             
-            if success:
-                # Update shortkey mappings for objects in this location
-                self._update_location_shortcuts()
-                
-                # Use time system
-                if self.game_engine.time_system:
-                    time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.25)
-                    if not time_result.get("success", True):
-                        return ActionResult(False, time_result.get("message", "Entry interrupted."))
-                
-                return ActionResult(
-                    success=True,
-                    message=message,
-                    time_passed=0.25,
-                    action_type="location_entry"
-                )
-            else:
+            if not success:
                 return ActionResult(False, message)
+            
+            # Update shortkey mappings for objects in this location
+            self._update_location_shortcuts()
+            
+            # Use time system
+            if self.game_engine.time_system:
+                time_result = self.game_engine.time_system.perform_activity("look", duration_override=0.25)
+                if not time_result.get("success", True):
+                    return ActionResult(False, time_result.get("message", "Entry interrupted."))
+            
+            return ActionResult(
+                success=True,
+                message=message,
+                time_passed=0.25,
+                action_type="location_entry"
+            )
                 
         except Exception as e:
             return ActionResult(False, f"Failed to enter location: {str(e)}")
@@ -276,24 +274,20 @@ class MovementHandler(BaseActionHandler):
                     return ActionResult(False, time_result.get("message", "Wait interrupted."))
             
             # Format duration for display
-            if duration_hours < 1:
-                duration_str = f"{int(duration_hours * 60)} minutes"
-            elif duration_hours == 1:
-                duration_str = "1 hour"
-            else:
-                duration_str = f"{duration_hours} hours"
+            duration_str = (
+                f"{int(duration_hours * 60)} minutes" if duration_hours < 1 else
+                "1 hour" if duration_hours == 1 else
+                f"{duration_hours} hours"
+            )
             
             # Create descriptive message based on duration
-            if duration_hours <= 0.25:
-                activity_desc = "take a brief moment to rest"
-            elif duration_hours <= 0.5:
-                activity_desc = "rest quietly for a short while"
-            elif duration_hours <= 1:
-                activity_desc = "rest comfortably for an hour"
-            elif duration_hours <= 3:
-                activity_desc = "rest deeply for several hours"
-            else:
-                activity_desc = "rest extensively through an extended period"
+            activity_desc = (
+                "take a brief moment to rest" if duration_hours <= 0.25 else
+                "rest quietly for a short while" if duration_hours <= 0.5 else
+                "rest comfortably for an hour" if duration_hours <= 1 else
+                "rest deeply for several hours" if duration_hours <= 3 else
+                "rest extensively through an extended period"
+            )
             
             message = f"You {activity_desc}, letting {duration_str} pass peacefully."
             

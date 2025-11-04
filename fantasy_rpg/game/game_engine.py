@@ -1298,10 +1298,12 @@ class GameEngine:
         Returns:
             Tuple of (success: bool, message: str)
         """
-        # Delegate to SaveManager
-        if self.saves:
-            return self.saves.save_game(save_name)
-        return False, "Save system not initialized."
+        # Delegate to SaveManager - initialize if needed (ensures consistency with load_game)
+        if not self.saves:
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        
+        return self.saves.save_game(save_name)
     
     def load_game(self, save_name: str = "save") -> Tuple[bool, str]:
         """

@@ -42,11 +42,10 @@ class ActionResult:
         # Extract time passed from time_result
         time_passed = time_result.get("duration_hours", 0.0)
         
-        # Merge data: time_result first, then extra_kwargs (so extra_kwargs overrides)
+        # Merge data using union operator: time_result first, then extra_kwargs (so extra_kwargs overrides)
         # Remove keys that conflict with ActionResult.__init__ parameters
         merged_data = {k: v for k, v in time_result.items() 
-                      if k not in ('success', 'message', 'time_passed')}
-        merged_data.update(extra_kwargs)
+                      if k not in ('success', 'message', 'time_passed')} | extra_kwargs
         
         return cls(success, message, time_passed, **merged_data)
 
