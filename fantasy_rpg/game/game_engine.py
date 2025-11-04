@@ -1333,36 +1333,35 @@ class GameEngine:
     # Serialization helper methods (delegated to SaveManager)
     def _serialize_character(self, character) -> dict:
         """Delegate character serialization to SaveManager."""
-        if self.saves:
-            return self.saves._serialize_character(character)
-        # Lazy create a SaveManager if needed
-        from game.save_manager import SaveManager
-        tmp = SaveManager(self)
-        return tmp._serialize_character(character)
+        # Ensure SaveManager is initialized (defensive - should always be initialized by save_game/load_game)
+        if not self.saves:
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        return self.saves._serialize_character(character)
 
     def _deserialize_character(self, data: dict):
         """Delegate character deserialization to SaveManager."""
-        if self.saves:
-            return self.saves._deserialize_character(data)
-        from game.save_manager import SaveManager
-        tmp = SaveManager(self)
-        return tmp._deserialize_character(data)
+        # Ensure SaveManager is initialized (defensive - should always be initialized by save_game/load_game)
+        if not self.saves:
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        return self.saves._deserialize_character(data)
 
     def _serialize_player_state(self, player_state) -> dict:
         """Delegate player state serialization to SaveManager."""
-        if self.saves:
-            return self.saves._serialize_player_state(player_state)
-        from game.save_manager import SaveManager
-        tmp = SaveManager(self)
-        return tmp._serialize_player_state(player_state)
+        # Ensure SaveManager is initialized (defensive - should always be initialized by save_game/load_game)
+        if not self.saves:
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        return self.saves._serialize_player_state(player_state)
 
     def _deserialize_player_state(self, data: dict, character):
         """Delegate player state deserialization to SaveManager."""
-        if self.saves:
-            return self.saves._deserialize_player_state(data, character)
-        from game.save_manager import SaveManager
-        tmp = SaveManager(self)
-        return tmp._deserialize_player_state(data, character)
+        # Ensure SaveManager is initialized (defensive - should always be initialized by save_game/load_game)
+        if not self.saves:
+            from game.save_manager import SaveManager
+            self.saves = SaveManager(self)
+        return self.saves._deserialize_player_state(data, character)
     
     def _serialize_world_position(self, world_position: WorldPosition) -> dict:
         """Serialize world position to dictionary"""
