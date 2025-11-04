@@ -1,6 +1,6 @@
 # Pull Request Template
 
-> **Length Guideline:** Keep PR documents to **max 200 lines**. Focus on concise summaries with bullets/tables. Detailed documentation belongs in separate architecture/design docs referenced in the PR.
+> **Length Guideline:** Keep PR documents to **max 100 lines**. Focus on concise summaries with bullets/tables. Detailed documentation belongs in separate architecture/design docs referenced in the PR.
 
 ---
 
