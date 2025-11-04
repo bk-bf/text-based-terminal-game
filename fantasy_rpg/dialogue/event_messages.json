@@ -446,18 +446,41 @@
             "Despite your efforts, the {object_name} won't light.",
             "You cannot get the fire started."
         ],
-        "disarm_trap_success": [
+        "fire_started": [
+            "The flames crackle to life, casting dancing shadows across the room.",
+            "Warmth blooms from the {object_name} as fire takes hold.",
+            "A cheerful blaze springs up in the {object_name}.",
+            "The {object_name} comes alive with flickering flames.",
+            "Fire dances merrily in the {object_name}, dispelling the cold.",
+            "The kindling catches, and soon a proper fire burns.",
+            "Smoke curls upward as the fire establishes itself.",
+            "The {object_name} glows with welcoming firelight."
+        ],
+        "fire_failure": [
+            "The kindling smolders but refuses to catch flame.",
+            "Your fire-starting attempt fails. The tinder won't ignite.",
+            "Despite your efforts, the fire simply won't start.",
+            "The damp wood resists your attempts to light it.",
+            "Frustratingly, the spark dies before flames can take hold.",
+            "The {object_name} remains cold and dark. No fire today.",
+            "Your firestarting skills prove inadequate this time."
+        ],
+        "disarm_success": [
             "You carefully disarm the trap on the {object_name}.",
-            "With steady hands, you neutralize the trap.",
+            "With steady hands, you neutralize the deadly mechanism.",
             "The trap mechanism on the {object_name} is now safe.",
             "You successfully disarm the dangerous trap.",
-            "The trap yields to your expertise. It's safe now."
+            "The trap yields to your expertise. It's safe now.",
+            "Careful work renders the trap harmless.",
+            "You disable the trap without triggering it."
         ],
-        "disarm_trap_failure": [
+        "disarm_failure": [
             "You fail to disarm the trap!",
             "Your attempt to disarm the trap goes wrong!",
-            "The trap mechanism eludes you!",
-            "You cannot figure out how to disarm this trap."
+            "The trap mechanism eludes your understanding!",
+            "You cannot figure out how to disarm this trap.",
+            "The trap's complexity defeats your efforts.",
+            "Your fingers slip at the crucial moment!"
         ],
         "rest_complete": [
             "You wake feeling refreshed after your rest.",

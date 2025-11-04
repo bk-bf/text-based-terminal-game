@@ -11,13 +11,13 @@ Handles all object interactions within locations including:
 - Drinking water
 - Generic 'use' interactions
 
-TODO ARCHITECTURE ISSUE: This system currently calls action_logger directly, causing
-wrong message chronology (message appears before command). It should return structured
-data (success, items_found, object_name) and let ActionLogger._log_main_result() 
-generate NLP messages. See action_logger.py line 160 for correct pattern.
+ARCHITECTURE: Returns structured dicts instead of tuples for proper message ordering.
+Uses _make_result() helper to create consistent return values.
+
+All methods use Dict[str, Any] pattern with event_type metadata.
 """
 
-from typing import Tuple, Dict, Any
+from typing import Dict, Any, Optional
 import random
 
 
@@ -32,15 +32,24 @@ class ObjectInteractionSystem:
             game_engine: Reference to main GameEngine for accessing game state
         """
         self.game_engine = game_engine
-        
-        # Get action logger for NLP flavor text
-        try:
-            from fantasy_rpg.actions.action_logger import get_action_logger
-            self.action_logger = get_action_logger()
-        except ImportError:
-            self.action_logger = None
     
-    def interact_with_object(self, object_name: str, action: str) -> Tuple[bool, str]:
+    @staticmethod
+    def _make_result(success: bool, message: str = "", **kwargs) -> Dict[str, Any]:
+        """Helper to create consistent result dicts
+        
+        Args:
+            success: Whether the action succeeded
+            message: Factual message (items found, etc.)
+            **kwargs: Additional metadata (event_type, items_found, etc.)
+        
+        Returns:
+            Dict with standardized structure
+        """
+        result = {'success': success, 'message': message}
+        result.update(kwargs)
+        return result
+    
+    def interact_with_object(self, object_name: str, action: str) -> Dict[str, Any]:
         """
         Interact with an object in current area based on its properties.
         
@@ -49,27 +58,35 @@ class ObjectInteractionSystem:
             action: Type of interaction (forage, search, examine, etc.)
         
         Returns:
-            Tuple of (success: bool, message: str)
+            Dict with interaction results:
+                {
+                    'success': bool,
+                    'message': str,  # Factual info (items found, etc.)
+                    'event_type': str,  # For NLP: 'search_success', 'forage_depleted', etc.
+                    'object_name': str,
+                    'items_found': list,  # List of "quantity x Item Name" strings
+                    'skill_check': dict,  # Optional: skill check details
+                }
         """
         if not self.game_engine.is_initialized or not self.game_engine.game_state:
-            return False, "Game not initialized."
+            return self._make_result(False, "Game not initialized.")
         
         gs = self.game_engine.game_state
         
         # Check if player is inside a location
         if not gs.world_position.current_location_id:
-            return False, "You must be inside a location to interact with objects."
+            return self._make_result(False, "You must be inside a location to interact with objects.")
         
         # Get current area objects
         current_area_id = gs.world_position.current_area_id
         location_data = gs.world_position.current_location_data
         
         if not location_data or "areas" not in location_data:
-            return False, "No objects available in this area."
+            return self._make_result(False, "No objects available in this area.")
         
         areas = location_data.get("areas", {})
         if current_area_id not in areas:
-            return False, "Current area not found."
+            return self._make_result(False, "Current area not found.")
         
         area_data = areas[current_area_id]
         objects = area_data.get("objects", [])
@@ -82,7 +99,7 @@ class ObjectInteractionSystem:
                 break
         
         if not target_object:
-            return False, f"You don't see any '{object_name}' here."
+            return self._make_result(False, f"You don't see any '{object_name}' here.")
         
         # Route to appropriate handler based on action and object properties
         properties = target_object.get("properties", {})
@@ -108,64 +125,66 @@ class ObjectInteractionSystem:
         elif action == "disarm":
             return self._handle_disarm(target_object, properties)
         else:
-            return False, f"You can't {action} the {target_object.get('name', 'object')}."
+            return self._make_result(False, f"You can't {action} the {target_object.get('name', 'object')}.")
     
-    def _handle_forage(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_forage(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle foraging from objects using Survival skill"""
         if not properties.get("can_forage"):
-            return False, f"You can't forage from the {obj.get('name', 'object')}."
+            return self._make_result(False, f"You can't forage from the {obj.get('name', 'object')}.")
         
         # Check if already depleted
         if obj.get("depleted", False):
-            # Use NLP for depleted message
-            if self.action_logger:
-                self.action_logger.log_action_event("forage_depleted", object_name=obj.get("name", "object"))
-            return False, ""
+            return self._make_result(
+                False,
+                "",
+                event_type='forage_depleted',
+                object_name=obj.get('name', 'object')
+            )
         
         # Simple success for now - ActionHandler will implement the multi-skill system
         obj["depleted"] = True
         
-        # Use NLP for success flavor text
-        if self.action_logger:
-            self.action_logger.log_action_event("forage_success", 
-                object_name=obj.get("name", "object"),
-                item_name="berries",
-                quantity=1)
-        
-        return True, ""
+        return self._make_result(
+            True,
+            "",
+            event_type='forage_success',
+            object_name=obj.get('name', 'object'),
+            items_found=["1x Berries"]
+        )
     
-    def _handle_harvest(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_harvest(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle harvesting from objects using Nature skill"""
         if not properties.get("can_forage"):
-            return False, f"You can't harvest from the {obj.get('name', 'object')}."
+            return self._make_result(False, f"You can't harvest from the {obj.get('name', 'object')}.")
         
         # Check if already depleted
         if obj.get("depleted", False):
-            # Use NLP for depleted message
-            if self.action_logger:
-                self.action_logger.log_action_event("harvest_depleted", object_name=obj.get("name", "object"))
-            return False, ""
+            return self._make_result(
+                False,
+                "",
+                event_type='harvest_depleted',
+                object_name=obj.get('name', 'object')
+            )
         
         # Simple success for now - ActionHandler will implement the multi-skill system
         obj["depleted"] = True
         
-        # Use NLP for success flavor text
-        if self.action_logger:
-            self.action_logger.log_action_event("harvest_success",
-                object_name=obj.get("name", "object"),
-                item_name="materials",
-                quantity=1)
-        
-        return True, ""
+        return self._make_result(
+            True,
+            "",
+            event_type='harvest_success',
+            object_name=obj.get('name', 'object'),
+            items_found=["1x Materials"]
+        )
     
-    def _handle_search(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_search(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle searching containers/objects with full item generation"""
         if not properties.get("can_search"):
-            return False, f"There's nothing to search in the {obj.get('name')}."
+            return {'success': False, 'message': f"There's nothing to search in the {obj.get('name')}."}
         
         # Check if already searched
         if obj.get("searched", False):
-            return False, f"You have already searched the {obj.get('name')}."
+            return {'success': False, 'message': f"You have already searched the {obj.get('name')}."}
         
         # Make skill check
         roll = random.randint(1, 20)
@@ -194,11 +213,7 @@ class ObjectInteractionSystem:
                     else:
                         failed_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
                 
-                # Use NLP for flavor text
-                if self.action_logger:
-                    self.action_logger.log_action_event("search_success", object_name=obj.get("name", "object"))
-                
-                # Factual information about items found
+                # Build factual message about items found
                 result_msg = ""
                 if success_items:
                     result_msg += f"You find: {', '.join(success_items)}"
@@ -207,12 +222,36 @@ class ObjectInteractionSystem:
                         result_msg += "\n"
                     result_msg += f"Couldn't carry: {', '.join(failed_items)} (inventory full)"
                 
-                return True, result_msg
+                return {
+                    'success': True,
+                    'message': result_msg,
+                    'event_type': 'search_success',
+                    'object_name': obj.get('name', 'object'),
+                    'items_found': success_items,
+                    'skill_check': {
+                        'skill': primary_skill,
+                        'roll': roll,
+                        'modifier': skill_bonus,
+                        'total': total,
+                        'dc': dc
+                    }
+                }
             else:
-                # Use NLP for empty search
-                if self.action_logger:
-                    self.action_logger.log_action_event("search_empty", object_name=obj.get("name", "object"))
-                return True, ""
+                # Empty container
+                return {
+                    'success': True,
+                    'message': "",
+                    'event_type': 'search_empty',
+                    'object_name': obj.get('name', 'object'),
+                    'items_found': [],
+                    'skill_check': {
+                        'skill': primary_skill,
+                        'roll': roll,
+                        'modifier': skill_bonus,
+                        'total': total,
+                        'dc': dc
+                    }
+                }
         else:
             # Forgiving failure - still might find something with failed roll
             items_generated = self._generate_items_from_object(obj, "search", total, dc)
@@ -224,39 +263,58 @@ class ObjectInteractionSystem:
                         success_items.append(f"{quantity}x {item_id.replace('_', ' ').title()}")
                 
                 if success_items:
-                    # Use NLP for flavor text
-                    if self.action_logger:
-                        self.action_logger.log_action_event("search_success", object_name=obj.get("name", "object"))
-                    return True, f"You find: {', '.join(success_items)}"
+                    return {
+                        'success': True,
+                        'message': f"You find: {', '.join(success_items)}",
+                        'event_type': 'search_success',
+                        'object_name': obj.get('name', 'object'),
+                        'items_found': success_items,
+                        'skill_check': {
+                            'skill': primary_skill,
+                            'roll': roll,
+                            'modifier': skill_bonus,
+                            'total': total,
+                            'dc': dc
+                        }
+                    }
             
-            # Use NLP for empty search
-            if self.action_logger:
-                self.action_logger.log_action_event("search_empty", object_name=obj.get("name", "object"))
-            return False, ""
+            # Failed search - nothing found
+            return {
+                'success': False,
+                'message': "",
+                'event_type': 'search_empty',
+                'object_name': obj.get('name', 'object'),
+                'items_found': [],
+                'skill_check': {
+                    'skill': primary_skill,
+                    'roll': roll,
+                    'modifier': skill_bonus,
+                    'total': total,
+                    'dc': dc
+                }
+            }
     
-    def _handle_examine(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_examine(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle examining objects closely"""
         base_description = obj.get("description", "An unremarkable object.")
-        
-        # Use NLP for flavor text
-        if self.action_logger:
-            self.action_logger.log_action_event("examine_object", object_name=obj.get("name", "object"))
         
         # Simple examination - ActionHandler implements the multi-skill system
         examination_text = properties.get("examination_text", "")
         if examination_text:
-            return True, f"{base_description}\n\nUpon closer examination: {examination_text}"
+            message = f"{base_description}\n\nUpon closer examination: {examination_text}"
         else:
-            return True, base_description
+            message = base_description
+        
+        return self._make_result(True, message)
     
-    def _handle_unlock(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_unlock(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle unlocking/lockpicking objects"""
         if not properties.get("can_unlock"):
-            return False, f"The {obj.get('name')} cannot be unlocked."
+            return self._make_result(False, f"The {obj.get('name')} cannot be unlocked.")
         
         # Check if already unlocked
         if obj.get("unlocked", False):
-            return False, f"The {obj.get('name')} is already unlocked."
+            return self._make_result(False, f"The {obj.get('name')} is already unlocked.")
         
         # Make lockpicking check
         roll = random.randint(1, 20)
@@ -268,29 +326,33 @@ class ObjectInteractionSystem:
         if self.game_engine.time_system:
             time_result = self.game_engine.time_system.perform_activity("lockpick", duration_override=1.0)
             if not time_result.get("success", True):
-                return False, time_result.get("message", "Lockpicking failed.")
+                return self._make_result(False, time_result.get("message", "Lockpicking failed."))
         
         if total >= dc:
             # Success
             obj["unlocked"] = True
-            # Use NLP for success flavor text
-            if self.action_logger:
-                self.action_logger.log_action_event("unlock_success", object_name=obj.get("name", "object"))
-            return True, ""
+            return self._make_result(
+                True,
+                "",
+                event_type='unlock_success',
+                object_name=obj.get('name', 'object')
+            )
         else:
-            # Use NLP for failure flavor text
-            if self.action_logger:
-                self.action_logger.log_action_event("unlock_failure", object_name=obj.get("name", "object"))
-            return False, ""
+            return self._make_result(
+                False,
+                "",
+                event_type='unlock_failure',
+                object_name=obj.get('name', 'object')
+            )
     
-    def _handle_disarm(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_disarm(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle disarming traps"""
         if not properties.get("can_disarm"):
-            return False, f"The {obj.get('name')} has no trap to disarm."
+            return self._make_result(False, f"The {obj.get('name')} has no trap to disarm.")
         
         # Check if already disarmed
         if obj.get("disarmed", False):
-            return False, f"The trap on the {obj.get('name')} has already been disarmed."
+            return self._make_result(False, f"The trap on the {obj.get('name')} has already been disarmed.")
         
         # Make sleight of hand check for trap disarming
         roll = random.randint(1, 20)
@@ -302,58 +364,66 @@ class ObjectInteractionSystem:
         if self.game_engine.time_system:
             time_result = self.game_engine.time_system.perform_activity("general", duration_override=0.5)
             if not time_result.get("success", True):
-                return False, time_result.get("message", "Trap disarming failed.")
+                return self._make_result(False, time_result.get("message", "Trap disarming failed."))
         
         if total >= dc:
             # Success
             obj["disarmed"] = True
-            # Use NLP for success flavor text
-            if self.action_logger:
-                self.action_logger.log_action_event("disarm_trap_success", object_name=obj.get("name", "object"))
-            return True, ""
+            return self._make_result(
+                True,
+                "",
+                event_type='disarm_success',
+                object_name=obj.get('name', 'object')
+            )
         else:
             # Failure - trap might trigger
             trigger_damage = properties.get("trap_damage", 0)
             if trigger_damage > 0:
                 gs = self.game_engine.game_state
                 gs.character.hp = max(0, gs.character.hp - trigger_damage)
-                # Use NLP for failure flavor text
-                if self.action_logger:
-                    self.action_logger.log_action_event("disarm_trap_failure", 
-                        object_name=obj.get("name", "object"),
-                        triggered=True)
-                return False, f"You take {trigger_damage} damage."
+                return self._make_result(
+                    False,
+                    f"You take {trigger_damage} damage.",
+                    event_type='disarm_failure',
+                    object_name=obj.get('name', 'object'),
+                    triggered=True
+                )
             else:
-                # Use NLP for failure flavor text (no trigger)
-                if self.action_logger:
-                    self.action_logger.log_action_event("disarm_trap_failure", 
-                        object_name=obj.get("name", "object"),
-                        triggered=False)
-                return False, ""
+                return self._make_result(
+                    False,
+                    "",
+                    event_type='disarm_failure',
+                    object_name=obj.get('name', 'object'),
+                    triggered=False
+                )
     
-    def _handle_chop(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_chop(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle chopping wood from objects"""
         if not properties.get("can_chop_wood"):
-            return False, f"You can't chop wood from the {obj.get('name')}."
+            return self._make_result(False, f"You can't chop wood from the {obj.get('name')}.")
         
         # Check if already chopped
         if obj.get("chopped", False):
-            # Use NLP for depleted message
-            if self.action_logger:
-                self.action_logger.log_action_event("chop_depleted", object_name=obj.get("name", "object"))
-            return False, ""
+            return self._make_result(
+                False,
+                "",
+                event_type='chop_depleted',
+                object_name=obj.get('name', 'object')
+            )
         
         # Simple success for now - ActionHandler implements the multi-skill system
         obj["chopped"] = True
-        # Use NLP for success flavor text
-        if self.action_logger:
-            self.action_logger.log_action_event("chop_success", object_name=obj.get("name", "object"))
-        return True, ""
+        return self._make_result(
+            True,
+            "",
+            event_type='chop_success',
+            object_name=obj.get('name', 'object')
+        )
     
-    def _handle_drink(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_drink(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle drinking water from objects - time passage handled by ObjectInteractionHandler"""
         if not properties.get("provides_water"):
-            return False, f"You can't drink from the {obj.get('name')}."
+            return self._make_result(False, f"You can't drink from the {obj.get('name')}.")
         
         water_quality = properties.get("water_quality", "poor")
         temperature = properties.get("temperature", "cool")
@@ -377,30 +447,31 @@ class ObjectInteractionSystem:
             character = gs.character
             character.hp = min(character.max_hp, character.hp + 1)
         
-        # Use NLP for flavor text
-        if self.action_logger:
-            self.action_logger.log_action_event("drink_success", 
-                object_name=obj.get("name", "object"),
-                water_quality=water_quality,
-                temperature=temperature)
-        
-        return True, ""
+        return self._make_result(
+            True,
+            "",
+            event_type='drink_success',
+            object_name=obj.get('name', 'object'),
+            water_quality=water_quality,
+            temperature=temperature
+        )
     
-    def _handle_use(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_use(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle using objects (generic interaction)"""
         # For now, 'use' defaults to examine behavior
         return self._handle_examine(obj, properties)
     
-    def _handle_light(self, obj: Dict, properties: Dict) -> Tuple[bool, str]:
+    def _handle_light(self, obj: Dict, properties: Dict) -> Dict[str, Any]:
         """Handle lighting fires in fireplaces and similar objects"""
         # Check if already lit FIRST (before checking can_light_fire)
         if obj.get("lit", False):
-            return False, f"The {obj.get('name')} is already lit."
+            return self._make_result(False, f"The {obj.get('name')} is already lit.")
         
         if not properties.get("can_light_fire"):
-            return False, f"You can't light a fire in the {obj.get('name')}."
+            return self._make_result(False, f"You can't light a fire in the {obj.get('name')}.")
         
         # Check if fuel is required and available
+        fuel_consumed = False
         if properties.get("fuel_required"):
             gs = self.game_engine.game_state
             # Check for firewood in inventory
@@ -410,10 +481,11 @@ class ObjectInteractionSystem:
                     has_firewood = True
                     # Consume 1 firewood
                     gs.character.inventory.remove_item("firewood", 1)
+                    fuel_consumed = True
                     break
             
             if not has_firewood:
-                return False, f"You need firewood to light a fire in the {obj.get('name')}."
+                return self._make_result(False, f"You need firewood to light a fire in the {obj.get('name')}.")
         
         # Make survival check to light fire
         roll = random.randint(1, 20)
@@ -427,7 +499,7 @@ class ObjectInteractionSystem:
             if transforms_to:
                 transform_success = self._transform_object(obj, transforms_to)
                 if not transform_success:
-                    return False, f"Failed to transform {obj.get('name')} after lighting."
+                    return self._make_result(False, f"Failed to transform {obj.get('name')} after lighting.")
             else:
                 # Just mark as lit if no transformation
                 obj["lit"] = True
@@ -437,19 +509,24 @@ class ObjectInteractionSystem:
             old_warmth = gs.player_state.survival.warmth
             gs.player_state.survival.warmth = min(1000, gs.player_state.survival.warmth + 100)
             
-            # Use NLP for success flavor text
-            if self.action_logger:
-                self.action_logger.log_action_event("light_fire_success", object_name=obj.get("name", "object"))
+            # Build factual message about fuel consumption
+            fuel_message = ""
+            if fuel_consumed:
+                fuel_message = "You consume 1 firewood to fuel the flames."
             
-            # Keep factual info about fuel consumption
-            if properties.get("fuel_required"):
-                return True, "You consume 1 firewood to fuel the flames."
-            return True, ""
+            return self._make_result(
+                True,
+                fuel_message,
+                event_type='fire_started',
+                object_name=obj.get('name', 'object')
+            )
         else:
-            # Use NLP for failure flavor text
-            if self.action_logger:
-                self.action_logger.log_action_event("light_fire_failure", object_name=obj.get("name", "object"))
-            return False, ""
+            return self._make_result(
+                False,
+                "",
+                event_type='fire_failure',
+                object_name=obj.get('name', 'object')
+            )
     
     def _transform_object(self, target_object: Dict, new_object_id: str) -> bool:
         """Transform an object into a different object type (e.g., fireplace -> lit_fireplace)"""

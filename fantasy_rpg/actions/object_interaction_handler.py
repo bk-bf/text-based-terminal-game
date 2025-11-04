@@ -28,8 +28,13 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            # Delegate to game engine's ObjectInteractionSystem
-            success, message = self.game_engine.interact_with_object(object_name, "examine")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "examine")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            
             # Examining is very quick - only 6 minutes
             return ActionResult(
                 success=success,
@@ -41,7 +46,10 @@ class ObjectInteractionHandler(BaseActionHandler):
             return ActionResult(False, f"Error: {str(e)}")
     
     def handle_search(self, *args) -> ActionResult:
-        """Handle searching objects - delegates to ObjectInteractionSystem"""
+        """Handle searching objects - delegates to ObjectInteractionSystem
+        
+        Returns ActionResult with metadata for ActionLogger to generate NLP messages.
+        """
         if error := self._require_location():
             return error
         
@@ -51,12 +59,29 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            # Delegate to game engine's ObjectInteractionSystem
-            success, message = self.game_engine.interact_with_object(object_name, "search")
-            # Only pass time if the search actually happened (success or searchable object)
-            # Failed searches of unsearchable objects should not pass time
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "search")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
+            items_found = result.get('items_found', [])
+            skill_check = result.get('skill_check')
+            
+            # Only pass time if the search actually happened
             time_passed = 0.1 if success else 0.0  # 6 minutes for successful search
-            return ActionResult(success, message, time_passed=time_passed)
+            
+            # Return ActionResult with metadata for NLP generation
+            return ActionResult(
+                success=success,
+                message=message,  # Factual info ("You find: X")
+                time_passed=time_passed,
+                event_type=event_type,  # For NLP: 'search_success' or 'search_empty'
+                object_name=result.get('object_name', object_name),
+                items_found=items_found,
+                skill_check=skill_check
+            )
         except Exception as e:
             return ActionResult(False, f"Error: {str(e)}")
     
@@ -71,7 +96,13 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "use")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "use")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            
             return ActionResult(
                 success=success,
                 message=message,
@@ -92,7 +123,13 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "forage")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "forage")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
             
             # Use time system to ensure condition effects are applied
             if success and self.game_engine.time_system:
@@ -100,7 +137,13 @@ class ObjectInteractionHandler(BaseActionHandler):
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Foraging interrupted."))
             
-            return ActionResult(success, message, time_passed=0.25)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.25,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name)
+            )
         except Exception as e:
             return ActionResult(False, f"Failed to forage: {str(e)}")
     
@@ -115,14 +158,26 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "harvest")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "harvest")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
             
             if success and self.game_engine.time_system:
                 time_result = self.game_engine.time_system.perform_activity("forage", duration_override=0.25)
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Harvesting interrupted."))
             
-            return ActionResult(success, message, time_passed=0.25)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.25,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name)
+            )
         except Exception as e:
             return ActionResult(False, f"Failed to harvest: {str(e)}")
     
@@ -137,14 +192,26 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "chop")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "chop")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
             
             if success and self.game_engine.time_system:
                 time_result = self.game_engine.time_system.perform_activity("chop_wood", duration_override=1.0)
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Chopping interrupted."))
             
-            return ActionResult(success, message, time_passed=1.0)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=1.0,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name)
+            )
         except Exception as e:
             return ActionResult(False, f"Failed to chop: {str(e)}")
     
@@ -159,7 +226,13 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "drink")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "drink")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
             
             # Use time system
             if success and self.game_engine.time_system:
@@ -167,7 +240,16 @@ class ObjectInteractionHandler(BaseActionHandler):
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Drinking interrupted."))
             
-            return ActionResult(success=success, message=message, time_passed=0.1, action_type="survival")
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.1,
+                action_type="survival",
+                event_type=event_type,
+                object_name=result.get('object_name', object_name),
+                water_quality=result.get('water_quality'),
+                temperature=result.get('temperature')
+            )
             
         except Exception as e:
             return ActionResult(False, f"Failed to drink: {str(e)}")
@@ -183,7 +265,13 @@ class ObjectInteractionHandler(BaseActionHandler):
         object_name = " ".join(args).lower()
         
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "unlock")
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "unlock")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
             
             # Use time system
             if success and self.game_engine.time_system:
@@ -191,7 +279,13 @@ class ObjectInteractionHandler(BaseActionHandler):
                 if not time_result.get("success", True):
                     return ActionResult(False, time_result.get("message", "Lockpicking interrupted."))
             
-            return ActionResult(success, message, time_passed=0.5)
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.5,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name)
+            )
                 
         except Exception as e:
             return ActionResult(False, f"Failed to unlock: {str(e)}")
@@ -206,8 +300,21 @@ class ObjectInteractionHandler(BaseActionHandler):
         
         object_name = " ".join(args).lower()
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "light")
-            return ActionResult(success, message, time_passed=0.25)
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "light")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
+            
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.25,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name)
+            )
         except Exception as e:
             return ActionResult(False, f"Failed to light fire: {str(e)}")
     
@@ -221,8 +328,22 @@ class ObjectInteractionHandler(BaseActionHandler):
         
         object_name = " ".join(args).lower()
         try:
-            success, message = self.game_engine.interact_with_object(object_name, "disarm")
-            return ActionResult(success, message, time_passed=0.5)
+            # Delegate to game engine's ObjectInteractionSystem (returns dict)
+            result = self.game_engine.interact_with_object(object_name, "disarm")
+            
+            # Extract data from result dict
+            success = result.get('success', False)
+            message = result.get('message', '')
+            event_type = result.get('event_type')
+            
+            return ActionResult(
+                success=success,
+                message=message,
+                time_passed=0.5,
+                event_type=event_type,
+                object_name=result.get('object_name', object_name),
+                triggered=result.get('triggered', False)
+            )
         except Exception as e:
             return ActionResult(False, f"Failed to disarm trap: {str(e)}")
 

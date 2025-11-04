@@ -185,10 +185,14 @@ class ActionLogger:
         
         SUPPORTED EVENT TYPES (add metadata to ActionResult.data):
             - item_equipped/item_unequipped + item_type: Equipment NLP
-            - search_result + object_name + items_found: Search NLP
-            - forage_result + object_name + items_found: Forage NLP  
-            - harvest_result + object_name + items_found: Harvest NLP
-            - fire_started/fire_fueled + object_name: Fire NLP
+            - search_success/search_empty + items_found + skill_check: Search NLP
+            - forage_success/forage_depleted + object_name: Forage NLP
+            - harvest_success/harvest_depleted + object_name: Harvest NLP
+            - fire_started/fire_failure + object_name: Fire NLP
+            - unlock_success/unlock_failure + object_name: Lockpick NLP
+            - disarm_success/disarm_failure + object_name + triggered: Trap disarm NLP
+            - chop_success/chop_depleted + object_name: Chop wood NLP
+            - drink_success + object_name + water_quality + temperature: Drink NLP
             - (Add more as needed for combat, etc.)
         
         FOR NEW SYSTEMS (combat, crafting, etc.):
@@ -225,24 +229,87 @@ class ActionLogger:
                 self.game_log.add_message(f"Unequipped {item_name}")
         
         # Handle object interaction events (metadata-driven)
-        # TODO: Refactor ObjectInteractionSystem to return metadata instead of logging directly
-        elif action_result.get('search_result'):
+        elif action_result.get('event_type') == 'search_success':
             object_name = action_result.get('object_name', 'object')
-            items_found = action_result.get('items_found', [])
-            
-            if items_found:
-                self.log_action_event("search_success", object_name=object_name)
-            else:
-                self.log_action_event("search_empty", object_name=object_name)
+            self.log_action_event("search_success", object_name=object_name)
+            # Factual message about items is in action_result.message
+            if action_result.message:
+                self.game_log.add_message(action_result.message)
         
-        elif action_result.get('forage_result'):
+        elif action_result.get('event_type') == 'search_empty':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("search_empty", object_name=object_name)
+        
+        elif action_result.get('event_type') == 'forage_success':
             object_name = action_result.get('object_name', 'object')
             items_found = action_result.get('items_found', [])
-            
-            if items_found:
-                self.log_action_event("forage_success", object_name=object_name, items=", ".join(items_found))
-            else:
-                self.log_action_event("forage_depleted", object_name=object_name)
+            self.log_action_event("forage_success", object_name=object_name, items=", ".join(items_found))
+        
+        elif action_result.get('event_type') == 'forage_depleted':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("forage_depleted", object_name=object_name)
+        
+        elif action_result.get('event_type') == 'harvest_success':
+            object_name = action_result.get('object_name', 'object')
+            items_found = action_result.get('items_found', [])
+            self.log_action_event("harvest_success", object_name=object_name, items=", ".join(items_found))
+        
+        elif action_result.get('event_type') == 'harvest_depleted':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("harvest_depleted", object_name=object_name)
+        
+        # Fire lighting events
+        elif action_result.get('event_type') == 'fire_started':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("fire_started", object_name=object_name)
+            # Add factual message if present (e.g., fuel consumption)
+            if action_result.message:
+                self.game_log.add_message(action_result.message)
+        
+        elif action_result.get('event_type') == 'fire_failure':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("fire_failure", object_name=object_name)
+        
+        # Unlock/lockpick events
+        elif action_result.get('event_type') == 'unlock_success':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("unlock_success", object_name=object_name)
+        
+        elif action_result.get('event_type') == 'unlock_failure':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("unlock_failure", object_name=object_name)
+        
+        # Disarm trap events
+        elif action_result.get('event_type') == 'disarm_success':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("disarm_success", object_name=object_name)
+        
+        elif action_result.get('event_type') == 'disarm_failure':
+            object_name = action_result.get('object_name', 'object')
+            triggered = action_result.get('triggered', False)
+            self.log_action_event("disarm_failure", object_name=object_name, triggered=triggered)
+            # Add factual damage message if present
+            if action_result.message:
+                self.game_log.add_message(action_result.message)
+        
+        # Chop wood events
+        elif action_result.get('event_type') == 'chop_success':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("chop_success", object_name=object_name)
+        
+        elif action_result.get('event_type') == 'chop_depleted':
+            object_name = action_result.get('object_name', 'object')
+            self.log_action_event("chop_depleted", object_name=object_name)
+        
+        # Drink water events
+        elif action_result.get('event_type') == 'drink_success':
+            object_name = action_result.get('object_name', 'object')
+            water_quality = action_result.get('water_quality', 'unknown')
+            temperature = action_result.get('temperature', 'cool')
+            self.log_action_event("drink_success", 
+                object_name=object_name,
+                water_quality=water_quality,
+                temperature=temperature)
         
         elif action_result.message:
             # Regular messages for actions without special NLP
@@ -321,7 +388,15 @@ class ActionLogger:
                             self.game_log.add_message(line.strip())
     
     def _log_foraging_result(self, action_result):
-        """Log foraging action results - only add extra messages for actual foraging, not all failures"""
+        """Log foraging action results - DEPRECATED for event_type actions
+        
+        This method is only called for legacy actions that don't use event_type metadata.
+        Actions using event_type (search, forage, harvest) handle their own logging.
+        """
+        # Skip if this action uses event_type metadata (already logged via _log_main_result)
+        if action_result.get('event_type'):
+            return
+        
         items_found = action_result.get('items_found', [])
         object_name = action_result.get('object_name', 'object')
         experience_gained = action_result.get('experience_gained', 0)
