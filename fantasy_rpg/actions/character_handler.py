@@ -67,18 +67,17 @@ class CharacterHandler(BaseActionHandler):
         if current_area_id not in areas:
             return None
         
-        area_data = areas[current_area_id]
-        objects = area_data.get("objects", [])
-        
         # Find the first available object with matching name
-        available_obj = next(
+        if not (objects := areas[current_area_id].get("objects", [])):
+            return None
+        
+        if available_obj := next(
             (obj for obj in objects 
              if obj.get("name", "").lower() == object_name.lower() and 
              (not obj.get("depleted", False) and not obj.get("searched", False) and 
               not obj.get("chopped", False) and not obj.get("wood_taken", False))),
             None
-        )
-        if available_obj:
+        ):
             return available_obj
         
         # If no available objects found, return the first match anyway (for error messages)

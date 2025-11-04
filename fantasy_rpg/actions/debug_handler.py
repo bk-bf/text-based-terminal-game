@@ -9,6 +9,7 @@ Handles all debug and system commands:
 - Game log saving
 """
 
+from typing import Any
 from .base_handler import BaseActionHandler, ActionResult
 
 
@@ -22,7 +23,7 @@ class DebugHandler(BaseActionHandler):
             from .shortkey_manager import get_shortkey_manager
             shortkey_manager = get_shortkey_manager()
             shortkey_help = shortkey_manager.get_action_help()
-        except Exception:
+        except ImportError:
             shortkey_help = ""
         
         help_text = f"""{shortkey_help}
@@ -80,7 +81,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             action_type="help"
         )
     
-    def _get_basic_debug_info(self, gs) -> list:
+    def _get_basic_debug_info(self, gs: Any) -> list[str]:
         """Extract basic game state debug information"""
         return [
             f"Current hex: {gs.world_position.hex_id}",
@@ -91,7 +92,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             f"Character HP: {gs.character.hp}/{gs.character.max_hp}"
         ]
     
-    def _get_location_debug_info(self, location_data, starting_area_id) -> list:
+    def _get_location_debug_info(self, location_data: dict[str, Any], starting_area_id: str) -> list[str]:
         """Extract location-specific debug information"""
         info = [
             f"Location: {location_data.get('name', 'Unknown')}",
@@ -149,7 +150,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             action_type="debug"
         )
     
-    def _convert_climate_zones_for_json(self, climate_zones: dict) -> dict:
+    def _convert_climate_zones_for_json(self, climate_zones: dict[str, Any]) -> dict[str, Any]:
         """Convert climate_zones with tuple keys to JSON-compatible string keys"""
         return {
             f"{key[0]:02d}{key[1]:02d}" if isinstance(key, tuple) else str(key): value

@@ -274,11 +274,13 @@ class MovementHandler(BaseActionHandler):
                     return ActionResult(False, time_result.get("message", "Wait interrupted."))
             
             # Format duration for display
-            duration_str = (
-                f"{int(duration_hours * 60)} minutes" if duration_hours < 1 else
-                "1 hour" if duration_hours == 1 else
-                f"{duration_hours} hours"
-            )
+            if duration_hours < 1:
+                duration_str = f"{int(duration_hours * 60)} minutes"
+            elif duration_hours == 1:
+                duration_str = "1 hour"
+            else:
+                # Use integer if whole number, otherwise one decimal place
+                duration_str = f"{int(duration_hours)} hours" if duration_hours == int(duration_hours) else f"{duration_hours:.1f} hours"
             
             # Create descriptive message based on duration
             activity_desc = (
