@@ -9,6 +9,7 @@ Handles all debug and system commands:
 - Game log saving
 """
 
+from typing import Any
 from .base_handler import BaseActionHandler, ActionResult
 
 
@@ -22,7 +23,7 @@ class DebugHandler(BaseActionHandler):
             from .shortkey_manager import get_shortkey_manager
             shortkey_manager = get_shortkey_manager()
             shortkey_help = shortkey_manager.get_action_help()
-        except:
+        except ImportError:
             shortkey_help = ""
         
         help_text = f"""{shortkey_help}
@@ -80,50 +81,71 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             action_type="help"
         )
     
+    def _get_basic_debug_info(self, gs: Any) -> list[str]:
+        """Extract basic game state debug information"""
+        return [
+            f"Current hex: {gs.world_position.hex_id}",
+            f"Coordinates: {gs.world_position.coords}",
+            f"In location: {gs.world_position.current_location_id or 'No'}",
+            f"Time: {gs.game_time.get_time_string()}, {gs.game_time.get_date_string()}",
+            f"Weather: {gs.current_weather.temperature:.0f}°F",
+            f"Character HP: {gs.character.hp}/{gs.character.max_hp}"
+        ]
+    
+    def _get_location_debug_info(self, location_data: dict[str, Any], starting_area_id: str) -> list[str]:
+        """Extract location-specific debug information"""
+        info = [
+            f"Location: {location_data.get('name', 'Unknown')}",
+            f"Starting area: {starting_area_id}"
+        ]
+        
+        areas = location_data.get("areas", {})
+        if starting_area_id not in areas:
+            return info
+        
+        area_data = areas[starting_area_id]
+        objects = area_data.get("objects", [])
+        items = area_data.get("items", [])
+        
+        info.append(f"Objects in area: {len(objects)}")
+        info.extend(
+            f"  {i+1}. {obj.get('name', 'Unknown')} (id: {obj.get('id', 'unknown')})"
+            for i, obj in enumerate(objects[:5])
+        )
+        if len(objects) > 5:
+            info.append(f"  ...and {len(objects) - 5} more")
+
+        info.append(f"Items in area: {len(items)}")
+        info.extend(
+            f"  {i+1}. {item.get('name', 'Unknown')} (id: {item.get('id', 'unknown')})"
+            for i, item in enumerate(items[:5])
+        )
+        if len(items) > 5:
+            info.append(f"  ...and {len(items) - 5} more")
+        
+        return info
+    
     def handle_debug(self, *args) -> ActionResult:
         """Handle debug information display"""
         if not self.game_engine:
             return ActionResult(False, "Debug system not available.")
         
         gs = self.game_engine.game_state
-        debug_info = []
-        debug_info.append("=== DEBUG INFO ===")
+        if not gs:
+            return ActionResult(
+                success=True,
+                message="=== DEBUG INFO ===\nNo game state available",
+                time_passed=0.0,
+                action_type="debug"
+            )
         
-        if gs:
-            debug_info.append(f"Current hex: {gs.world_position.hex_id}")
-            debug_info.append(f"Coordinates: {gs.world_position.coords}")
-            debug_info.append(f"In location: {gs.world_position.current_location_id or 'No'}")
-            debug_info.append(f"Time: {gs.game_time.get_time_string()}, {gs.game_time.get_date_string()}")
-            debug_info.append(f"Weather: {gs.current_weather.temperature:.0f}°F")
-            debug_info.append(f"Character HP: {gs.character.hp}/{gs.character.max_hp}")
-            
-            # Add location content debug info
-            if gs.world_position.current_location_id:
-                location_data = gs.world_position.current_location_data
-                if location_data:
-                    areas = location_data.get("areas", {})
-                    starting_area_id = location_data.get("starting_area", "entrance")
-                    debug_info.append(f"Location: {location_data.get('name', 'Unknown')}")
-                    debug_info.append(f"Starting area: {starting_area_id}")
-                    
-                    if starting_area_id in areas:
-                        area_data = areas[starting_area_id]
-                        objects = area_data.get("objects", [])
-                        items = area_data.get("items", [])
-                        
-                        debug_info.append(f"Objects in area: {len(objects)}")
-                        for i, obj in enumerate(objects[:5]):
-                            obj_name = obj.get('name', 'Unknown')
-                            obj_id = obj.get('id', 'unknown')
-                            debug_info.append(f"  {i+1}. {obj_name} (id: {obj_id})")
-                        
-                        debug_info.append(f"Items in area: {len(items)}")
-                        for i, item in enumerate(items[:5]):
-                            item_name = item.get('name', 'Unknown')
-                            item_id = item.get('id', 'unknown')
-                            debug_info.append(f"  {i+1}. {item_name} (id: {item_id})")
-        else:
-            debug_info.append("No game state available")
+        debug_info = ["=== DEBUG INFO ==="]
+        debug_info.extend(self._get_basic_debug_info(gs))
+        
+        # Add location content debug info if in location
+        if gs.world_position.current_location_id and (location_data := gs.world_position.current_location_data):
+            starting_area_id = location_data.get("starting_area", "entrance")
+            debug_info.extend(self._get_location_debug_info(location_data, starting_area_id))
         
         return ActionResult(
             success=True,
@@ -131,6 +153,13 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             time_passed=0.0,
             action_type="debug"
         )
+    
+    def _convert_climate_zones_for_json(self, climate_zones: dict[str, Any]) -> dict[str, Any]:
+        """Convert climate_zones with tuple keys to JSON-compatible string keys"""
+        return {
+            f"{key[0]:02d}{key[1]:02d}" if isinstance(key, tuple) else str(key): value
+            for key, value in climate_zones.items()
+        }
     
     def handle_dump_world(self, *args) -> ActionResult:
         """Handle dumping world data to JSON file"""
@@ -140,19 +169,13 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
         try:
             import json
             
-            # Convert climate_zones (has tuple keys) to string keys for JSON
-            climate_zones_str = {}
-            for key, value in self.game_engine.world_coordinator.climate_zones.items():
-                if isinstance(key, tuple):
-                    climate_zones_str[f"{key[0]:02d}{key[1]:02d}"] = value
-                else:
-                    climate_zones_str[str(key)] = value
-            
             world_data = {
                 "world_size": self.game_engine.world_coordinator.world_size,
                 "seed": self.game_engine.world_coordinator.seed,
                 "hex_data": self.game_engine.world_coordinator.hex_data,
-                "climate_zones": climate_zones_str,
+                "climate_zones": self._convert_climate_zones_for_json(
+                    self.game_engine.world_coordinator.climate_zones
+                ),
                 "loaded_locations": self.game_engine.world_coordinator.loaded_locations
             }
             
