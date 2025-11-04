@@ -1,0 +1,473 @@
+{
+    "survival_effects": {
+        "COLD_triggered": [
+            "A chill runs through you. Your fingers grow stiff and numb from the cold.",
+            "The bitter wind cuts through you, sapping your warmth.",
+            "Your breath becomes visible. Ice crystals form on your eyelashes.",
+            "Numbness creeps into your extremities as the cold bite increases.",
+            "Your body shivers uncontrollably. The cold is becoming dangerous.",
+            "Frost spreads across your skin. You're dangerously close to freezing.",
+            "The cold seeps into your bones, making every movement labored.",
+            "Your teeth chatter as the frigid air steals your body heat.",
+            "A bone-deep cold settles over you. Warmth feels like a distant memory.",
+            "The icy air burns your lungs with each breath.",
+            "Shivering violently, you struggle to maintain your core temperature.",
+            "The relentless cold drains your strength with each passing moment.",
+            "Your skin prickles painfully as the temperature drops further.",
+            "Cold sweat beads on your forehead despite the freezing conditions.",
+            "You can barely feel your hands anymore. The cold is overwhelming."
+        ],
+        "ICY_triggered": [
+            "Your entire body shivers uncontrollably. The cold bites deep into your bones.",
+            "Dangerous cold penetrates through all your layers. You need warmth immediately.",
+            "Ice crystals form on your clothing. Your extremities are going numb.",
+            "The brutal cold saps your strength with frightening speed.",
+            "You can no longer feel your fingers or toes. Hypothermia threatens.",
+            "Each breath of freezing air feels like knives in your lungs.",
+            "Your muscles lock up from the intense cold. Movement becomes painful."
+        ],
+        "FREEZING_triggered": [
+            "Your teeth chatter uncontrollably and your limbs go numb.",
+            "If you don't find warmth and shelter immediately, you will freeze to death.",
+            "Deadly hypothermia sets in. Your body is shutting down from the cold.",
+            "You can barely move. The freezing cold is killing you.",
+            "Everything feels distant and hazy as hypothermia takes hold.",
+            "Your thoughts slow to a crawl. The cold is winning.",
+            "Death by freezing is imminent unless you find warmth now."
+        ],
+        "HUNGER_triggered": [
+            "Your stomach growls insistently. You need to find food soon.",
+            "Hunger gnaws at your belly, making concentration difficult.",
+            "Your energy reserves are depleting. Food would be welcome.",
+            "Pangs of hunger wrack your body. You need to eat.",
+            "Weakness spreads through you from lack of nourishment.",
+            "Your stomach cramps painfully. The need for food is urgent.",
+            "Lightheadedness accompanies the gnawing emptiness in your belly.",
+            "Every thought turns to food. Hunger dominates your awareness.",
+            "Your hands tremble from lack of nourishment.",
+            "The hollow ache in your stomach grows unbearable."
+        ],
+        "STARVING_triggered": [
+            "Your body trembles with weakness. You desperately need food.",
+            "You won't survive much longer without food.",
+            "Severe hunger weakens every muscle. Your body is consuming itself.",
+            "Vision blurs at the edges. Starvation is taking its toll.",
+            "Your strength ebbs away. Food is no longer optional—it's critical.",
+            "Every movement feels like wading through deep water. You're starving.",
+            "Your body screams for sustenance. Find food or perish."
+        ],
+        "DYING_OF_HUNGER_triggered": [
+            "Your vision blurs and darkness creeps at the edges.",
+            "Without food immediately, death is certain.",
+            "Your body is shutting down from starvation. This is the end.",
+            "Muscle wasting and organ failure set in. You need food now.",
+            "The world spins around you. Starvation claims another victim.",
+            "You can barely stand. Death from hunger is moments away."
+        ],
+        "THIRST_triggered": [
+            "Your throat feels parched and dry. You should find water.",
+            "Thirst makes your tongue feel thick and swollen.",
+            "Your lips are dry and cracked. Water would be wonderful.",
+            "A persistent thirst distracts you from other concerns.",
+            "You swallow with difficulty. Your mouth is so dry.",
+            "The need for water grows with each passing moment.",
+            "Dehydration begins to set in. Find water soon."
+        ],
+        "DEHYDRATED_triggered": [
+            "Your lips crack and your tongue swells. You need water urgently.",
+            "You'll collapse without water soon.",
+            "Severe dehydration impairs your thinking. Everything feels sluggish.",
+            "Your skin loses its elasticity. Dangerous dehydration sets in.",
+            "Vision swims and darkens. Your body desperately needs water.",
+            "Every breath is labored. Dehydration weakens you dramatically.",
+            "You can barely produce saliva. Water is critical now."
+        ],
+        "DYING_OF_THIRST_triggered": [
+            "Your body is shutting down from dehydration. Every breath is agony.",
+            "Find water now or perish.",
+            "Organ failure from dehydration is imminent. You're dying of thirst.",
+            "The world fades in and out. Death by dehydration is certain.",
+            "Your body has no more moisture to give. This is the end.",
+            "Consciousness slips away. You need water immediately or you'll die."
+        ],
+        "TIRED_triggered": [
+            "Your eyelids grow heavy and you stifle a yawn. Rest would be welcome.",
+            "Fatigue begins to settle into your bones.",
+            "A weariness creeps over you. Sleep sounds appealing.",
+            "Your steps slow slightly. You could use some rest.",
+            "Mild exhaustion makes everything feel just a bit harder.",
+            "You suppress another yawn. Tiredness is catching up with you."
+        ],
+        "VERY_TIRED_triggered": [
+            "Exhaustion weighs on you like a heavy cloak. You need to rest soon.",
+            "Significant fatigue impairs your performance.",
+            "Your limbs feel heavy. Rest is becoming necessary.",
+            "Each movement requires more effort than it should.",
+            "You stumble slightly. Fatigue affects your coordination.",
+            "Sleep calls to you insistently. You need rest."
+        ],
+        "EXHAUSTED_triggered": [
+            "Your body screams for rest. You can barely keep your eyes open.",
+            "You stumble with every step. Extreme exhaustion overwhelms you.",
+            "Fatigue clouds your mind and weakens your body.",
+            "Your limbs feel like lead. Continuing seems impossible.",
+            "You can barely stand. Sleep is no longer optional.",
+            "Weariness threatens to overwhelm you completely.",
+            "Every fiber of your being demands rest. You must sleep soon.",
+            "You fight to stay conscious as exhaustion pulls at you.",
+            "Your body is shutting down from lack of rest.",
+            "Extreme fatigue makes even breathing feel labored."
+        ],
+        "HOT_triggered": [
+            "Sweat beads on your forehead as heat presses down on you.",
+            "You need to cool off. The heat is uncomfortable.",
+            "The oppressive warmth makes you feel sluggish.",
+            "Heat radiates from all around. You're getting too warm.",
+            "Perspiration soaks through your clothes. It's too hot.",
+            "The temperature rises uncomfortably. You need shade or water.",
+            "Uncomfortably hot, you seek relief from the heat."
+        ],
+        "OVERHEATING_triggered": [
+            "The heat is overwhelming. Your head pounds and your vision swims.",
+            "Find shade and water quickly. You're dangerously overheated.",
+            "Heat exhaustion sets in. Your body struggles to cool itself.",
+            "Dizziness and nausea wash over you. The heat is too much.",
+            "You're on the verge of heat stroke. Cool down immediately.",
+            "The relentless heat drains your strength rapidly.",
+            "Your body temperature climbs dangerously high."
+        ],
+        "HEAT_STROKE_triggered": [
+            "Your skin burns like fire and confusion clouds your thoughts.",
+            "Your body is failing. You need water and shade now or you will die.",
+            "Critical heat exhaustion. Your organs are shutting down.",
+            "Delirium sets in from the extreme heat. Death is imminent.",
+            "Your body can no longer regulate temperature. You're dying.",
+            "Heat stroke ravages your system. Find help immediately."
+        ],
+        "WET_triggered": [
+            "Your clothes cling damply to your skin, chilling you to the bone.",
+            "Water soaks through your clothes, making you uncomfortable.",
+            "Your gear is dripping wet. Discomfort spreads throughout.",
+            "Damp clothes cling to your skin uncomfortably.",
+            "Moisture seeps through every layer. You're thoroughly wet.",
+            "Cold wetness makes your skin clammy and unpleasant.",
+            "Water squelches with each step. You need to dry off."
+        ],
+        "SOAKED_triggered": [
+            "Water drips from every inch of you. Your sodden clothing weighs you down.",
+            "The cold seeps deep through your soaked garments.",
+            "You're drenched to the bone. The dampness is miserable.",
+            "Completely soaked, your equipment and movement are impaired.",
+            "Every layer is saturated. You desperately need to dry off.",
+            "Your sodden clothing weighs you down heavily.",
+            "Wet fabric chafes against your skin with every movement."
+        ],
+        "WIND_CHILLED_triggered": [
+            "Bitter wind tears through your clothing, stealing your warmth.",
+            "You need shelter from this gale.",
+            "Harsh wind cuts through you, rapidly draining body heat.",
+            "The relentless wind makes the cold unbearable.",
+            "Wind chill accelerates heat loss dangerously.",
+            "You struggle against the fierce wind. Shelter is critical."
+        ],
+        "FAINTED_triggered": [
+            "Darkness swallows you as your body gives out. You collapse, unconscious.",
+            "Your vision goes black. The world disappears as you faint.",
+            "Consciousness slips away. You crumple to the ground.",
+            "Your body can take no more. You lose consciousness.",
+            "Everything goes dark as you collapse from exhaustion."
+        ],
+        "SUFFOCATION_triggered": [
+            "Your lungs burn as you struggle for air.",
+            "Breath comes in desperate gasps. You're suffocating.",
+            "Panic sets in as oxygen becomes scarce.",
+            "Your chest tightens. The air grows thin and useless.",
+            "Darkness creeps at the edges of your vision from lack of air.",
+            "You claw desperately for breath, finding none.",
+            "Your body screams for oxygen it cannot find.",
+            "Consciousness begins to fade as suffocation takes hold."
+        ]
+    },
+    "beneficial_effects": {
+        "LIT_FIRE_triggered": [
+            "The dancing flames warm your skin and lift your spirits. You feel safer here.",
+            "Fire crackles cheerfully, providing welcome warmth and comfort.",
+            "Heat radiates from the fire, slowly thawing your chilled body.",
+            "The firelight pushes back the darkness and cold. You feel hope return.",
+            "Blessed warmth spreads through you as the fire does its work.",
+            "Your spirits lift as the fire's warmth envelops you."
+        ],
+        "NATURAL_SHELTER_triggered": [
+            "You find respite from the elements here. The shelter blocks the worst of the weather.",
+            "Natural protection surrounds you, reducing exposure to harsh conditions.",
+            "This sheltered spot offers relief from wind and precipitation.",
+            "You settle into the natural shelter, grateful for its protection.",
+            "The elements cannot reach you as easily here. You feel more secure."
+        ],
+        "GOOD_SHELTER_triggered": [
+            "This shelter provides good protection. You feel secure from the elements.",
+            "You can rest easier here, well-protected from the weather.",
+            "Quality shelter surrounds you, significantly reducing weather exposure.",
+            "The strong shelter blocks wind, rain, and cold effectively.",
+            "You breathe easier in this well-protected space.",
+            "This is a good place to weather the storm."
+        ],
+        "EXCELLENT_SHELTER_triggered": [
+            "You are completely protected here. The weather cannot touch you.",
+            "You can truly rest in comfort, immune to the elements.",
+            "This excellent shelter provides total protection and comfort.",
+            "The weather rages outside, but you are perfectly safe within.",
+            "Complete protection from all weather. You could stay here indefinitely.",
+            "This shelter is a sanctuary from the harsh world outside."
+        ]
+    },
+    "equipment_effects": {
+        "armor_equipped": [
+            "You don the {armor_name}, settling into its familiar weight.",
+            "Armor clicks into place. You feel more protected.",
+            "{armor_name} slides over your body with a practiced motion.",
+            "You buckle the {armor_name} securely, ready for what comes.",
+            "The {armor_name} fits snugly, offering reassuring protection.",
+            "With practiced efficiency, you equip the {armor_name}.",
+            "The weight of the {armor_name} feels comfortable and secure.",
+            "You adjust the {armor_name} straps until everything sits perfectly."
+        ],
+        "armor_removed": [
+            "You remove the {armor_name}, feeling lighter.",
+            "The weight lifts as you take off your {armor_name}.",
+            "{armor_name} comes off with relief. Your shoulders relax.",
+            "You unbuckle the {armor_name} and set it aside.",
+            "Freedom returns as you shed the {armor_name}.",
+            "The {armor_name} slides off, and you breathe easier."
+        ],
+        "weapon_equipped": [
+            "You draw the {weapon_name}, feeling its weight in your hand.",
+            "The {weapon_name} rests comfortably in your grip.",
+            "With practiced ease, you ready the {weapon_name}.",
+            "You equip the {weapon_name}, prepared for combat.",
+            "The familiar heft of the {weapon_name} steadies you.",
+            "You arm yourself with the {weapon_name}.",
+            "{weapon_name} in hand, you feel ready for danger.",
+            "The {weapon_name} becomes an extension of your arm."
+        ],
+        "weapon_removed": [
+            "You sheathe the {weapon_name}.",
+            "The {weapon_name} returns to its place at your side.",
+            "You lower the {weapon_name}, no longer needing it ready.",
+            "With care, you put away the {weapon_name}.",
+            "The {weapon_name} slides back into its holster.",
+            "You set the {weapon_name} aside for now."
+        ],
+        "shield_equipped": [
+            "You raise the {shield_name}, feeling more secure.",
+            "The {shield_name} settles on your arm protectively.",
+            "With the {shield_name} equipped, you're better defended.",
+            "You strap the {shield_name} to your forearm.",
+            "The {shield_name} provides welcome protection.",
+            "Your defense improves with the {shield_name} in place."
+        ],
+        "shield_removed": [
+            "You lower the {shield_name} and set it aside.",
+            "The {shield_name} comes off your arm.",
+            "You unbuckle the {shield_name}, freeing your arm.",
+            "Relief comes as you remove the {shield_name}.",
+            "The weight of the {shield_name} lifts from your arm."
+        ],
+        "item_used": [
+            "You use the {item_name}.",
+            "The {item_name} serves its purpose well.",
+            "You make use of the {item_name}.",
+            "With practiced hands, you employ the {item_name}.",
+            "The {item_name} proves useful in this moment.",
+            "You put the {item_name} to work.",
+            "Reaching for the {item_name}, you apply it skillfully.",
+            "The {item_name} does exactly what you need.",
+            "You consume the {item_name}.",
+            "The {item_name} fulfills its intended function."
+        ]
+    },
+    "environmental": {
+        "weather_change_to_rain": [
+            "Dark clouds gather overhead. The first drops of rain begin to fall.",
+            "Rain starts to patter against you, growing steadier.",
+            "A downpour begins, drenching the area.",
+            "The sky opens up. Rain falls in sheets.",
+            "Droplets multiply quickly. You're caught in a rainstorm.",
+            "Thunder rumbles as rain sweeps across the land.",
+            "Cold rain begins to soak through your gear.",
+            "The weather turns wet. Rain drums steadily down."
+        ],
+        "weather_change_to_snow": [
+            "Snowflakes begin to drift down from the gray sky.",
+            "The air grows colder as snow starts to fall.",
+            "White flakes swirl around you. A snowstorm is coming.",
+            "Snow blankets the ground with increasing speed.",
+            "The world turns white as snow falls heavily.",
+            "Gentle snowfall becomes a blizzard within moments.",
+            "Ice crystals fill the air as the snow intensifies.",
+            "Winter's grip tightens. Snow falls thick and fast."
+        ],
+        "weather_change_to_clear": [
+            "The clouds part. Sunlight breaks through at last.",
+            "Clear skies emerge as the weather improves.",
+            "The storm passes, leaving calm in its wake.",
+            "Weather clears. The sky becomes bright and welcoming.",
+            "Clouds dissipate. Fair weather returns.",
+            "The oppressive weather lifts. Visibility improves dramatically."
+        ],
+        "enter_cold_area": [
+            "Biting winds assault you as you enter this frozen realm.",
+            "The temperature drops sharply. Your breath mists in the frigid air.",
+            "Cold surrounds you completely. This place is unforgiving.",
+            "You step into a zone of bitter cold. Ice crunches underfoot.",
+            "Freezing air hits you like a physical force.",
+            "The chill here is profound. Winter reigns absolute.",
+            "Your warmth drains away rapidly in this arctic environment.",
+            "Frost covers everything here. The cold is dangerous."
+        ],
+        "enter_hot_area": [
+            "Heat washes over you as you enter this sweltering zone.",
+            "The temperature soars. Sweat beads on your skin immediately.",
+            "Oppressive heat surrounds you. The air shimmers.",
+            "You step into blazing warmth. Breathing becomes labored.",
+            "Intense heat radiates from all directions.",
+            "The scorching environment saps your energy quickly.",
+            "Air thick with heat makes every movement exhausting.",
+            "You enter a furnace-like realm. The heat is overwhelming."
+        ],
+        "enter_wet_area": [
+            "Moisture hangs thick in the air. Everything is damp here.",
+            "You step into a soggy, waterlogged environment.",
+            "Water drips from every surface in this saturated place.",
+            "The air is heavy with humidity. Mist clings to you.",
+            "Puddles and streams cover the ground. This area is thoroughly wet.",
+            "Rain or recent flooding has made this zone a swamp."
+        ]
+    },
+    "actions": {
+        "examine_object": [
+            "You examine the {object_name} closely.",
+            "Looking carefully at the {object_name}, you note its details.",
+            "You inspect the {object_name} thoroughly.",
+            "The {object_name} reveals itself to careful scrutiny.",
+            "You study the {object_name} with interest.",
+            "Your attention focuses on the {object_name}."
+        ],
+        "search_success": [
+            "Your search of the {object_name} reveals something!",
+            "Searching the {object_name}, you discover items within.",
+            "The {object_name} yields its contents to you.",
+            "You find something useful in the {object_name}.",
+            "Your thorough search of the {object_name} pays off.",
+            "Success! The {object_name} contains valuables."
+        ],
+        "search_empty": [
+            "You search the {object_name} but find nothing.",
+            "The {object_name} is empty.",
+            "Your search turns up nothing in the {object_name}.",
+            "Nothing of value remains in the {object_name}.",
+            "The {object_name} has already been thoroughly picked over."
+        ],
+        "forage_success": [
+            "You gather {quantity} {item_name} from the {object_name}.",
+            "Your foraging yields {quantity} {item_name}.",
+            "The {object_name} provides {quantity} {item_name}.",
+            "You successfully collect {quantity} {item_name}.",
+            "Careful gathering produces {quantity} {item_name}.",
+            "From the {object_name}, you obtain {quantity} {item_name}."
+        ],
+        "forage_depleted": [
+            "The {object_name} has nothing left to gather.",
+            "You've already stripped the {object_name} of everything useful.",
+            "The {object_name} is completely depleted.",
+            "Nothing remains to forage from the {object_name}.",
+            "The {object_name} has been thoroughly picked clean."
+        ],
+        "harvest_success": [
+            "You harvest {quantity} {item_name} from the {object_name}.",
+            "Your harvest yields {quantity} {item_name}.",
+            "With careful work, you extract {quantity} {item_name}.",
+            "The {object_name} provides {quantity} {item_name}.",
+            "You successfully gather {quantity} {item_name}."
+        ],
+        "harvest_depleted": [
+            "The {object_name} has no more to harvest.",
+            "You've already harvested everything from the {object_name}.",
+            "Nothing remains to harvest here.",
+            "The {object_name} is completely harvested.",
+            "There's nothing left to take from the {object_name}."
+        ],
+        "chop_success": [
+            "You chop the {object_name}, gathering {quantity} wood.",
+            "Your axe work yields {quantity} pieces of wood.",
+            "The {object_name} falls, providing {quantity} wood.",
+            "You successfully chop {quantity} wood from the {object_name}.",
+            "Steady chopping produces {quantity} usable wood."
+        ],
+        "chop_depleted": [
+            "The {object_name} has already been chopped down.",
+            "No wood remains on this {object_name}.",
+            "You've already taken all the wood from here.",
+            "The {object_name} is completely stripped of wood."
+        ],
+        "drink_success": [
+            "You drink deeply from the {object_name}. Refreshing.",
+            "Cool water from the {object_name} quenches your thirst.",
+            "You satisfy your thirst at the {object_name}.",
+            "The water from the {object_name} restores you.",
+            "You drink your fill from the {object_name}.",
+            "Blessed relief as you drink from the {object_name}."
+        ],
+        "unlock_success": [
+            "You successfully unlock the {object_name}.",
+            "With deft fingers, you pick the lock on the {object_name}.",
+            "The {object_name} clicks open under your skillful touch.",
+            "You manage to unlock the {object_name}.",
+            "The lock yields to your efforts. The {object_name} is open."
+        ],
+        "unlock_failure": [
+            "You fail to unlock the {object_name}.",
+            "The lock on the {object_name} resists your efforts.",
+            "Try as you might, the {object_name} remains locked.",
+            "Your lockpicking attempt on the {object_name} fails.",
+            "The {object_name} stubbornly refuses to open."
+        ],
+        "light_fire_success": [
+            "You successfully light the {object_name}.",
+            "Flames spring to life in the {object_name}.",
+            "The {object_name} ignites, warmth spreading from it.",
+            "You kindle a fire in the {object_name}.",
+            "The {object_name} blazes to life under your efforts."
+        ],
+        "light_fire_failure": [
+            "You struggle to light a fire in the {object_name} but fail.",
+            "Your attempts to kindle flames prove unsuccessful.",
+            "The fire refuses to catch. Your efforts are in vain.",
+            "Despite your efforts, the {object_name} won't light.",
+            "You cannot get the fire started."
+        ],
+        "disarm_trap_success": [
+            "You carefully disarm the trap on the {object_name}.",
+            "With steady hands, you neutralize the trap.",
+            "The trap mechanism on the {object_name} is now safe.",
+            "You successfully disarm the dangerous trap.",
+            "The trap yields to your expertise. It's safe now."
+        ],
+        "disarm_trap_failure": [
+            "You fail to disarm the trap!",
+            "Your attempt to disarm the trap goes wrong!",
+            "The trap mechanism eludes you!",
+            "You cannot figure out how to disarm this trap."
+        ],
+        "rest_complete": [
+            "You wake feeling refreshed after your rest.",
+            "Sleep restores your energy. You feel much better.",
+            "Your rest is complete. Vitality returns to your limbs.",
+            "After a period of rest, you're ready to continue.",
+            "You rise from your rest, feeling rejuvenated.",
+            "Rest has done you good. Your fatigue lifts.",
+            "You complete your rest and feel considerably better.",
+            "Sleep's embrace releases you, restored and ready."
+        ]
+    }
+}

@@ -11,6 +11,11 @@ This file now serves as the main entry point, delegating to:
 CRITICAL REQUIREMENT: All actions that pass time MUST use the time system's perform_activity() method
 to ensure condition effects (like damage from "Freezing") are properly applied during time passage.
 Never set time_passed without calling the time system!
+
+LOGGING ARCHITECTURE: Handlers return ActionResult with METADATA, not pre-formatted messages.
+The UI calls action_logger.log_action_result() which logs command FIRST, then generates NLP
+from metadata. This ensures correct chronology: "> command" appears before "Action message".
+See .kiro/architecture/action-logging-pattern.md for full details.
 """
 
 from .base_handler import ActionResult
@@ -64,6 +69,10 @@ class ActionHandler:
             "c": "handle_character",
             "rest": "handle_rest",
             "r": "handle_rest",
+            "equip": "handle_equip",
+            "eq": "handle_equip",
+            "unequip": "handle_unequip",
+            "uneq": "handle_unequip",
         })
         
         # Register object interaction commands

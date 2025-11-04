@@ -44,7 +44,159 @@ class CharacterHandler(BaseActionHandler):
         except Exception as e:
             return ActionResult(False, f"Failed to rest: {str(e)}")
     
+    def handle_equip(self, item_id: str, slot: str = None) -> ActionResult:
+        """Handle equipping an item from inventory
+        
+        CRITICAL: Does NOT log directly! Returns ActionResult with metadata (item_equipped, item_type).
+        The UI calls action_logger.log_action_result() which handles NLP message generation.
+        This ensures proper message ordering: command appears before the action message.
+        
+        Args:
+            item_id: ID of item to equip
+            slot: Optional specific slot to equip to
+            
+        Returns:
+            ActionResult with item_equipped metadata for ActionLogger to process
+        """
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return ActionResult(False, "Game engine not available.")
+        
+        gs = self.game_engine.game_state
+        character = gs.character
+        
+        # Find item in inventory
+        item = None
+        for inv_item in character.inventory.items:
+            if inv_item.item_id == item_id:
+                item = inv_item
+                break
+        
+        if not item:
+            return ActionResult(False, f"Item '{item_id}' not found in inventory.")
+        
+        # Determine slot if not provided
+        if not slot:
+            slot = self._determine_equip_slot(item)
+            if not slot:
+                return ActionResult(False, f"Cannot determine equipment slot for {item.name}.")
+        
+        # Attempt to equip - character.equip_item returns bool only
+        # We need to call equipment.equip_item directly to get the message
+        if not character.equipment:
+            from fantasy_rpg.core.equipment import Equipment
+            character.equipment = Equipment()
+        
+        success, message = character.equipment.equip_item(item, slot, character)
+        
+        if success:
+            # Recalculate stats after equipping
+            character.recalculate_derived_stats()
+            
+            # Remove from inventory
+            character.inventory.remove_item(item_id, 1)
+            
+            # Return success with metadata - UI will handle NLP logging
+            return ActionResult(
+                success=True,
+                message="",  # Empty - equipment event handler will create NLP message
+                time_passed=0.0,
+                item_equipped=item.name,
+                item_type=item.item_type,
+                slot=slot
+            )
+        else:
+            return ActionResult(False, message)
+    
+    def handle_unequip(self, slot: str) -> ActionResult:
+        """Handle unequipping an item from a slot
+        
+        CRITICAL: Does NOT log directly! Returns ActionResult with metadata (item_unequipped, item_type).
+        The UI calls action_logger.log_action_result() which handles NLP message generation.
+        This ensures proper message ordering: command appears before the action message.
+        
+        Args:
+            slot: The equipment slot to unequip from
+        
+        Returns:
+            ActionResult with item_unequipped metadata for ActionLogger to process
+        """
+        if not self.game_engine or not self.game_engine.is_initialized:
+            return ActionResult(False, "Game engine not available.")
+        
+        gs = self.game_engine.game_state
+        character = gs.character
+        
+        # Check if equipment exists
+        if not character.equipment:
+            return ActionResult(False, "No equipment system initialized.")
+        
+        # Attempt to unequip - call equipment.unequip_item directly to get message
+        unequipped_item, message = character.equipment.unequip_item(slot)
+        
+        if unequipped_item:
+            # Recalculate stats after unequipping
+            character.recalculate_derived_stats()
+            
+            # Ensure inventory exists
+            if not hasattr(character, 'inventory') or character.inventory is None:
+                character.initialize_inventory()
+            
+            # Add back to inventory
+            if hasattr(character, 'inventory') and character.inventory is not None:
+                # Ensure item has proper attributes for inventory
+                if not unequipped_item.item_id:
+                    import uuid
+                    unequipped_item.item_id = f"{unequipped_item.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}"
+                unequipped_item.quantity = 1
+                
+                added = character.inventory.add_item(unequipped_item)
+                
+                if added:
+                    # Return success with metadata - UI will handle NLP logging
+                    return ActionResult(
+                        success=True,
+                        message="",  # Empty - equipment event handler will create NLP message
+                        time_passed=0.0,
+                        item_unequipped=unequipped_item.name,
+                        item_type=unequipped_item.item_type,
+                        slot=slot
+                    )
+                else:
+                    return ActionResult(False, f"Unequipped {unequipped_item.name} but couldn't add to inventory (weight limit?)")
+            else:
+                return ActionResult(False, f"Unequipped {unequipped_item.name} but no inventory to return to")
+        else:
+            return ActionResult(False, message)
+    
     # Helper methods
+    def _determine_equip_slot(self, item) -> str:
+        """Determine which slot an item should be equipped to"""
+        if not item:
+            return None
+        
+        # Use item's slot property if available
+        if hasattr(item, 'slot') and item.slot:
+            # Map "hand" to "main_hand" for compatibility with items.json
+            if item.slot == 'hand':
+                return 'main_hand'
+            # Handle ring slot - default to ring_1
+            if item.slot == 'ring':
+                return 'ring_1'
+            return item.slot
+        
+        # Fallback based on item type
+        if item.item_type == 'weapon':
+            return 'main_hand'
+        elif item.item_type == 'shield':
+            return 'off_hand'
+        elif item.item_type == 'armor':
+            # Check armor_type if available
+            if hasattr(item, 'armor_type'):
+                return 'body'  # Most common armor slot
+            return 'body'
+        
+        return None
+    
     def _find_object_in_current_area(self, object_name: str):
         """Find an available object in the current area (GameEngine coordination)"""
         if not self.game_engine or not self.game_engine.is_initialized:

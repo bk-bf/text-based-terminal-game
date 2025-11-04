@@ -67,6 +67,23 @@ class ActionHandlerRegistry:
         """Get list of all registered commands"""
         return sorted(self._registry.keys())
     
+    def get_handler(self, handler_name: str):
+        """Get a registered handler instance by name
+        
+        Args:
+            handler_name: Name of the handler class (lowercase, without 'Handler' suffix)
+                         e.g., 'character' for CharacterHandler, 'movement' for MovementHandler
+        
+        Returns:
+            Handler instance or None if not found
+        """
+        for handler in self._handlers:
+            class_name = handler.__class__.__name__.lower()
+            # Match both 'character' and 'characterhandler'
+            if class_name == f"{handler_name}handler" or class_name == handler_name:
+                return handler
+        return None
+    
     def update_handlers(self, character=None, player_state=None, game_engine=None):
         """Update all registered handlers with new state references
         

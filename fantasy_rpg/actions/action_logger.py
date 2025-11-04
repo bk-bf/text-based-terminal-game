@@ -17,6 +17,14 @@ class ActionLogger:
         self.last_weather = None
         self.message_queue = []  # Queue messages when game_log not available
         
+        # Lazy import to avoid circular dependency issues
+        try:
+            from fantasy_rpg.dialogue.message_manager import MessageManager
+            self.message_manager = MessageManager()
+        except ImportError as e:
+            print(f"Warning: Could not load MessageManager: {e}")
+            self.message_manager = None
+        
     def set_game_log(self, game_log):
         """Set the game log panel for output and flush queued messages"""
         self.game_log = game_log
@@ -150,8 +158,94 @@ class ActionLogger:
             self.game_log.add_message("You glance around casually.")
     
     def _log_main_result(self, action_result):
-        """Log the main result of the action"""
-        if action_result.message:
+        """Log the main result of the action
+        
+        ============================================================================
+        CRITICAL ARCHITECTURE: Message Ordering and Centralized NLP Generation
+        ============================================================================
+        
+        This method is the SINGLE POINT where action messages are logged. It ensures
+        correct chronological ordering: COMMAND → DICE ROLLS → MESSAGE → TIME → EFFECTS
+        
+        CORRECT PATTERN (handler returns metadata):
+            1. Handler performs action logic
+            2. Handler returns ActionResult with METADATA (item_equipped, search_result, etc.)
+            3. UI calls action_logger.log_action_result(result, command_text="...")
+            4. log_action_result() logs command FIRST ("> search chest")
+            5. Then calls THIS METHOD which generates NLP message from metadata
+            6. Result: "> search chest" appears BEFORE "You find treasure" ✓
+        
+        WRONG PATTERN (direct logging - DO NOT DO THIS):
+            1. System calls action_logger.log_action_event() directly
+            2. NLP message appears in log immediately
+            3. System returns ActionResult with message
+            4. UI calls action_logger.log_action_result(result, command_text="...")
+            5. Command appears AFTER message already logged
+            6. Result: "You find treasure" appears BEFORE "> search chest" ❌
+        
+        SUPPORTED EVENT TYPES (add metadata to ActionResult.data):
+            - item_equipped/item_unequipped + item_type: Equipment NLP
+            - search_result + object_name + items_found: Search NLP
+            - forage_result + object_name + items_found: Forage NLP  
+            - harvest_result + object_name + items_found: Harvest NLP
+            - fire_started/fire_fueled + object_name: Fire NLP
+            - (Add more as needed for combat, etc.)
+        
+        FOR NEW SYSTEMS (combat, crafting, etc.):
+            1. Add metadata keys to ActionResult
+            2. Add handling in this method
+            3. NEVER call action_logger directly from game systems
+        ============================================================================
+        """
+        # Handle equipment events (metadata-driven)
+        if action_result.get('item_equipped'):
+            item_name = action_result.get('item_equipped')
+            item_type = action_result.get('item_type', 'item')
+            
+            if item_type == 'armor':
+                self.log_equipment_event("armor_equipped", armor_name=item_name)
+            elif item_type == 'weapon':
+                self.log_equipment_event("weapon_equipped", weapon_name=item_name)
+            elif item_type == 'shield':
+                self.log_equipment_event("shield_equipped", shield_name=item_name)
+            else:
+                self.game_log.add_message(f"Equipped {item_name}")
+        
+        elif action_result.get('item_unequipped'):
+            item_name = action_result.get('item_unequipped')
+            item_type = action_result.get('item_type', 'item')
+            
+            if item_type == 'armor':
+                self.log_equipment_event("armor_unequipped", armor_name=item_name)
+            elif item_type == 'weapon':
+                self.log_equipment_event("weapon_unequipped", weapon_name=item_name)
+            elif item_type == 'shield':
+                self.log_equipment_event("shield_unequipped", shield_name=item_name)
+            else:
+                self.game_log.add_message(f"Unequipped {item_name}")
+        
+        # Handle object interaction events (metadata-driven)
+        # TODO: Refactor ObjectInteractionSystem to return metadata instead of logging directly
+        elif action_result.get('search_result'):
+            object_name = action_result.get('object_name', 'object')
+            items_found = action_result.get('items_found', [])
+            
+            if items_found:
+                self.log_action_event("search_success", object_name=object_name)
+            else:
+                self.log_action_event("search_empty", object_name=object_name)
+        
+        elif action_result.get('forage_result'):
+            object_name = action_result.get('object_name', 'object')
+            items_found = action_result.get('items_found', [])
+            
+            if items_found:
+                self.log_action_event("forage_success", object_name=object_name, items=", ".join(items_found))
+            else:
+                self.log_action_event("forage_depleted", object_name=object_name)
+        
+        elif action_result.message:
+            # Regular messages for actions without special NLP
             self.game_log.add_message(action_result.message)
         
         # Handle specific action types
@@ -415,19 +509,83 @@ class ActionLogger:
                 previous_conditions, current_conditions
             )
             
-            # Log each newly triggered condition message
+            # Log each newly triggered condition using NLP system
             for condition_info in newly_triggered:
-                if self.game_log:
-                    # Use different formatting based on severity
-                    condition_data = conditions_manager.conditions_data.get(condition_info['name'], {})
-                    severity = condition_data.get('severity', 'moderate')
-                    
-                    if severity in ['critical', 'life_threatening']:
-                        self.game_log.add_message(f"[!] {condition_info['message']}", "warning")
-                    elif severity == 'beneficial':
-                        self.game_log.add_message(f"✓ {condition_info['message']}", "success")
-                    else:
-                        self.game_log.add_message(f"• {condition_info['message']}")
+                condition_name = condition_info['name']
+                
+                # Map condition names to NLP event types
+                # Survival conditions (negative)
+                survival_event_map = {
+                    # Temperature - Cold
+                    'Cold': 'COLD_triggered',
+                    'Icy': 'ICY_triggered',
+                    'Freezing': 'FREEZING_triggered',
+                    # Temperature - Hot
+                    'Hot': 'HOT_triggered',
+                    'Overheating': 'OVERHEATING_triggered',
+                    'Heat Stroke': 'HEAT_STROKE_triggered',
+                    # Hunger
+                    'Hungry': 'HUNGER_triggered',
+                    'Starving': 'STARVING_triggered',
+                    'Dying of Hunger': 'DYING_OF_HUNGER_triggered',
+                    # Thirst
+                    'Thirsty': 'THIRST_triggered',
+                    'Dehydrated': 'DEHYDRATED_triggered',
+                    'Dying of Thirst': 'DYING_OF_THIRST_triggered',
+                    # Fatigue
+                    'Tired': 'TIRED_triggered',
+                    'Very Tired': 'VERY_TIRED_triggered',
+                    'Exhausted': 'EXHAUSTED_triggered',
+                    # Wetness
+                    'Wet': 'WET_triggered',
+                    'Soaked': 'SOAKED_triggered',
+                    # Other survival
+                    'Wind Chilled': 'WIND_CHILLED_triggered',
+                    'Suffocating': 'SUFFOCATION_triggered',
+                    'Fainted': 'FAINTED_triggered',
+                }
+                
+                # Beneficial conditions (environmental)
+                beneficial_event_map = {
+                    'Lit Fire': 'LIT_FIRE_triggered',
+                    'Natural Shelter': 'NATURAL_SHELTER_triggered',
+                    'Good Shelter': 'GOOD_SHELTER_triggered',
+                    'Excellent Shelter': 'EXCELLENT_SHELTER_triggered',
+                }
+                
+                # Check if it's a survival condition
+                if condition_name in survival_event_map:
+                    event_type = survival_event_map[condition_name]
+                    condition_data = conditions_manager.conditions_data.get(condition_name, {})
+                    context = {
+                        'condition_name': condition_name,
+                        'severity': condition_data.get('severity', 'moderate')
+                    }
+                    self.log_survival_event(event_type, context)
+                
+                # Check if it's a beneficial condition
+                elif condition_name in beneficial_event_map:
+                    event_type = beneficial_event_map[condition_name]
+                    condition_data = conditions_manager.conditions_data.get(condition_name, {})
+                    context = {
+                        'condition_name': condition_name,
+                        'severity': 'beneficial'
+                    }
+                    # Use environmental_event for beneficial conditions
+                    self.log_environmental_event(event_type, context)
+                
+                # Fallback for any unmapped conditions
+                else:
+                    if self.game_log:
+                        condition_data = conditions_manager.conditions_data.get(condition_name, {})
+                        severity = condition_data.get('severity', 'moderate')
+                        
+                        if severity in ['critical', 'life_threatening']:
+                            self.game_log.add_message(f"[!] {condition_info['message']}", "warning")
+                        elif severity == 'beneficial':
+                            self.game_log.add_message(f"✓ {condition_info['message']}", "success")
+                        else:
+                            self.game_log.add_message(f"• {condition_info['message']}")
                         
         except Exception as e:
             print(f"Error checking condition triggers: {e}")
@@ -613,6 +771,144 @@ class ActionLogger:
             return "High mountains"
         else:
             return "Alpine peaks"
+    
+    # ============================================================
+    # NLP Message System Methods
+    # ============================================================
+    
+    def log_survival_event(self, event_type: str, context: dict = None):
+        """Log survival event with message variance.
+        
+        Uses MessageManager to provide varied, natural language messages
+        for survival condition triggers (Cold, Hunger, Exhaustion, Wet, etc).
+        
+        Args:
+            event_type: Event identifier like 'COLD_triggered', 'HUNGER_triggered'
+            context: Optional context data (temperature, severity, etc) for future
+                    context-aware message selection
+        
+        Example:
+            action_logger.log_survival_event("COLD_triggered", {
+                "current_temperature": 20,
+                "severity": "moderate"
+            })
+        """
+        if not self.message_manager:
+            # Fallback if MessageManager failed to load
+            event_name = event_type.replace('_triggered', '').replace('_', ' ').title()
+            message = f"You experience {event_name}."
+        else:
+            message = self.message_manager.get_survival_message(event_type, context)
+        
+        if self.game_log:
+            self.game_log.add_message(message, "survival")
+        else:
+            self.message_queue.append({'type': 'survival', 'message': message})
+    
+    def log_equipment_event(self, event_type: str, **kwargs):
+        """Log equipment change with message variance.
+        
+        Uses MessageManager to provide varied messages for equipment actions
+        with template variable substitution.
+        
+        Args:
+            event_type: Event like 'armor_equipped', 'weapon_equipped', 'shield_removed'
+            **kwargs: Template variables (armor_name, weapon_name, shield_name, etc)
+        
+        Example:
+            action_logger.log_equipment_event("armor_equipped", 
+                armor_name="Iron Breastplate",
+                protection_boost=2
+            )
+        """
+        print(f"[DEBUG ActionLogger] log_equipment_event called: event_type={event_type}, kwargs={kwargs}")
+        print(f"[DEBUG ActionLogger] message_manager={self.message_manager}, game_log={self.game_log}")
+        
+        if not self.message_manager:
+            # Fallback if MessageManager failed to load
+            item_name = kwargs.get('armor_name') or kwargs.get('weapon_name') or kwargs.get('shield_name') or kwargs.get('item_name', 'item')
+            action = event_type.replace('_', ' ').title()
+            message = f"{action}: {item_name}"
+            print(f"[DEBUG ActionLogger] Using fallback message: {message}")
+        else:
+            message = self.message_manager.get_equipment_message(event_type, **kwargs)
+            print(f"[DEBUG ActionLogger] Got message from MessageManager: {message}")
+        
+        if self.game_log:
+            print(f"[DEBUG ActionLogger] Adding message to game_log")
+            self.game_log.add_message(message, "equipment")
+        else:
+            print(f"[DEBUG ActionLogger] No game_log, queueing message")
+            self.message_queue.append({'type': 'equipment', 'message': message})
+    
+    def log_environmental_event(self, event_type: str):
+        """Log environmental or weather change with message variance.
+        
+        Uses MessageManager for varied environmental transition messages.
+        
+        Args:
+            event_type: Event like 'weather_change_to_rain', 'enter_cold_area'
+        
+        Example:
+            action_logger.log_environmental_event("weather_change_to_snow")
+        """
+        if not self.message_manager:
+            # Fallback if MessageManager failed to load
+            event_name = event_type.replace('_triggered', '').replace('weather_change_to_', '').replace('enter_', '').replace('_', ' ').title()
+            message = f"Environmental change: {event_name}"
+        else:
+            message = self.message_manager.get_environmental_message(event_type)
+        
+        if self.game_log:
+            self.game_log.add_message(message, "environment")
+        else:
+            self.message_queue.append({'type': 'environment', 'message': message})
+    
+    def log_action_event(self, event_type: str, **kwargs):
+        """Log action result with message variance.
+        
+        Uses MessageManager for varied action outcome messages with template
+        variable substitution.
+        
+        Args:
+            event_type: Event like 'forage_success', 'search_empty', 'chop_success'
+            **kwargs: Template variables (object_name, item_name, quantity, etc)
+        
+        Example:
+            action_logger.log_action_event("forage_success",
+                object_name="berry bush",
+                item_name="berries",
+                quantity=5
+            )
+        """
+        if not self.message_manager:
+            # Fallback if MessageManager failed to load
+            action = event_type.replace('_', ' ').title()
+            message = f"{action}"
+            if kwargs:
+                message += f": {', '.join(f'{k}={v}' for k, v in kwargs.items())}"
+        else:
+            message = self.message_manager.get_action_message(event_type, **kwargs)
+        
+        if self.game_log:
+            self.game_log.add_message(message, "action")
+        else:
+            self.message_queue.append({'type': 'action', 'message': message})
+    
+    def get_last_message(self) -> str:
+        """Get the last logged message text.
+        
+        Useful for action handlers that need to return the message text
+        along with ActionResult.
+        
+        Returns:
+            Last message string, or empty string if no messages
+        """
+        if self.game_log and hasattr(self.game_log, 'messages') and self.game_log.messages:
+            return self.game_log.messages[-1]
+        elif self.message_queue:
+            return self.message_queue[-1].get('message', '')
+        return ''
 
 
 # Global action logger instance

@@ -1100,7 +1100,7 @@ class GameEngine:
     def get_action_handler(self):
         """Get an ActionHandler connected to this GameEngine"""
         # Late import to avoid circular dependencies
-        from actions.action_handler import ActionHandler
+        from fantasy_rpg.actions.action_handler import ActionHandler
         
         if not self.is_initialized or not self.game_state:
             return ActionHandler()  # Return basic handler if not initialized
