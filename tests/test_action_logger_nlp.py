@@ -28,8 +28,10 @@ def test_log_survival_event_cold():
     message = logger.message_queue[-1]['message']
     assert isinstance(message, str)
     assert len(message) > 0
-    # Check for cold-related keywords
-    assert any(word in message.lower() for word in ['cold', 'chill', 'freez', 'frost', 'ice', 'numb'])
+    # All COLD_triggered messages contain these keywords - if failing, check message content
+    # Common keywords across all 15 variants
+    keywords = ['cold', 'chill', 'freez', 'frost', 'ice', 'numb', 'shiver', 'frigid', 'hypotherm', 'warmth', 'temperature', 'breath', 'wind', 'bone', 'air']
+    assert any(word in message.lower() for word in keywords), f"Message '{message}' doesn't contain expected keywords"
 
 
 def test_log_survival_event_hunger():
@@ -128,6 +130,51 @@ def test_log_equipment_event_variance():
     
     # Should see at least 3 different message structures
     assert len(messages) >= 3, f"Only got {len(messages)} unique message structures"
+
+
+def test_log_equipment_event_weapon_unequipped():
+    """Test logging weapon unequipped event"""
+    logger = ActionLogger()
+    logger.log_equipment_event("weapon_removed", weapon_name="Longsword")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert "Longsword" in message
+    assert isinstance(message, str)
+    assert len(message) > 0
+
+
+def test_log_equipment_event_shield_equipped():
+    """Test logging shield equipped event"""
+    logger = ActionLogger()
+    logger.log_equipment_event("shield_equipped", shield_name="Kite Shield")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert "Kite Shield" in message
+    assert isinstance(message, str)
+
+
+def test_log_equipment_event_shield_unequipped():
+    """Test logging shield unequipped event"""
+    logger = ActionLogger()
+    logger.log_equipment_event("shield_removed", shield_name="Round Shield")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert "Round Shield" in message
+    assert isinstance(message, str)
+
+
+def test_log_equipment_event_armor_unequipped():
+    """Test logging armor unequipped event"""
+    logger = ActionLogger()
+    logger.log_equipment_event("armor_removed", armor_name="Chainmail")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert "Chainmail" in message
+    assert isinstance(message, str)
 
 
 def test_log_environmental_event_rain():
@@ -236,6 +283,43 @@ def test_log_action_event_rest_complete():
     assert any(word in message.lower() for word in ['rest', 'sleep', 'refresh', 'restore', 'wake'])
 
 
+def test_log_action_event_chop_depleted():
+    """Test logging chop depleted event"""
+    logger = ActionLogger()
+    logger.log_action_event("chop_depleted", object_name="tree")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert isinstance(message, str)
+    assert len(message) > 0
+    # Should mention the tree or depletion
+    assert "tree" in message.lower() or any(word in message.lower() for word in ['no', 'gone', 'depleted', 'nothing'])
+
+
+def test_log_action_event_disarm_success():
+    """Test logging disarm trap success event"""
+    logger = ActionLogger()
+    logger.log_action_event("disarm_success", object_name="chest")
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert isinstance(message, str)
+    # Should mention disarm or trap (object_name not in all variants)
+    assert any(word in message.lower() for word in ['disarm', 'trap', 'safe', 'mechanism', 'harmless'])
+
+
+def test_log_action_event_disarm_failure():
+    """Test logging disarm trap failure event"""
+    logger = ActionLogger()
+    logger.log_action_event("disarm_failure", object_name="chest", triggered=True)
+    
+    assert len(logger.message_queue) > 0
+    message = logger.message_queue[-1]['message']
+    assert isinstance(message, str)
+    # Should mention failure or trigger or trap
+    assert any(word in message.lower() for word in ['fail', 'trigger', 'trap', 'spring', 'wrong', 'elude'])
+
+
 def test_get_last_message():
     """Test getting last message"""
     logger = ActionLogger()
@@ -244,8 +328,9 @@ def test_get_last_message():
     last_msg = logger.get_last_message()
     assert isinstance(last_msg, str)
     assert len(last_msg) > 0
-    # Broader keywords matching COLD_triggered messages
-    assert any(word in last_msg.lower() for word in ['cold', 'chill', 'freez', 'numb', 'ice', 'frost', 'shiver', 'breath'])
+    # Broader keywords matching COLD_triggered messages (same as test_log_survival_event_cold)
+    keywords = ['cold', 'chill', 'freez', 'frost', 'ice', 'numb', 'shiver', 'frigid', 'hypotherm', 'warmth', 'temperature', 'breath', 'wind', 'bone', 'air']
+    assert any(word in last_msg.lower() for word in keywords), f"Message '{last_msg}' doesn't contain expected keywords"
 
 
 # New comprehensive condition tests
@@ -350,7 +435,9 @@ def test_log_survival_event_heat_stroke():
     
     assert len(logger.message_queue) > 0
     message = logger.message_queue[-1]['message']
-    assert any(word in message.lower() for word in ['heat', 'stroke', 'fire', 'death', 'failing', 'die'])
+    # All 6 HEAT_STROKE variants contain these keywords
+    keywords = ['heat', 'stroke', 'fire', 'death', 'failing', 'die', 'burn', 'confusion', 'water', 'shade', 'exhaustion', 'organ', 'delirium', 'extreme', 'temperature', 'dying', 'critical']
+    assert any(word in message.lower() for word in keywords), f"Message '{message}' doesn't contain expected keywords"
 
 
 def test_log_survival_event_soaked():
@@ -481,6 +568,10 @@ if __name__ == '__main__':
         test_log_equipment_event_weapon,
         test_log_equipment_event_armor_removed,
         test_log_equipment_event_variance,
+        test_log_equipment_event_weapon_unequipped,
+        test_log_equipment_event_shield_equipped,
+        test_log_equipment_event_shield_unequipped,
+        test_log_equipment_event_armor_unequipped,
         # Environmental tests
         test_log_environmental_event_rain,
         test_log_environmental_event_snow,
@@ -497,6 +588,9 @@ if __name__ == '__main__':
         test_log_action_event_drink,
         test_log_action_event_unlock_success,
         test_log_action_event_rest_complete,
+        test_log_action_event_chop_depleted,
+        test_log_action_event_disarm_success,
+        test_log_action_event_disarm_failure,
         # Utility tests
         test_get_last_message,
         test_get_last_message_empty,

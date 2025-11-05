@@ -64,12 +64,11 @@ class CharacterHandler(BaseActionHandler):
         gs = self.game_engine.game_state
         character = gs.character
         
-        # Find item in inventory
-        item = None
-        for inv_item in character.inventory.items:
-            if inv_item.item_id == item_id:
-                item = inv_item
-                break
+        # Find item in inventory using next() instead of for-loop
+        item = next(
+            (inv_item for inv_item in character.inventory.items if inv_item.item_id == item_id),
+            None
+        )
         
         if not item:
             return ActionResult(False, f"Item '{item_id}' not found in inventory.")
@@ -104,8 +103,8 @@ class CharacterHandler(BaseActionHandler):
                 item_type=item.item_type,
                 slot=slot
             )
-        else:
-            return ActionResult(False, message)
+        
+        return ActionResult(False, message)
     
     def handle_unequip(self, slot: str) -> ActionResult:
         """Handle unequipping an item from a slot
@@ -176,26 +175,16 @@ class CharacterHandler(BaseActionHandler):
         
         # Use item's slot property if available
         if hasattr(item, 'slot') and item.slot:
-            # Map "hand" to "main_hand" for compatibility with items.json
-            if item.slot == 'hand':
-                return 'main_hand'
-            # Handle ring slot - default to ring_1
-            if item.slot == 'ring':
-                return 'ring_1'
-            return item.slot
+            # Map "hand" to "main_hand", "ring" to "ring_1" for compatibility
+            return {'hand': 'main_hand', 'ring': 'ring_1'}.get(item.slot, item.slot)
         
         # Fallback based on item type
-        if item.item_type == 'weapon':
-            return 'main_hand'
-        elif item.item_type == 'shield':
-            return 'off_hand'
-        elif item.item_type == 'armor':
-            # Check armor_type if available
-            if hasattr(item, 'armor_type'):
-                return 'body'  # Most common armor slot
-            return 'body'
-        
-        return None
+        type_to_slot = {
+            'weapon': 'main_hand',
+            'shield': 'off_hand',
+            'armor': 'body'
+        }
+        return type_to_slot.get(item.item_type)
     
     def _find_object_in_current_area(self, object_name: str):
         """Find an available object in the current area (GameEngine coordination)"""
@@ -219,24 +208,24 @@ class CharacterHandler(BaseActionHandler):
         if current_area_id not in areas:
             return None
         
-        # Find the first available object with matching name
-        if not (objects := areas[current_area_id].get("objects", [])):
+        # Get objects from current area
+        objects = areas[current_area_id].get("objects", [])
+        if not objects:
             return None
         
-        if available_obj := next(
-            (obj for obj in objects 
-             if obj.get("name", "").lower() == object_name.lower() and 
-             (not obj.get("depleted", False) and not obj.get("searched", False) and 
-              not obj.get("chopped", False) and not obj.get("wood_taken", False))),
-            None
-        ):
-            return available_obj
+        # Find the first available object with matching name, then check availability
+        fallback_obj = None
+        for obj in objects:
+            if obj.get("name", "").lower() == object_name.lower():
+                # Return if available, otherwise save as fallback
+                if not (obj.get("depleted", False) or obj.get("searched", False) or
+                       obj.get("chopped", False) or obj.get("wood_taken", False)):
+                    return obj
+                # Save for fallback (non-available but matching name)
+                fallback_obj = obj
         
-        # If no available objects found, return the first match anyway (for error messages)
-        return next(
-            (obj for obj in objects if obj.get("name", "").lower() == object_name.lower()),
-            None
-        )
+        # Return fallback object (for error messages) if found
+        return fallback_obj
     
     def _apply_rest_benefit(self, rest_bonus: int = 2):
         """Apply rest benefit to character fatigue/health"""

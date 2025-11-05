@@ -166,12 +166,8 @@ class MessageManager:
             >>> manager.get_environmental_message('LIT_FIRE_triggered')
             'The dancing flames warm your skin and lift your spirits.'
         """
-        # Check environmental category first
-        messages = self.messages.get('environmental', {}).get(event, [])
-        
-        # If not found, check beneficial_effects category
-        if not messages:
-            messages = self.messages.get('beneficial_effects', {}).get(event, [])
+        # Check environmental category first, then beneficial_effects category
+        messages = self.messages.get('environmental', {}).get(event, []) or self.messages.get('beneficial_effects', {}).get(event, [])
         
         if not messages:
             # Fallback message if event not found
