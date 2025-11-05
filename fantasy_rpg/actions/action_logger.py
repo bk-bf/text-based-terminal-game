@@ -207,8 +207,7 @@ class ActionLogger:
             return
         
         # Handle event_type-driven NLP events
-        event_type = action_result.get('event_type')
-        if event_type:
+        if event_type := action_result.get('event_type'):
             self._handle_event_type(action_result, event_type)
             return
         
@@ -281,8 +280,7 @@ class ActionLogger:
             'drink_success': self._handle_drink_events,
         }
         
-        handler = event_handlers.get(event_type)
-        if handler:
+        if handler := event_handlers.get(event_type):
             handler(action_result, event_type)
         elif action_result.message:
             # Fallback for unknown event types
@@ -299,9 +297,8 @@ class ActionLogger:
     def _handle_resource_events(self, action_result, event_type):
         """Handle forage/harvest/chop events"""
         object_name = action_result.get('object_name', 'object')
-        items_found = action_result.get('items_found', [])
         
-        if items_found:
+        if items_found := action_result.get('items_found', []):
             self.log_action_event(event_type, object_name=object_name, items=", ".join(items_found))
         else:
             self.log_action_event(event_type, object_name=object_name)

@@ -214,6 +214,7 @@ class CharacterHandler(BaseActionHandler):
             return None
         
         # Find the first available object with matching name, then check availability
+        fallback_obj = None
         for obj in objects:
             if obj.get("name", "").lower() == object_name.lower():
                 # Return if available, otherwise save as fallback
@@ -224,7 +225,7 @@ class CharacterHandler(BaseActionHandler):
                 fallback_obj = obj
         
         # Return fallback object (for error messages) if found
-        return fallback_obj if 'fallback_obj' in locals() else None
+        return fallback_obj
     
     def _apply_rest_benefit(self, rest_bonus: int = 2):
         """Apply rest benefit to character fatigue/health"""
