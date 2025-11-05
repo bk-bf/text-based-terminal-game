@@ -71,8 +71,7 @@ class ObjectInteractionHandler(BaseActionHandler):
     
     def handle_examine(self, *args) -> ActionResult:
         """Handle examining objects - delegates to ObjectInteractionSystem"""
-        if error := self._require_location():
-            return error
+        return self._delegate_to_system(args, action_name="examine")
         
         if not args:
             return ActionResult(False, "Examine what? Specify an object name.")
