@@ -201,118 +201,19 @@ class ActionLogger:
             3. NEVER call action_logger directly from game systems
         ============================================================================
         """
-        # Handle equipment events (metadata-driven)
-        if action_result.get('item_equipped'):
-            item_name = action_result.get('item_equipped')
-            item_type = action_result.get('item_type', 'item')
-            
-            if item_type == 'armor':
-                self.log_equipment_event("armor_equipped", armor_name=item_name)
-            elif item_type == 'weapon':
-                self.log_equipment_event("weapon_equipped", weapon_name=item_name)
-            elif item_type == 'shield':
-                self.log_equipment_event("shield_equipped", shield_name=item_name)
-            else:
-                self.game_log.add_message(f"Equipped {item_name}")
+        # Handle equipment events first (item_equipped/item_unequipped metadata)
+        if action_result.get('item_equipped') or action_result.get('item_unequipped'):
+            self._handle_equipment_events(action_result)
+            return
         
-        elif action_result.get('item_unequipped'):
-            item_name = action_result.get('item_unequipped')
-            item_type = action_result.get('item_type', 'item')
-            
-            if item_type == 'armor':
-                self.log_equipment_event("armor_unequipped", armor_name=item_name)
-            elif item_type == 'weapon':
-                self.log_equipment_event("weapon_unequipped", weapon_name=item_name)
-            elif item_type == 'shield':
-                self.log_equipment_event("shield_unequipped", shield_name=item_name)
-            else:
-                self.game_log.add_message(f"Unequipped {item_name}")
+        # Handle event_type-driven NLP events
+        event_type = action_result.get('event_type')
+        if event_type:
+            self._handle_event_type(action_result, event_type)
+            return
         
-        # Handle object interaction events (metadata-driven)
-        elif action_result.get('event_type') == 'search_success':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("search_success", object_name=object_name)
-            # Factual message about items is in action_result.message
-            if action_result.message:
-                self.game_log.add_message(action_result.message)
-        
-        elif action_result.get('event_type') == 'search_empty':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("search_empty", object_name=object_name)
-        
-        elif action_result.get('event_type') == 'forage_success':
-            object_name = action_result.get('object_name', 'object')
-            items_found = action_result.get('items_found', [])
-            self.log_action_event("forage_success", object_name=object_name, items=", ".join(items_found))
-        
-        elif action_result.get('event_type') == 'forage_depleted':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("forage_depleted", object_name=object_name)
-        
-        elif action_result.get('event_type') == 'harvest_success':
-            object_name = action_result.get('object_name', 'object')
-            items_found = action_result.get('items_found', [])
-            self.log_action_event("harvest_success", object_name=object_name, items=", ".join(items_found))
-        
-        elif action_result.get('event_type') == 'harvest_depleted':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("harvest_depleted", object_name=object_name)
-        
-        # Fire lighting events
-        elif action_result.get('event_type') == 'fire_started':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("fire_started", object_name=object_name)
-            # Add factual message if present (e.g., fuel consumption)
-            if action_result.message:
-                self.game_log.add_message(action_result.message)
-        
-        elif action_result.get('event_type') == 'fire_failure':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("fire_failure", object_name=object_name)
-        
-        # Unlock/lockpick events
-        elif action_result.get('event_type') == 'unlock_success':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("unlock_success", object_name=object_name)
-        
-        elif action_result.get('event_type') == 'unlock_failure':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("unlock_failure", object_name=object_name)
-        
-        # Disarm trap events
-        elif action_result.get('event_type') == 'disarm_success':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("disarm_success", object_name=object_name)
-        
-        elif action_result.get('event_type') == 'disarm_failure':
-            object_name = action_result.get('object_name', 'object')
-            triggered = action_result.get('triggered', False)
-            self.log_action_event("disarm_failure", object_name=object_name, triggered=triggered)
-            # Add factual damage message if present
-            if action_result.message:
-                self.game_log.add_message(action_result.message)
-        
-        # Chop wood events
-        elif action_result.get('event_type') == 'chop_success':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("chop_success", object_name=object_name)
-        
-        elif action_result.get('event_type') == 'chop_depleted':
-            object_name = action_result.get('object_name', 'object')
-            self.log_action_event("chop_depleted", object_name=object_name)
-        
-        # Drink water events
-        elif action_result.get('event_type') == 'drink_success':
-            object_name = action_result.get('object_name', 'object')
-            water_quality = action_result.get('water_quality', 'unknown')
-            temperature = action_result.get('temperature', 'cool')
-            self.log_action_event("drink_success", 
-                object_name=object_name,
-                water_quality=water_quality,
-                temperature=temperature)
-        
-        elif action_result.message:
-            # Regular messages for actions without special NLP
+        # Fallback for actions without special NLP
+        if action_result.message:
             self.game_log.add_message(action_result.message)
         
         # Handle specific action types
@@ -322,6 +223,120 @@ class ActionLogger:
         self._log_shelter_result(action_result)
         self._log_map_result(action_result)
         self._log_status_result(action_result)
+    
+    def _handle_equipment_events(self, action_result):
+        """Handle equipment equipped/unequipped events"""
+        if action_result.get('item_equipped'):
+            item_name = action_result.get('item_equipped')
+            item_type = action_result.get('item_type', 'item')
+            
+            event_map = {
+                'armor': 'armor_equipped',
+                'weapon': 'weapon_equipped',
+                'shield': 'shield_equipped'
+            }
+            
+            if item_type in event_map:
+                event_name = event_map[item_type]
+                kwargs = {f"{item_type}_name": item_name}
+                self.log_equipment_event(event_name, **kwargs)
+            else:
+                self.game_log.add_message(f"Equipped {item_name}")
+        
+        elif action_result.get('item_unequipped'):
+            item_name = action_result.get('item_unequipped')
+            item_type = action_result.get('item_type', 'item')
+            
+            event_map = {
+                'armor': 'armor_unequipped',
+                'weapon': 'weapon_unequipped',
+                'shield': 'shield_unequipped'
+            }
+            
+            if item_type in event_map:
+                event_name = event_map[item_type]
+                kwargs = {f"{item_type}_name": item_name}
+                self.log_equipment_event(event_name, **kwargs)
+            else:
+                self.game_log.add_message(f"Unequipped {item_name}")
+    
+    def _handle_event_type(self, action_result, event_type):
+        """Route event_type to appropriate handler using dispatch table"""
+        # Dispatch table mapping event types to handler methods
+        event_handlers = {
+            'search_success': self._handle_search_events,
+            'search_empty': self._handle_search_events,
+            'forage_success': self._handle_resource_events,
+            'forage_depleted': self._handle_resource_events,
+            'harvest_success': self._handle_resource_events,
+            'harvest_depleted': self._handle_resource_events,
+            'chop_success': self._handle_resource_events,
+            'chop_depleted': self._handle_resource_events,
+            'fire_started': self._handle_fire_events,
+            'fire_failure': self._handle_fire_events,
+            'unlock_success': self._handle_lock_events,
+            'unlock_failure': self._handle_lock_events,
+            'disarm_success': self._handle_trap_events,
+            'disarm_failure': self._handle_trap_events,
+            'drink_success': self._handle_drink_events,
+        }
+        
+        handler = event_handlers.get(event_type)
+        if handler:
+            handler(action_result, event_type)
+        elif action_result.message:
+            # Fallback for unknown event types
+            self.game_log.add_message(action_result.message)
+    
+    def _handle_search_events(self, action_result, event_type):
+        """Handle search success/empty events"""
+        object_name = action_result.get('object_name', 'object')
+        self.log_action_event(event_type, object_name=object_name)
+        # Add factual message if present (items found)
+        if action_result.message and event_type == 'search_success':
+            self.game_log.add_message(action_result.message)
+    
+    def _handle_resource_events(self, action_result, event_type):
+        """Handle forage/harvest/chop events"""
+        object_name = action_result.get('object_name', 'object')
+        items_found = action_result.get('items_found', [])
+        
+        if items_found:
+            self.log_action_event(event_type, object_name=object_name, items=", ".join(items_found))
+        else:
+            self.log_action_event(event_type, object_name=object_name)
+    
+    def _handle_fire_events(self, action_result, event_type):
+        """Handle fire started/failure events"""
+        object_name = action_result.get('object_name', 'object')
+        self.log_action_event(event_type, object_name=object_name)
+        # Add factual message if present (fuel consumption)
+        if action_result.message and event_type == 'fire_started':
+            self.game_log.add_message(action_result.message)
+    
+    def _handle_lock_events(self, action_result, event_type):
+        """Handle unlock success/failure events"""
+        object_name = action_result.get('object_name', 'object')
+        self.log_action_event(event_type, object_name=object_name)
+    
+    def _handle_trap_events(self, action_result, event_type):
+        """Handle disarm success/failure events"""
+        object_name = action_result.get('object_name', 'object')
+        triggered = action_result.get('triggered', False)
+        self.log_action_event(event_type, object_name=object_name, triggered=triggered)
+        # Add factual damage message if trap triggered
+        if action_result.message and event_type == 'disarm_failure':
+            self.game_log.add_message(action_result.message)
+    
+    def _handle_drink_events(self, action_result, event_type):
+        """Handle drink success events"""
+        object_name = action_result.get('object_name', 'object')
+        water_quality = action_result.get('water_quality', 'unknown')
+        temperature = action_result.get('temperature', 'cool')
+        self.log_action_event(event_type,
+            object_name=object_name,
+            water_quality=water_quality,
+            temperature=temperature)
     
     def _log_movement_result(self, action_result):
         """Log movement-specific results"""
@@ -896,24 +911,17 @@ class ActionLogger:
                 protection_boost=2
             )
         """
-        print(f"[DEBUG ActionLogger] log_equipment_event called: event_type={event_type}, kwargs={kwargs}")
-        print(f"[DEBUG ActionLogger] message_manager={self.message_manager}, game_log={self.game_log}")
-        
         if not self.message_manager:
             # Fallback if MessageManager failed to load
             item_name = kwargs.get('armor_name') or kwargs.get('weapon_name') or kwargs.get('shield_name') or kwargs.get('item_name', 'item')
             action = event_type.replace('_', ' ').title()
             message = f"{action}: {item_name}"
-            print(f"[DEBUG ActionLogger] Using fallback message: {message}")
         else:
             message = self.message_manager.get_equipment_message(event_type, **kwargs)
-            print(f"[DEBUG ActionLogger] Got message from MessageManager: {message}")
         
         if self.game_log:
-            print(f"[DEBUG ActionLogger] Adding message to game_log")
             self.game_log.add_message(message, "equipment")
         else:
-            print(f"[DEBUG ActionLogger] No game_log, queueing message")
             self.message_queue.append({'type': 'equipment', 'message': message})
     
     def log_environmental_event(self, event_type: str):
