@@ -12,6 +12,17 @@ from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 from fantasy_rpg.utils.data_loader import DataLoader
 
+# Import mythic location handler
+try:
+    from fantasy_rpg.locations.mythic_locations import get_mythic_location_for_hex
+except ImportError:
+    try:
+        from locations.mythic_locations import get_mythic_location_for_hex
+    except ImportError:
+        # Fallback if module not available
+        def get_mythic_location_for_hex(*args, **kwargs):
+            return None
+
 # Import unified Item class
 try:
     from fantasy_rpg.core.item import Item
@@ -153,10 +164,11 @@ class Location:
 class LocationGenerator(DataLoader):
     """Generates locations from JSON templates"""
     
-    def __init__(self, seed: int = None, data_dir=None):
+    def __init__(self, seed: int = None, data_dir=None, world=None):
         super().__init__(data_dir)
         self.seed = seed or random.randint(1, 1000000)
         self.rng = random.Random(self.seed)
+        self.world = world  # Reference to world for accessing mythic events
         
         # Initialize pool storage
         self.object_pools = {}
@@ -304,8 +316,36 @@ class LocationGenerator(DataLoader):
             }
         }
     
-    def generate_locations_for_hex(self, hex_coords: Tuple[int, int], biome: str, terrain_type: str = None) -> List[Location]:
-        """Generate 1-3 locations for a hex, ensuring at least one has exit_flag=True"""
+    def generate_locations_for_hex(self, hex_coords: Tuple[int, int], biome: str, terrain_type: str = None, hex_data: Dict[str, Any] = None) -> List[Location]:
+        """Generate 1-3 locations for a hex, ensuring at least one has exit_flag=True
+        
+        Args:
+            hex_coords: Tuple of (x, y) coordinates
+            biome: Biome type for the hex
+            terrain_type: Optional terrain type override
+            hex_data: Optional hex data dict (used to check for mythic sites)
+        
+        Returns:
+            List of Location objects
+        """
+        selected_locations = []
+        
+        # CHECK FOR MYTHIC LOCATIONS FIRST
+        if hex_data and self.world:
+            mythic_events = getattr(self.world, 'mythic_events', [])
+            if mythic_events:
+                mythic_location_data = get_mythic_location_for_hex(
+                    hex_data, 
+                    hex_coords, 
+                    mythic_events, 
+                    seed=self.seed
+                )
+                
+                if mythic_location_data:
+                    # Convert mythic location data to Location object
+                    mythic_location = self._create_location_from_mythic_data(mythic_location_data, hex_coords)
+                    selected_locations.append(mythic_location)
+                    print(f"  Added mythic location '{mythic_location.name}' to hex {hex_coords}")
         
         # Determine location type from hex properties
         location_type = self._get_location_type(biome, terrain_type)
@@ -317,22 +357,16 @@ class LocationGenerator(DataLoader):
             # Fallback to forest type
             available_locations = self._get_locations_by_type("forest")
         
-        # Ensure we have at least one exit location
-        exit_locations = [loc for loc in available_locations if loc.get("exit_flag", False)]
-        non_exit_locations = [loc for loc in available_locations if not loc.get("exit_flag", False)]
+        # Ensure we have at least one exit location if no mythic location added
+        if not selected_locations:
+            exit_locations = [loc for loc in available_locations if loc.get("exit_flag", False)]
+            if exit_locations:
+                exit_location = self._select_weighted_location(exit_locations)
+                selected_locations.append(self._create_location_from_template(exit_location, hex_coords, len(selected_locations)))
         
-        # Generate 1-3 locations
-        num_locations = self.rng.randint(1, 3)
-        selected_locations = []
-        
-        # Always include at least one exit location
-        if exit_locations:
-            exit_location = self._select_weighted_location(exit_locations)
-            selected_locations.append(self._create_location_from_template(exit_location, hex_coords, len(selected_locations)))
-        
-        # Fill remaining slots with any type
-        remaining_slots = num_locations - len(selected_locations)
-        for _ in range(remaining_slots):
+        # Fill to 1-3 total locations
+        target_count = self.rng.randint(1, 3)
+        while len(selected_locations) < target_count:
             location_template = self._select_weighted_location(available_locations)
             selected_locations.append(self._create_location_from_template(location_template, hex_coords, len(selected_locations)))
         
@@ -445,6 +479,59 @@ class LocationGenerator(DataLoader):
             provides_excellent_shelter=template.get("provides_excellent_shelter", False)
         )
     
+    def _create_location_from_mythic_data(self, mythic_data: Dict[str, Any], hex_coords: Tuple[int, int]) -> Location:
+        """Create a Location from mythic location data
+        
+        Args:
+            mythic_data: Dictionary from mythic_locations.instantiate_mythic_location()
+            hex_coords: Hex coordinates
+            
+        Returns:
+            Location object
+        """
+        location_id = mythic_data.get('id', f"mythic_{hex_coords[0]}_{hex_coords[1]}")
+        
+        # Convert areas from mythic data to Area objects
+        areas_dict = {}
+        mythic_areas = mythic_data.get('areas', {})
+        
+        for area_id, area_data in mythic_areas.items():
+            area = Area(
+                id=area_id,
+                name=area_data.get('name', 'Unknown Area'),
+                description=area_data.get('description', ''),
+                size=AreaSize(area_data.get('size', 'medium')),
+                terrain=TerrainType(area_data.get('terrain', 'open')),
+                exits=area_data.get('exits', {}),
+                objects=self._spawn_from_pools(area_data.get('content_pools', {}).get('objects', []), "objects"),
+                items=[],
+                entities=self._spawn_from_pools(area_data.get('content_pools', {}).get('entities', []), "entities")
+            )
+            areas_dict[area_id] = area
+        
+        # Use first area as starting area if not specified
+        starting_area = list(areas_dict.keys())[0] if areas_dict else "entrance"
+        
+        # Determine location type
+        location_type_str = mythic_data.get("type", "mythic")
+        try:
+            location_type = LocationType(location_type_str)
+        except ValueError:
+            location_type = LocationType.RUINS  # Mythic locations default to ruins type
+        
+        return Location(
+            id=location_id,
+            name=mythic_data.get('name', 'Mythic Site'),
+            type=location_type,
+            areas=areas_dict,
+            starting_area=starting_area,
+            exit_flag=mythic_data.get('exit_flag', True),
+            size=mythic_data.get('size', 'large'),
+            terrain=mythic_data.get('terrain', 'difficult'),
+            provides_some_shelter=mythic_data.get('provides_some_shelter', False),
+            provides_good_shelter=mythic_data.get('provides_good_shelter', False),
+            provides_excellent_shelter=mythic_data.get('provides_excellent_shelter', False)
+        )
 
     
     def _spawn_from_pools(self, pools: List[str], content_type: str) -> List:

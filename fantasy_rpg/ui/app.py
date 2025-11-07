@@ -428,7 +428,7 @@ class FantasyRPGApp(App):
                 )
                 
                 if self.character.hp == self.character.max_hp:
-                    action_logger.log_message("💚 You are now at full health!")
+                    action_logger.log_message("You are now at full health!")
             else:
                 action_logger = get_action_logger()
                 action_logger.log_message("Already at full health.")
@@ -614,78 +614,11 @@ class FantasyRPGApp(App):
                 save_file_exists = False
             
             if not save_file_exists:
-                action_logger.log_system_message("Creating test character...")
-                # Create test character (skip character creation UI for now)
-                test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
-                
-                action_logger.log_system_message("Starting new game...")
-                # Use random seed to ensure fresh world generation with latest data
-                import random
-                fresh_seed = random.randint(1, 1000000)
-                game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
+                # Create new game
+                test_character, game_state = self._create_new_game(action_logger)
             
-            action_logger.log_system_message("Updating UI character...")
-            # Update UI character reference
-            self.character = test_character
-            self.character_panel.character = test_character
-            
-            # Get player state and time system from GameEngine
-            self.player_state = game_state.player_state
-            self.time_system = game_state.game_time
-            
-            # Link player_state to character for UI display
-            self.character.player_state = self.player_state
-            
-            action_logger.log_system_message("Creating InputController...")
-            # Initialize InputController with GameEngine
-            self.input_controller = InputController(
-                character=self.character,
-                player_state=self.player_state,
-                time_system=self.time_system,
-                game_engine=self.game_engine  # Pass GameEngine to InputController
-            )
-            
-            # Set up UI callbacks for the input controller
-            self._setup_input_controller_callbacks()
-            
-            # Update UI with initial game state
-            self._update_ui_from_game_state()
-            
-            # Update POI panel with GameEngine data
-            if self.poi_panel:
-                self.poi_panel.update_with_game_engine(self.game_engine)
-            
-            action_logger.log_system_message("✓ GameEngine integration complete!")
-            action_logger.log_separator()  # Line break
-            
-            # Add adventure beginning or continuation
-            if save_file_exists:
-                action_logger.log_message("Your adventure continues...")
-                action_logger.log_separator()  # Line break
-                
-                # Show current location description
-                hex_description = self.game_engine.get_hex_description()
-                action_logger.log_message(hex_description)
-                action_logger.log_separator()  # Line break
-            else:
-                action_logger.log_message("The adventure begins...")
-                action_logger.log_separator()  # Line break
-                
-                # Add atmospheric intro
-                action_logger.log_message("You find yourself in a forest clearing.")
-                action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
-                action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
-                action_logger.log_separator()  # Line break
-            
-            # Character and location info
-            action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
-            action_logger.log_system_message(f"Starting location: {game_state.world_position.hex_data['name']}")
-            action_logger.log_separator()  # Line break
-            
-            # Help text
-            action_logger.log_message("Type 'help' for available commands.")
-            action_logger.log_message("Type 'look' to examine your surroundings.")
-            action_logger.log_separator()
+            # Finalize initialization with common setup
+            self._finalize_game_initialization(test_character, game_state, action_logger, loaded_from_save=save_file_exists)
             
         except Exception as e:
             import traceback
@@ -773,86 +706,119 @@ class FantasyRPGApp(App):
         except Exception as e:
             self.log_system_message(f"Error initializing survival system: {e}")
     
+    def _create_new_game(self, action_logger):
+        """Create a new game with character and world generation"""
+        action_logger.log_system_message("Creating test character...")
+        from ..core.character_creation import create_character_quick
+        test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
+        
+        action_logger.log_system_message("Starting new game...")
+        # Use random seed to ensure fresh world generation with latest data
+        import random
+        fresh_seed = random.randint(1, 1000000)
+        action_logger.log_system_message(f"Generating new world with seed: {fresh_seed}")
+        action_logger.log_system_message("Please wait while we generate terrain, biomes, climate, mythic events, and legendary locations...")
+        game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
+        action_logger.log_system_message("World generation complete.")
+        
+        # Report mythic content generation
+        self._report_mythic_generation(action_logger)
+        
+        return test_character, game_state
+    
+    def _report_mythic_generation(self, action_logger):
+        """Report mythic event and location generation"""
+        if hasattr(self.game_engine, 'world_coordinator') and self.game_engine.world_coordinator:
+            world = self.game_engine.world_coordinator
+            mythic_events = getattr(world, 'mythic_events', [])
+            if mythic_events:
+                action_logger.log_system_message(f"Generated {len(mythic_events)} mythic/legendary events")
+                
+                # Count hexes with mythic sites
+                mythic_hexes = sum(1 for hex_data in world.hex_data.values() 
+                                 if 'mythic_sites' in hex_data and hex_data['mythic_sites'])
+                if mythic_hexes > 0:
+                    action_logger.log_system_message(f"Marked {mythic_hexes} hexes with mythic sites (ancient battlefields, lost cities, sacred sites)")
+            else:
+                action_logger.log_system_message("No mythic events generated")
+        else:
+            action_logger.log_system_message("World coordinator not available")
+    
+    def _finalize_game_initialization(self, test_character, game_state, action_logger, loaded_from_save):
+        """Finalize game initialization with character setup and welcome messages"""
+        action_logger.log_system_message("Updating UI character...")
+        # Update UI character reference
+        self.character = test_character
+        self.character_panel.character = test_character
+        
+        # Get player state and time system from GameEngine
+        self.player_state = game_state.player_state
+        self.time_system = game_state.game_time
+        
+        # Link player_state to character for UI display
+        self.character.player_state = self.player_state
+        
+        action_logger.log_system_message("Creating InputController...")
+        # Initialize InputController with GameEngine
+        self.input_controller = InputController(
+            character=self.character,
+            player_state=self.player_state,
+            time_system=self.time_system,
+            game_engine=self.game_engine
+        )
+        
+        # Set up UI callbacks for the input controller
+        self._setup_input_controller_callbacks()
+        
+        # Update UI with initial game state
+        self._update_ui_from_game_state()
+        
+        # Update POI panel with GameEngine data
+        if self.poi_panel:
+            self.poi_panel.update_with_game_engine(self.game_engine)
+        
+        action_logger.log_system_message("✓ GameEngine integration complete!")
+        action_logger.log_separator()
+        
+        # Add adventure beginning or continuation
+        if loaded_from_save:
+            action_logger.log_message("Your adventure continues...")
+            action_logger.log_separator()
+            
+            # Show current location description
+            hex_description = self.game_engine.get_hex_description()
+            action_logger.log_message(hex_description)
+            action_logger.log_separator()
+        else:
+            action_logger.log_message("The adventure begins...")
+            action_logger.log_separator()
+            
+            # Add atmospheric intro
+            action_logger.log_message("You find yourself in a forest clearing.")
+            action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
+            action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
+            action_logger.log_separator()
+        
+        # Character and location info
+        action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
+        location_key = "Starting location" if not loaded_from_save else "Current location"
+        action_logger.log_system_message(f"{location_key}: {game_state.world_position.hex_data['name']}")
+        action_logger.log_separator()
+        
+        # Help text
+        action_logger.log_message("Type 'help' for available commands.")
+        action_logger.log_message("Type 'look' to examine your surroundings.")
+        action_logger.log_separator()
+    
     def _continue_initialization(self, test_character, game_state, action_logger, loaded_from_save):
         """Continue initialization after load/new game decision"""
         try:
             if not loaded_from_save:
                 # Create new game
-                action_logger.log_system_message("Creating test character...")
-                from ..core.character_creation import create_character_quick
-                test_character, race, char_class = create_character_quick('Aldric', 'Human', 'Fighter')
-                
-                action_logger.log_system_message("Starting new game...")
-                # Use random seed to ensure fresh world generation with latest data
-                import random
-                fresh_seed = random.randint(1, 1000000)
-                action_logger.log_system_message(f"Generating new world with seed: {fresh_seed}")
-                action_logger.log_system_message("Please wait while we generate terrain, biomes, and climate...")
-                game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
-                action_logger.log_system_message("World generation complete.")
+                test_character, game_state = self._create_new_game(action_logger)
             
-            action_logger.log_system_message("Updating UI character...")
-            # Update UI character reference
-            self.character = test_character
-            self.character_panel.character = test_character
-            
-            # Get player state and time system from GameEngine
-            self.player_state = game_state.player_state
-            self.time_system = game_state.game_time
-            
-            # Link player_state to character for UI display
-            self.character.player_state = self.player_state
-            
-            action_logger.log_system_message("Creating InputController...")
-            # Initialize InputController with GameEngine
-            self.input_controller = InputController(
-                character=self.character,
-                player_state=self.player_state,
-                time_system=self.time_system,
-                game_engine=self.game_engine  # Pass GameEngine to InputController
-            )
-            
-            # Set up UI callbacks for the input controller
-            self._setup_input_controller_callbacks()
-            
-            # Update UI with initial game state
-            self._update_ui_from_game_state()
-            
-            # Update POI panel with GameEngine data
-            if self.poi_panel:
-                self.poi_panel.update_with_game_engine(self.game_engine)
-            
-            action_logger.log_system_message("✓ GameEngine integration complete!")
-            action_logger.log_separator()  # Line break
-            
-            # Add adventure beginning or continuation
-            if loaded_from_save:
-                action_logger.log_message("Your adventure continues...")
-                action_logger.log_separator()  # Line break
-                
-                # Show current location description
-                hex_description = self.game_engine.get_hex_description()
-                action_logger.log_message(hex_description)
-                action_logger.log_separator()  # Line break
-            else:
-                action_logger.log_message("The adventure begins...")
-                action_logger.log_separator()  # Line break
-                
-                # Add atmospheric intro
-                action_logger.log_message("You find yourself in a forest clearing.")
-                action_logger.log_message("Ancient oak trees tower above you, their branches swaying gently in the breeze.")
-                action_logger.log_message("Sunlight filters through the canopy, casting dappled shadows on the forest floor.")
-                action_logger.log_separator()  # Line break
-            
-            # Character and location info
-            action_logger.log_system_message(f"You are {self.character.name}, a {self.character.race} {self.character.character_class}")
-            action_logger.log_system_message(f"Current location: {game_state.world_position.hex_data['name']}")
-            action_logger.log_separator()  # Line break
-            
-            # Help text
-            action_logger.log_message("Type 'help' for available commands.")
-            action_logger.log_message("Type 'look' to examine your surroundings.")
-            action_logger.log_separator()
+            # Finalize initialization with common setup
+            self._finalize_game_initialization(test_character, game_state, action_logger, loaded_from_save)
             
         except Exception as e:
             import traceback

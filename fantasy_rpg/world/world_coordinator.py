@@ -15,11 +15,13 @@ try:
     from .climate import ClimateSystem, ClimateZone
     from .terrain_generation import TerrainGenerator
     from .enhanced_biomes import EnhancedBiomeSystem
+    from .mythic_generation import generate_mythic_events
 except ImportError:
     try:
         from climate import ClimateSystem, ClimateZone
         from terrain_generation import TerrainGenerator
         from enhanced_biomes import EnhancedBiomeSystem
+        from mythic_generation import generate_mythic_events
     except ImportError:
         # Create minimal stubs if imports fail
         class ClimateSystem:
@@ -41,6 +43,8 @@ except ImportError:
                 return "temperate_grassland"
             def get_biome(self, *args, **kwargs):
                 return None
+        def generate_mythic_events(world, num_events=10, seed=None):
+            return []
 
 
 class WorldCoordinator:
@@ -176,35 +180,27 @@ class WorldCoordinator:
         print(f"Generated world with {len(self.hex_data)} hexes")
         print("Locations will be generated on-demand when hexes are first visited")
         
-        # Add some special locations to interesting hexes
-        self._add_special_locations()
+        # Generate mythic/foundational events to layer cultural history onto the map
+        self._generate_mythic_events()
     
-    def _add_special_locations(self):
-        """Add special locations to interesting hexes"""
-        # Add a few special locations for gameplay
-        special_locations = [
-            ("0847", ["forest_clearing_01", "old_oak_grove"]),
-            ("0746", ["ruined_temple", "collapsed_tower"]),
-            ("0848", ["narrow_pass", "cave_entrance"]),
-            ("0948", ["village_center", "merchant_quarter", "inn"])
-        ]
-        
-        for hex_id, locations in special_locations:
-            if hex_id in self.hex_data:
-                self.hex_data[hex_id]["locations"] = locations
-                # Update the name to be more interesting
-                if hex_id == "0847":
-                    self.hex_data[hex_id]["name"] = "Forest Clearing"
-                    self.hex_data[hex_id]["description"] = "A peaceful clearing surrounded by ancient oaks"
-                elif hex_id == "0746":
-                    self.hex_data[hex_id]["name"] = "Ancient Ruins"
-                    self.hex_data[hex_id]["description"] = "Crumbling stone structures from a forgotten age"
-                elif hex_id == "0848":
-                    self.hex_data[hex_id]["name"] = "Mountain Pass"
-                    self.hex_data[hex_id]["description"] = "A narrow path through rocky peaks"
-                elif hex_id == "0948":
-                    self.hex_data[hex_id]["name"] = "Trading Village"
-                    self.hex_data[hex_id]["description"] = "A bustling village with merchants and travelers"
+    def _generate_mythic_events(self):
+        """Generate mythic/foundational events and mark hexes"""
+        try:
+            # Default to 10 events; use the same seed for reproducibility
+            self.mythic_events = generate_mythic_events(self, num_events=10, seed=self.seed)
+            
+            # Mark hexes that host mythic events for quick lookup
+            for ev in self.mythic_events:
+                loc = ev.get('location')
+                if loc and loc in self.hex_data:
+                    if 'mythic_sites' not in self.hex_data[loc]:
+                        self.hex_data[loc]['mythic_sites'] = []
+                    self.hex_data[loc]['mythic_sites'].append(ev['id'])
+            
+            print(f"Generated {len(self.mythic_events)} mythic events across the world")
+        except Exception as e:
+            print(f"Warning: mythic event generation failed: {e}")
+            self.mythic_events = []
     
     def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
         """Generate locations for a hex using LocationGenerator"""
@@ -212,15 +208,20 @@ class WorldCoordinator:
             # Import LocationGenerator here to avoid circular imports
             from locations.location_generator import LocationGenerator
             
-            # Create a LocationGenerator if we don't have one (use consistent seed)
+            # Create a LocationGenerator if we don't have one (use consistent seed and world reference)
             if not hasattr(self, '_location_generator'):
-                self._location_generator = LocationGenerator(seed=self.seed)
+                self._location_generator = LocationGenerator(seed=self.seed, world=self)
+            
+            # Get hex data for mythic site checking
+            hex_id = f"{coords[0]:02d}{coords[1]:02d}"
+            hex_data = self.hex_data.get(hex_id, {})
             
             # Generate locations using the LocationGenerator
             locations = self._location_generator.generate_locations_for_hex(
                 coords, 
                 biome, 
-                terrain_type=self._get_terrain_type(elevation)
+                terrain_type=self._get_terrain_type(elevation),
+                hex_data=hex_data
             )
             
             # Convert Location objects to dictionaries for storage

@@ -15,8 +15,19 @@ This spec implements a historical and social simulation system that generates me
 ## Milestone 2.1: Ancient History & Civilization Foundation (Day 1)
 
 ### **2.1.1: Mythic Foundation Generation (Morning)**
-- [ ] Create legendary event generation system (8-12 foundational events)
-- [ ] Implement mythic location creation (ancient battlefields, lost cities, sacred sites)
+- [x] Create legendary event generation system (8-12 foundational events)
+  - **Implemented:** `fantasy_rpg/world/mythic_generation.py` with `generate_mythic_events()`
+  - **Templates:** 12 event templates in `fantasy_rpg/data/mythic_event_templates.json`
+  - **Integration:** WorldCoordinator calls generator during world generation and marks hexes with `mythic_sites`
+  - **Testing:** Unit tests in `tests/test_mythic_generation.py` (all passing)
+  - **Verification:** Run `python3 tests/verify_mythic_integration.py` to see generated events
+- [x] Implement mythic location creation (ancient battlefields, lost cities, sacred sites)
+  - **Implemented:** `fantasy_rpg/locations/mythic_locations.py` with location selection and instantiation
+  - **Templates:** 10 mythic location templates in `fantasy_rpg/data/mythic_locations.json`
+  - **Types:** battlefield, lost_city, sacred_site, sunken_temple, forge, burial_ground, palace, vault, shrine, monument
+  - **Integration:** LocationGenerator checks for mythic sites and generates appropriate mythic locations
+  - **Event Linking:** Mythic locations automatically match event types (war→battlefield, discovery→forge, etc.)
+  - **Verification:** Run `python3 tests/verify_mythic_integration.py` to see mythic location generation
 - [ ] Generate legendary artifacts with creation stories and cultural significance
 - [ ] Establish cultural heroes and villains remembered across civilizations
 - [ ] Create world mythology that influences current cultural beliefs

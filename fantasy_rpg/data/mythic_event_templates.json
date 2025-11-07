@@ -1,0 +1,77 @@
+[
+    {
+        "name": "The First Flame",
+        "type": "discovery",
+        "base_description": "A small group learned to tame fire and passed that secret to their kin.",
+        "significance": 7
+    },
+    {
+        "name": "The Broken Crown",
+        "type": "war",
+        "base_description": "A king betrayed his oath and plunged the realm into civil war.",
+        "significance": 9
+    },
+    {
+        "name": "The Great Flood",
+        "type": "disaster",
+        "base_description": "A cataclysmic flood reshaped coastlines and forced migrations.",
+        "significance": 8
+    },
+    {
+        "name": "The Stone Pact",
+        "type": "treaty",
+        "base_description": "Rival tribes sealed a covenant at the Stone Circle and formed lasting alliances.",
+        "significance": 6
+    },
+    {
+        "name": "Sundered Gate",
+        "type": "siege",
+        "base_description": "A fortress gate was broken in a famous siege, changing military doctrine.",
+        "significance": 7
+    },
+    {
+        "name": "The Lost City",
+        "type": "loss",
+        "base_description": "An entire city vanished under unknown circumstances, leaving myths and ruins.",
+        "significance": 8
+    },
+    {
+        "name": "The Wanderer's Star",
+        "type": "omen",
+        "base_description": "A comet appeared and was taken as an omen that altered faiths.",
+        "significance": 5
+    },
+    {
+        "name": "Forging of the Ancestors' Blade",
+        "type": "artifact",
+        "base_description": "A legendary blade was forged, later lost and sought by many.",
+        "creates_artifacts": [
+            "ancestors_blade"
+        ],
+        "significance": 9
+    },
+    {
+        "name": "The Quiet Plague",
+        "type": "disaster",
+        "base_description": "A sickness passed through generations and reshaped population centers.",
+        "significance": 6
+    },
+    {
+        "name": "The Hidden Spring",
+        "type": "discovery",
+        "base_description": "A spring with strange properties was found and became sacred.",
+        "significance": 6
+    },
+    {
+        "name": "The Oath of Twelve",
+        "type": "treaty",
+        "base_description": "Twelve leaders swore an oath at the mountain pass, creating an order that endures in legend.",
+        "significance": 7
+    },
+    {
+        "name": "The Sun-Eater",
+        "type": "omen",
+        "base_description": "An eclipse coincided with strange events and birthed fearsome tales.",
+        "significance": 6
+    }
+]

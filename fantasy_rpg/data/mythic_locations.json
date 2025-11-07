@@ -1,0 +1,450 @@
+{
+    "_comment": "Mythic location templates for legendary/historical sites",
+    "_usage": "These locations are tied to mythic events or placed randomly for world depth. They have special 'is_mythic' flag and higher significance.",
+    "location_templates": {
+        "ancient_battlefield": {
+            "name": "Ancient Battlefield",
+            "description": "Weathered weapons and armor fragments litter the scarred earth. The air feels heavy with the weight of long-forgotten sacrifice.",
+            "size": "huge",
+            "terrain": "difficult",
+            "type": "mythic_battlefield",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_some_shelter": false,
+            "event_types": [
+                "war",
+                "siege"
+            ],
+            "areas": {
+                "battlefield_center": {
+                    "name": "Center of the Battlefield",
+                    "description": "Ancient bones and rusted metal lie half-buried in the soil. The ground itself seems unwilling to let go of the past.",
+                    "size": "huge",
+                    "terrain": "difficult",
+                    "exits": {
+                        "n": "northern_flank",
+                        "s": "southern_ridge",
+                        "e": "commanders_rise"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "ancient",
+                            "ruins",
+                            "battlefield_remains"
+                        ],
+                        "entities": [
+                            "undead",
+                            "ancient",
+                            "guardian"
+                        ],
+                        "items": [
+                            "ancient_weapons",
+                            "rare"
+                        ]
+                    }
+                }
+            }
+        },
+        "lost_city_ruins": {
+            "name": "Lost City",
+            "description": "Crumbling towers rise from choking vegetation. Streets of broken stone tell of a civilization that vanished without explanation.",
+            "size": "massive",
+            "terrain": "difficult",
+            "type": "mythic_city",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_good_shelter": true,
+            "event_types": [
+                "loss",
+                "disaster"
+            ],
+            "areas": {
+                "city_gate": {
+                    "name": "Ruined City Gate",
+                    "description": "Massive stone gates hang broken on their hinges. Strange symbols are carved into the weathered archway.",
+                    "size": "large",
+                    "terrain": "open",
+                    "exits": {
+                        "n": "main_plaza",
+                        "e": "eastern_quarter",
+                        "w": "western_quarter"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "ancient",
+                            "architectural",
+                            "ruins"
+                        ],
+                        "entities": [
+                            "ancient",
+                            "guardian",
+                            "rare"
+                        ],
+                        "items": [
+                            "treasure",
+                            "rare",
+                            "ancient_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "sacred_standing_stones": {
+            "name": "Sacred Standing Stones",
+            "description": "Ancient monoliths form a perfect circle on the hilltop. The stones hum with residual power from forgotten rituals.",
+            "size": "medium",
+            "terrain": "open",
+            "type": "mythic_sacred",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_some_shelter": false,
+            "event_types": [
+                "treaty",
+                "omen",
+                "discovery"
+            ],
+            "areas": {
+                "stone_circle": {
+                    "name": "Circle of Stones",
+                    "description": "Twelve towering stones stand in silent vigil. The ground within the circle feels different, as if reality is thinner here.",
+                    "size": "medium",
+                    "terrain": "open",
+                    "exits": {
+                        "n": "northern_approach",
+                        "s": "southern_path"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "religious",
+                            "ancient",
+                            "mystical"
+                        ],
+                        "entities": [
+                            "ancient",
+                            "wise",
+                            "guardian"
+                        ],
+                        "items": [
+                            "rare",
+                            "religious_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "sunken_temple": {
+            "name": "Sunken Temple",
+            "description": "Water-filled corridors lead deeper into a partially flooded temple complex. Something ancient still dwells in the depths.",
+            "size": "large",
+            "terrain": "dangerous",
+            "type": "mythic_temple",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_excellent_shelter": false,
+            "event_types": [
+                "disaster",
+                "loss",
+                "discovery"
+            ],
+            "areas": {
+                "flooded_entrance": {
+                    "name": "Flooded Temple Entrance",
+                    "description": "Murky water reaches knee-height. Elaborate carvings on the walls depict scenes of worship and catastrophe.",
+                    "size": "large",
+                    "terrain": "dangerous",
+                    "exits": {
+                        "n": "inner_sanctum",
+                        "e": "eastern_chamber"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "religious",
+                            "ancient",
+                            "water_damaged"
+                        ],
+                        "entities": [
+                            "undead",
+                            "ancient",
+                            "water_creatures"
+                        ],
+                        "items": [
+                            "treasure",
+                            "rare",
+                            "religious_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "forge_of_legends": {
+            "name": "Legendary Forge",
+            "description": "A massive forge built into the mountainside. The anvil itself is said to have been used to craft weapons of myth.",
+            "size": "large",
+            "terrain": "difficult",
+            "type": "mythic_forge",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_good_shelter": true,
+            "event_types": [
+                "artifact",
+                "discovery"
+            ],
+            "areas": {
+                "forge_chamber": {
+                    "name": "Ancient Forge",
+                    "description": "Cold coals still lie in the massive forge. Tools of incredible craftsmanship hang on the walls, unused for centuries.",
+                    "size": "large",
+                    "terrain": "difficult",
+                    "exits": {
+                        "s": "workshop",
+                        "e": "storage_vault"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "crafting",
+                            "ancient",
+                            "valuable"
+                        ],
+                        "entities": [
+                            "construct",
+                            "guardian",
+                            "ancient"
+                        ],
+                        "items": [
+                            "crafting_tools",
+                            "rare",
+                            "ancient_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "cursed_burial_ground": {
+            "name": "Cursed Burial Ground",
+            "description": "Hundreds of grave markers stretch across the hillside. The dead here do not rest peacefully.",
+            "size": "large",
+            "terrain": "difficult",
+            "type": "mythic_burial",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_some_shelter": false,
+            "event_types": [
+                "war",
+                "disaster",
+                "loss"
+            ],
+            "areas": {
+                "burial_grounds": {
+                    "name": "Ancient Burial Ground",
+                    "description": "Weathered tombstones bear names in forgotten languages. Some graves appear to have been disturbed from within.",
+                    "size": "large",
+                    "terrain": "difficult",
+                    "exits": {
+                        "n": "mausoleum",
+                        "e": "eastern_graves",
+                        "w": "western_graves"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "burial",
+                            "ancient",
+                            "religious"
+                        ],
+                        "entities": [
+                            "undead",
+                            "ancient",
+                            "very_rare"
+                        ],
+                        "items": [
+                            "burial_goods",
+                            "rare"
+                        ]
+                    }
+                }
+            }
+        },
+        "shattered_palace": {
+            "name": "Shattered Palace",
+            "description": "Once-grand halls lie in ruins. Faded murals depict the glory of a fallen dynasty.",
+            "size": "massive",
+            "terrain": "difficult",
+            "type": "mythic_palace",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_good_shelter": true,
+            "event_types": [
+                "war",
+                "loss",
+                "siege"
+            ],
+            "areas": {
+                "throne_room": {
+                    "name": "Ruined Throne Room",
+                    "description": "A cracked marble throne sits at the end of a collapsed hall. Crown jewels and royal regalia lie scattered in the debris.",
+                    "size": "huge",
+                    "terrain": "difficult",
+                    "exits": {
+                        "s": "grand_hall",
+                        "e": "royal_chambers",
+                        "w": "war_room"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "royal",
+                            "architectural",
+                            "valuable"
+                        ],
+                        "entities": [
+                            "undead",
+                            "guardian",
+                            "boss"
+                        ],
+                        "items": [
+                            "treasure",
+                            "rare",
+                            "royal_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "sealed_vault": {
+            "name": "Sealed Vault",
+            "description": "Massive stone doors bear ancient warning glyphs. Whatever was sealed here was meant to stay hidden forever.",
+            "size": "medium",
+            "terrain": "dangerous",
+            "type": "mythic_vault",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_excellent_shelter": false,
+            "event_types": [
+                "artifact",
+                "discovery",
+                "loss"
+            ],
+            "areas": {
+                "vault_entrance": {
+                    "name": "Vault Entrance",
+                    "description": "Heavy stone doors stand ajar. The seals that once held them are shattered. Darkness beckons from within.",
+                    "size": "medium",
+                    "terrain": "dangerous",
+                    "exits": {
+                        "n": "inner_vault"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "security",
+                            "ancient",
+                            "valuable"
+                        ],
+                        "entities": [
+                            "construct",
+                            "guardian",
+                            "boss"
+                        ],
+                        "items": [
+                            "treasure",
+                            "very_rare",
+                            "ancient_artifacts"
+                        ]
+                    }
+                }
+            }
+        },
+        "oracle_shrine": {
+            "name": "Oracle's Shrine",
+            "description": "A small shrine perches precariously on a cliff edge. The oracle who dwelt here spoke prophecies that shaped kingdoms.",
+            "size": "small",
+            "terrain": "difficult",
+            "type": "mythic_shrine",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_some_shelter": true,
+            "event_types": [
+                "omen",
+                "discovery",
+                "treaty"
+            ],
+            "areas": {
+                "shrine_chamber": {
+                    "name": "Oracle's Chamber",
+                    "description": "Incense burners still emit faint wisps of smoke. The walls are covered in prophecies, some fulfilled, some yet to come.",
+                    "size": "small",
+                    "terrain": "open",
+                    "exits": {
+                        "s": "cliff_path"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "religious",
+                            "mystical",
+                            "rare"
+                        ],
+                        "entities": [
+                            "wise",
+                            "ancient",
+                            "rare"
+                        ],
+                        "items": [
+                            "religious_artifacts",
+                            "scrolls",
+                            "rare"
+                        ]
+                    }
+                }
+            }
+        },
+        "broken_bridge": {
+            "name": "The Broken Bridge",
+            "description": "A massive stone bridge spans a deep chasm, its center section long collapsed. This was once a vital trade route.",
+            "size": "large",
+            "terrain": "dangerous",
+            "type": "mythic_monument",
+            "is_mythic": true,
+            "exit_flag": true,
+            "spawn_weight": 0,
+            "provides_some_shelter": false,
+            "event_types": [
+                "war",
+                "disaster",
+                "treaty"
+            ],
+            "areas": {
+                "bridge_approach": {
+                    "name": "Northern Bridge Approach",
+                    "description": "The bridge's northern span remains intact, ending abruptly at a jagged edge. The opposite side is barely visible through the mist.",
+                    "size": "large",
+                    "terrain": "dangerous",
+                    "exits": {
+                        "s": "northern_settlement_ruins",
+                        "e": "overlook"
+                    },
+                    "content_pools": {
+                        "objects": [
+                            "architectural",
+                            "ancient",
+                            "destroyed"
+                        ],
+                        "entities": [
+                            "dangerous",
+                            "rare"
+                        ],
+                        "items": [
+                            "trade_goods",
+                            "rare"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
