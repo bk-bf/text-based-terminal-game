@@ -265,3 +265,164 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             time_passed=0.0,
             action_type="system"
         )
+    
+    def handle_research(self, *args) -> ActionResult:
+        """Handle researching historical events, figures, and artifacts"""
+        if not self.game_engine or not self.game_engine.world_coordinator:
+            return ActionResult(False, "Research system not available.")
+        
+        if not args:
+            return ActionResult(
+                False, 
+                "Usage: research <type> [name]\nTypes: events, figures, heroes, villains, artifacts"
+            )
+        
+        research_type = args[0].lower()
+        world = self.game_engine.world_coordinator
+        
+        # Research mythic events
+        if research_type in ["events", "event", "history"]:
+            if not hasattr(world, 'mythic_events') or not world.mythic_events:
+                return ActionResult(False, "No historical events found in this world.")
+            
+            info = [f"=== MYTHIC EVENTS ({len(world.mythic_events)}) ===\n"]
+            
+            for event in sorted(world.mythic_events, key=lambda e: e.get('year', 0)):
+                year = event.get('year', 0)
+                name = event.get('name', 'Unknown Event')
+                event_type = event.get('event_type', 'myth')
+                significance = event.get('significance', 5)
+                description = event.get('description', '')
+                
+                info.append(f"Year {year}: {name}")
+                info.append(f"  Type: {event_type.replace('_', ' ').title()}")
+                info.append(f"  Significance: {significance}/10")
+                info.append(f"  {description}")
+                
+                # Show participants if available
+                if 'participants' in event and event['participants']:
+                    info.append(f"  Key Figures:")
+                    for participant in event['participants']:
+                        info.append(f"    • {participant['name']} ({participant['role']})")
+                
+                # Show artifacts if available
+                if 'artifact_id' in event:
+                    info.append(f"  Legendary Artifact: {event['artifact_id']}")
+                
+                info.append("")  # Blank line between events
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
+        # Research historical figures
+        elif research_type in ["figures", "figure", "heroes", "villains", "people"]:
+            if not hasattr(world, 'historical_figures') or not world.historical_figures:
+                return ActionResult(False, "No historical figures found in this world.")
+            
+            # Filter by alignment if specified
+            if research_type == "heroes":
+                figures = [f for f in world.historical_figures if f.alignment == "hero"]
+                title = "LEGENDARY HEROES"
+            elif research_type == "villains":
+                figures = [f for f in world.historical_figures if f.alignment == "villain"]
+                title = "LEGENDARY VILLAINS"
+            else:
+                figures = world.historical_figures
+                title = "HISTORICAL FIGURES"
+            
+            if not figures:
+                return ActionResult(False, f"No {research_type} found in this world.")
+            
+            info = [f"=== {title} ({len(figures)}) ===\n"]
+            
+            for figure in sorted(figures, key=lambda f: f.birth_year):
+                info.append(f"{figure.name} {figure.title}")
+                info.append(f"  Race: {figure.race.title()}")
+                info.append(f"  Role: {figure.alignment.title()} ({figure.archetype.replace('_', ' ').title()})")
+                info.append(f"  Born: Year {figure.birth_year}")
+                if figure.death_year:
+                    info.append(f"  Died: Year {figure.death_year}")
+                else:
+                    info.append(f"  Death: Unknown/Mythic")
+                info.append(f"  Significance: {figure.cultural_significance}/10")
+                info.append(f"  Traits: {', '.join(figure.personality_traits)}")
+                
+                if figure.backstory:
+                    info.append(f"  Story: {figure.backstory}")
+                
+                if figure.achievements:
+                    info.append(f"  Achievements:")
+                    for achievement in figure.achievements[:3]:  # Limit to 3
+                        info.append(f"    • {achievement}")
+                
+                if figure.artifacts_owned:
+                    info.append(f"  Artifacts: {', '.join(figure.artifacts_owned)}")
+                
+                # Show family connections if any
+                if figure.parents:
+                    info.append(f"  Genealogy: Has recorded parents")
+                if figure.children:
+                    info.append(f"  Legacy: {len(figure.children)} known descendants")
+                
+                info.append("")  # Blank line between figures
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
+        # Research artifacts
+        elif research_type in ["artifacts", "artifact", "items", "relics"]:
+            # Get artifacts from events
+            artifacts = set()
+            for event in getattr(world, 'mythic_events', []):
+                if 'artifact_id' in event:
+                    artifacts.add(event['artifact_id'])
+            
+            if not artifacts:
+                return ActionResult(False, "No legendary artifacts found in this world.")
+            
+            info = [f"=== LEGENDARY ARTIFACTS ({len(artifacts)}) ===\n"]
+            
+            for artifact_id in sorted(artifacts):
+                # Find the event that created it
+                creating_event = None
+                for event in world.mythic_events:
+                    if event.get('artifact_id') == artifact_id:
+                        creating_event = event
+                        break
+                
+                info.append(f"Artifact: {artifact_id}")
+                if creating_event:
+                    info.append(f"  Origin Event: {creating_event.get('name', 'Unknown')}")
+                    info.append(f"  Created: Year {creating_event.get('year', 0)}")
+                    if 'artifact_lore' in creating_event:
+                        info.append(f"  Lore: {creating_event['artifact_lore']}")
+                
+                # Find who owns it
+                for figure in getattr(world, 'historical_figures', []):
+                    if artifact_id in figure.artifacts_owned:
+                        info.append(f"  Owner: {figure.name} {figure.title}")
+                        break
+                
+                info.append("")
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
+        else:
+            return ActionResult(
+                False,
+                f"Unknown research type: {research_type}\n"
+                "Available types: events, figures, heroes, villains, artifacts"
+            )

@@ -413,11 +413,28 @@ class SaveManager:
         if hasattr(self.game_engine.world_coordinator, 'persistent_locations'):
             persistent_locations = self.game_engine.world_coordinator.persistent_locations
         
+        # Serialize mythic events
+        mythic_events = []
+        if hasattr(self.game_engine.world_coordinator, 'mythic_events'):
+            mythic_events = self.game_engine.world_coordinator.mythic_events
+        
+        # Serialize historical figures
+        historical_figures = []
+        if hasattr(self.game_engine.world_coordinator, 'historical_figures'):
+            from world.historical_figures import HistoricalFigure
+            for figure in self.game_engine.world_coordinator.historical_figures:
+                if isinstance(figure, HistoricalFigure):
+                    historical_figures.append(figure.to_dict())
+                else:
+                    historical_figures.append(figure)
+        
         return {
             "hex_data": world_data,
             "persistent_locations": persistent_locations,
             "world_size": self.game_engine.world_size,
-            "world_seed": self.game_engine.game_state.world_seed if self.game_engine.game_state else None
+            "world_seed": self.game_engine.game_state.world_seed if self.game_engine.game_state else None,
+            "mythic_events": mythic_events,
+            "historical_figures": historical_figures
         }
     
     def _deserialize_world_data(self, data: dict):
@@ -443,3 +460,18 @@ class SaveManager:
             if not hasattr(self.game_engine.world_coordinator, 'persistent_locations'):
                 self.game_engine.world_coordinator.persistent_locations = {}
             self.game_engine.world_coordinator.persistent_locations.update(data["persistent_locations"])
+        
+        # Restore mythic events
+        if "mythic_events" in data:
+            self.game_engine.world_coordinator.mythic_events = data["mythic_events"]
+        else:
+            self.game_engine.world_coordinator.mythic_events = []
+        
+        # Restore historical figures
+        if "historical_figures" in data:
+            from world.historical_figures import HistoricalFigure
+            self.game_engine.world_coordinator.historical_figures = [
+                HistoricalFigure.from_dict(fig_data) for fig_data in data["historical_figures"]
+            ]
+        else:
+            self.game_engine.world_coordinator.historical_figures = []

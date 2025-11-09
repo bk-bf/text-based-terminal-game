@@ -16,12 +16,14 @@ try:
     from .terrain_generation import TerrainGenerator
     from .enhanced_biomes import EnhancedBiomeSystem
     from .mythic_generation import generate_mythic_events
+    from .historical_figures import generate_historical_figures, HistoricalFigure
 except ImportError:
     try:
         from climate import ClimateSystem, ClimateZone
         from terrain_generation import TerrainGenerator
         from enhanced_biomes import EnhancedBiomeSystem
         from mythic_generation import generate_mythic_events
+        from historical_figures import generate_historical_figures, HistoricalFigure
     except ImportError:
         # Create minimal stubs if imports fail
         class ClimateSystem:
@@ -45,6 +47,10 @@ except ImportError:
                 return None
         def generate_mythic_events(world, num_events=10, seed=None):
             return []
+        def generate_historical_figures(mythic_events, seed=None):
+            return []
+        class HistoricalFigure:
+            pass
 
 
 class WorldCoordinator:
@@ -71,6 +77,10 @@ class WorldCoordinator:
         self.enhanced_biomes = None
         self.climate_system = None
         self.climate_zones = {}
+        
+        # Historical data
+        self.mythic_events = []
+        self.historical_figures = []
         
         # Generate world unless explicitly skipped
         if not skip_generation:
@@ -198,9 +208,53 @@ class WorldCoordinator:
                     self.hex_data[loc]['mythic_sites'].append(ev['id'])
             
             print(f"Generated {len(self.mythic_events)} mythic events across the world")
+            
+            # Generate historical figures tied to mythic events
+            self._generate_historical_figures()
+            
         except Exception as e:
             print(f"Warning: mythic event generation failed: {e}")
             self.mythic_events = []
+            self.historical_figures = []
+    
+    def _generate_historical_figures(self):
+        """Generate legendary heroes and villains tied to mythic events"""
+        try:
+            if not self.mythic_events:
+                print("No mythic events found - skipping historical figure generation")
+                self.historical_figures = []
+                return
+            
+            # Generate figures based on mythic events
+            self.historical_figures = generate_historical_figures(
+                self.mythic_events, 
+                seed=self.seed
+            )
+            
+            # Add figures to event data for easy lookup
+            for figure in self.historical_figures:
+                for event_id in figure.participated_in_events:
+                    # Find the event and add figure reference
+                    for event in self.mythic_events:
+                        if event['id'] == event_id:
+                            if 'participants' not in event:
+                                event['participants'] = []
+                            event['participants'].append({
+                                'id': figure.id,
+                                'name': f"{figure.name} {figure.title}",
+                                'role': figure.alignment,  # hero or villain
+                                'archetype': figure.archetype
+                            })
+            
+            heroes = len([f for f in self.historical_figures if f.alignment == "hero"])
+            villains = len([f for f in self.historical_figures if f.alignment == "villain"])
+            print(f"Generated {len(self.historical_figures)} historical figures ({heroes} heroes, {villains} villains)")
+            
+        except Exception as e:
+            print(f"Warning: historical figure generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.historical_figures = []
     
     def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
         """Generate locations for a hex using LocationGenerator"""

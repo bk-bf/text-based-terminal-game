@@ -109,6 +109,7 @@ class ActionHandler:
             "save": "handle_save_game",
             "load": "handle_load_game",
             "dump_log": "handle_save_log",
+            "research": "handle_research",
         })
         
         # Store current command for direction detection in movement handler

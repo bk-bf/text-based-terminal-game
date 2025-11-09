@@ -46,7 +46,7 @@ Create legendary events, locations, and artifacts that form the cultural/histori
 ### 2. Historical Figures & Heroes System
 Establish cultural heroes, villains, and foundational figures remembered across civilizations.
 
-- [ ] 2.1 Create historical figure generation
+- [x] 2.1 Create historical figure generation
   - Implement HistoricalFigure dataclass with genealogy
   - Generate founding heroes and legendary villains
   - Connect figures to mythic events as participants
