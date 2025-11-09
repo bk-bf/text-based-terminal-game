@@ -65,11 +65,19 @@ Character:
 System:
   save - Save game to save.json
   load - Load game from save.json
+  help/? - Show this help
+  
+=== DEBUG COMMANDS (Out-of-Character Knowledge) ===
   debug - Show debug information
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
   dump_world - Dump entire world data to JSON file
-  help/? - Show this help
+  
+  research <type> - Access omniscient world knowledge (NOT character knowledge!)
+    Types: events, figures, heroes, villains, artifacts, memory, civilizations
+    Note: These commands show ALL world history/data for testing purposes.
+          Your character would NOT know this information in-game.
+          This will be replaced with proper character-knowledge system later.
   
 Tip: Objects have permanent shortcuts like [fp] for fireplace, [we] for well!
 Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
@@ -267,25 +275,32 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
         )
     
     def handle_research(self, *args) -> ActionResult:
-        """Handle researching historical events, figures, and artifacts"""
+        """Handle researching historical events, figures, and artifacts
+        
+        DEBUG COMMAND: Shows omniscient world knowledge for testing.
+        Character would NOT know this information in-game.
+        """
         if not self.game_engine or not self.game_engine.world_coordinator:
             return ActionResult(False, "Research system not available.")
         
         if not args:
             return ActionResult(
                 False, 
-                "Usage: research <type> [name]\nTypes: events, figures, heroes, villains, artifacts"
+                "Usage: research <type> [name]\nTypes: events, figures, heroes, villains, artifacts, memory, civilizations\n\n⚠️  DEBUG: This shows omniscient world knowledge. Your character would NOT know this in-game!"
             )
         
         research_type = args[0].lower()
         world = self.game_engine.world_coordinator
+        
+        # Add debug warning header
+        debug_warning = "[cyan]⚠️  DEBUG MODE: Accessing omniscient world knowledge (not character knowledge!)[/cyan]\n"
         
         # Research mythic events
         if research_type in ["events", "event", "history"]:
             if not hasattr(world, 'mythic_events') or not world.mythic_events:
                 return ActionResult(False, "No historical events found in this world.")
             
-            info = [f"=== MYTHIC EVENTS ({len(world.mythic_events)}) ===\n"]
+            info = [debug_warning, f"=== MYTHIC EVENTS ({len(world.mythic_events)}) ===\n"]
             
             for event in sorted(world.mythic_events, key=lambda e: e.get('year', 0)):
                 year = event.get('year', 0)
@@ -337,7 +352,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             if not figures:
                 return ActionResult(False, f"No {research_type} found in this world.")
             
-            info = [f"=== {title} ({len(figures)}) ===\n"]
+            info = [debug_warning, f"=== {title} ({len(figures)}) ===\n"]
             
             for figure in sorted(figures, key=lambda f: f.birth_year):
                 info.append(f"{figure.name} {figure.title}")
@@ -348,7 +363,30 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
                     info.append(f"  Died: Year {figure.death_year}")
                 else:
                     info.append(f"  Death: Unknown/Mythic")
+                
+                # Cultural Memory System (Task 2.2)
                 info.append(f"  Significance: {figure.cultural_significance}/10")
+                
+                # Show legendary status
+                if hasattr(figure, 'legendary_status'):
+                    status_desc = {
+                        "mythic": "⭐ MYTHIC - Spoken of in hushed reverence",
+                        "legendary": "★ LEGENDARY - Celebrated in songs and stories",
+                        "famous": "✦ FAMOUS - Known to scholars and historians",
+                        "known": "· Known - Recorded in historical texts"
+                    }
+                    info.append(f"  Status: {status_desc.get(figure.legendary_status, figure.legendary_status)}")
+                
+                # Show how they're remembered
+                if hasattr(figure, 'remembered_as') and figure.remembered_as:
+                    info.append(f"  Remembered As: {figure.remembered_as.title()}")
+                
+                # Show cultural influence
+                if hasattr(figure, 'cultural_influence') and figure.cultural_influence:
+                    influence_str = ", ".join([f"{race}:{val}" for race, val in figure.cultural_influence.items() if val > 0])
+                    if influence_str:
+                        info.append(f"  Cultural Influence: {influence_str}")
+                
                 info.append(f"  Traits: {', '.join(figure.personality_traits)}")
                 
                 if figure.backstory:
@@ -388,7 +426,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             if not artifacts:
                 return ActionResult(False, "No legendary artifacts found in this world.")
             
-            info = [f"=== LEGENDARY ARTIFACTS ({len(artifacts)}) ===\n"]
+            info = [debug_warning, f"=== LEGENDARY ARTIFACTS ({len(artifacts)}) ===\n"]
             
             for artifact_id in sorted(artifacts):
                 # Find the event that created it
@@ -420,9 +458,220 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
                 action_type="research"
             )
         
+        # Research cultural memory (Task 2.2)
+        elif research_type in ["memory", "culture", "influence", "legacy"]:
+            if not hasattr(world, 'historical_figures') or not world.historical_figures:
+                return ActionResult(False, "No historical figures found in this world.")
+            
+            info = [debug_warning, f"=== CULTURAL MEMORY & INFLUENCE ===\n"]
+            
+            # Sort by memory strength (how well remembered)
+            figures_by_memory = sorted(
+                world.historical_figures, 
+                key=lambda f: getattr(f, 'memory_strength', 0), 
+                reverse=True
+            )
+            
+            # Show top 10 most remembered figures
+            info.append(f"Most Remembered Figures:")
+            for i, figure in enumerate(figures_by_memory[:10], 1):
+                memory = getattr(figure, 'memory_strength', 0)
+                status = getattr(figure, 'legendary_status', 'known')
+                remembered_as = getattr(figure, 'remembered_as', 'historical figure')
+                
+                status_icon = {
+                    "mythic": "⭐",
+                    "legendary": "★",
+                    "famous": "✦",
+                    "known": "·"
+                }.get(status, "·")
+                
+                info.append(f"{i}. {status_icon} {figure.name} {figure.title}")
+                info.append(f"   Memory Strength: {memory}/10 | {remembered_as.title()}")
+                info.append(f"   {figure.alignment.title()} of {figure.race.title()} origin")
+                
+                # Show influence across cultures
+                if hasattr(figure, 'cultural_influence') and figure.cultural_influence:
+                    influence_list = [
+                        f"{race.title()}({val})" 
+                        for race, val in sorted(figure.cultural_influence.items(), key=lambda x: x[1], reverse=True)
+                        if val > 0
+                    ]
+                    if influence_list:
+                        info.append(f"   Influence: {', '.join(influence_list)}")
+                info.append("")
+            
+            # Summary by legendary status
+            info.append("\nLegendary Status Distribution:")
+            status_counts = {}
+            for figure in world.historical_figures:
+                status = getattr(figure, 'legendary_status', 'known')
+                status_counts[status] = status_counts.get(status, 0) + 1
+            
+            for status in ["mythic", "legendary", "famous", "known"]:
+                count = status_counts.get(status, 0)
+                if count > 0:
+                    icon = {"mythic": "⭐", "legendary": "★", "famous": "✦", "known": "·"}[status]
+                    info.append(f"  {icon} {status.title()}: {count} figures")
+            
+            # Cultural influence summary by race
+            info.append("\nCultural Influence by Race:")
+            race_influence = {}
+            for figure in world.historical_figures:
+                if hasattr(figure, 'cultural_influence'):
+                    for race, influence in figure.cultural_influence.items():
+                        if race not in race_influence:
+                            race_influence[race] = []
+                        race_influence[race].append(influence)
+            
+            for race, influences in sorted(race_influence.items()):
+                avg_influence = sum(influences) / len(influences) if influences else 0
+                total_influence = sum(influences)
+                info.append(f"  {race.title()}: Avg {avg_influence:.1f}/10 | Total {total_influence} points")
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
+        # Research civilizations
+        elif research_type in ["civilizations", "civilization", "civs", "civ", "cultures", "kingdoms"]:
+            if not hasattr(world, 'civilizations') or not world.civilizations:
+                return ActionResult(False, "No civilizations found in this world.")
+            
+            info = [debug_warning, f"=== CIVILIZATIONS ({len(world.civilizations)}) ===\n"]
+            
+            for civ in sorted(world.civilizations, key=lambda c: c.founded_year):
+                info.append(f"{civ.name}")
+                
+                # Display racial composition
+                if civ.race == "mixed":
+                    info.append(f"  Type: Cosmopolitan (Mixed-Race)")
+                    if hasattr(civ, 'race_percentages') and civ.race_percentages:
+                        composition = ", ".join([f"{race.title()} {pct}%" for race, pct in civ.race_percentages.items()])
+                        info.append(f"  Composition: {composition}")
+                else:
+                    info.append(f"  Race: {civ.race.title()}")
+                
+                info.append(f"  Government: {civ.government_type.value.replace('_', ' ').title()}")
+                info.append(f"  Founded: Year {civ.founded_year}")
+                info.append(f"  Population: {civ.population:,}")
+                
+                # Cultural values
+                values_str = ", ".join([v.value.replace('_', ' ').title() for v in civ.cultural_values])
+                info.append(f"  Values: {values_str}")
+                
+                # Religion
+                info.append(f"  Faith: {civ.religious_beliefs}")
+                
+                # Description
+                info.append(f"  {civ.cultural_description}")
+                
+                # Territory
+                if civ.territory:
+                    info.append(f"  Territory: {len(civ.territory.hex_coordinates)} regions")
+                    capital_hex = civ.territory.capital_hex
+                    info.append(f"  Capital: Hex {capital_hex[0]:02d}{capital_hex[1]:02d}")
+                    if civ.territory.territorial_description:
+                        info.append(f"  {civ.territory.territorial_description}")
+                
+                # Founding figures
+                if civ.founding_figures:
+                    founder_names = []
+                    for fig_id in civ.founding_figures:
+                        # Find the figure
+                        for fig in world.historical_figures:
+                            if fig.id == fig_id:
+                                founder_names.append(f"{fig.name} {fig.title}")
+                                break
+                    if founder_names:
+                        info.append(f"  Founders: {', '.join(founder_names)}")
+                
+                # Notable features
+                if civ.notable_features:
+                    info.append(f"  Notable Features:")
+                    for feature in civ.notable_features[:3]:  # Limit to 3
+                        info.append(f"    • {feature}")
+                
+                # Relationships with other civilizations
+                if civ.faction_relationships:
+                    info.append(f"  Relations:")
+                    for other_civ_id, relationship in civ.faction_relationships.items():
+                        # Find the other civilization
+                        other_civ_name = None
+                        for other_civ in world.civilizations:
+                            if other_civ.id == other_civ_id:
+                                other_civ_name = other_civ.name
+                                break
+                        if other_civ_name:
+                            rel_symbol = {
+                                "allied": "⚔️ Allied",
+                                "friendly": "🤝 Friendly",
+                                "neutral": "⚖️ Neutral",
+                                "tense": "⚠️ Tense",
+                                "hostile": "⚔️ Hostile",
+                                "at_war": "⚔️ AT WAR"
+                            }.get(relationship.value, relationship.value)
+                            info.append(f"    {rel_symbol} with {other_civ_name}")
+                
+                info.append("")  # Blank line between civilizations
+            
+            # Summary statistics
+            info.append("=== CIVILIZATION SUMMARY ===")
+            
+            # By race
+            race_counts = {}
+            mixed_count = 0
+            for civ in world.civilizations:
+                if civ.race == "mixed":
+                    mixed_count += 1
+                else:
+                    race_counts[civ.race] = race_counts.get(civ.race, 0) + 1
+            
+            info.append("\nBy Type:")
+            for race, count in sorted(race_counts.items(), key=lambda x: x[1], reverse=True):
+                info.append(f"  {race.title()}: {count} civilization{'s' if count > 1 else ''}")
+            if mixed_count > 0:
+                info.append(f"  Mixed/Cosmopolitan: {mixed_count} civilization{'s' if mixed_count > 1 else ''}")
+            
+            # By government type
+            gov_counts = {}
+            for civ in world.civilizations:
+                gov_type = civ.government_type.value.replace('_', ' ').title()
+                gov_counts[gov_type] = gov_counts.get(gov_type, 0) + 1
+            info.append("\nBy Government:")
+            for gov, count in sorted(gov_counts.items(), key=lambda x: x[1], reverse=True):
+                info.append(f"  {gov}: {count}")
+            
+            # Total population
+            total_pop = sum(civ.population for civ in world.civilizations)
+            info.append(f"\nTotal Population: {total_pop:,}")
+            
+            # Relationship overview
+            relationship_counts = {}
+            for civ in world.civilizations:
+                for rel in civ.faction_relationships.values():
+                    rel_name = rel.value.replace('_', ' ').title()
+                    relationship_counts[rel_name] = relationship_counts.get(rel_name, 0) + 1
+            
+            if relationship_counts:
+                info.append("\nInter-Civilization Relations:")
+                for rel, count in sorted(relationship_counts.items(), key=lambda x: x[1], reverse=True):
+                    info.append(f"  {rel}: {count} relationships")
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
         else:
             return ActionResult(
                 False,
                 f"Unknown research type: {research_type}\n"
-                "Available types: events, figures, heroes, villains, artifacts"
+                "Available types: events, figures, heroes, villains, artifacts, memory, civilizations\n\n"
+                "⚠️  DEBUG: This shows omniscient world knowledge. Your character would NOT know this in-game!"
             )

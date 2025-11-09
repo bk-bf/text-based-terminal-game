@@ -52,13 +52,13 @@ Establish cultural heroes, villains, and foundational figures remembered across 
   - Connect figures to mythic events as participants
   - _Requirements: 2.1.1_
 
-- [ ] 2.2 Implement cultural memory system
+- [x] 2.2 Implement cultural memory system
   - Add significance tracking for historical figures
   - Create hero/villain categorization
   - Implement cultural influence mechanics
   - _Requirements: 2.1.1_
 
-- [ ] 2.3 Test historical figure integration
+- [x] 2.3 Test historical figure integration
   - Verify figure generation creates compelling characters
   - Test figure-event associations
   - Validate cultural memory references
@@ -67,19 +67,19 @@ Establish cultural heroes, villains, and foundational figures remembered across 
 ### 3. Civilization Foundation System
 Create distinct civilizations with unique cultures, governments, and territorial claims.
 
-- [ ] 3.1 Implement civilization archetype system
+- [x] 3.1 Implement civilization archetype system
   - Create Civilization dataclass with cultural identity
   - Generate human kingdoms, dwarven clans, elven courts
   - Add government types and value systems
   - _Requirements: 2.1.2_
 
-- [ ] 3.2 Build civilization placement algorithm
+- [x] 3.2 Build civilization placement algorithm
   - Connect to geographic data for preference-based placement
   - Implement territorial claim generation
   - Add founding figure associations
   - _Requirements: 2.1.2_
 
-- [ ] 3.3 Test civilization generation
+- [x] 3.3 Test civilization generation
   - Verify 5-8 distinct civilizations generate
   - Test cultural uniqueness and variety
   - Validate geographic placement logic

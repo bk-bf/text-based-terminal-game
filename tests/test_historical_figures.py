@@ -168,6 +168,65 @@ def test_genealogy():
     return True
 
 
+def test_cultural_memory():
+    """Test cultural memory system (Task 2.2)"""
+    print("\n" + "="*70)
+    print("TEST: Cultural Memory System (Task 2.2)")
+    print("="*70)
+    
+    world = WorldCoordinator(world_size=(10, 10), seed=42)
+    figures = world.historical_figures
+    
+    print(f"\n1. Checking cultural memory attributes...")
+    
+    has_memory_strength = sum(1 for f in figures if hasattr(f, 'memory_strength'))
+    has_legendary_status = sum(1 for f in figures if hasattr(f, 'legendary_status'))
+    has_cultural_influence = sum(1 for f in figures if hasattr(f, 'cultural_influence'))
+    has_remembered_as = sum(1 for f in figures if hasattr(f, 'remembered_as'))
+    
+    print(f"   • Figures with memory_strength: {has_memory_strength}/{len(figures)}")
+    print(f"   • Figures with legendary_status: {has_legendary_status}/{len(figures)}")
+    print(f"   • Figures with cultural_influence: {has_cultural_influence}/{len(figures)}")
+    print(f"   • Figures with remembered_as: {has_remembered_as}/{len(figures)}")
+    
+    print(f"\n2. Legendary status distribution:")
+    status_counts = {}
+    for figure in figures:
+        if hasattr(figure, 'legendary_status'):
+            status = figure.legendary_status
+            status_counts[status] = status_counts.get(status, 0) + 1
+    
+    for status, count in sorted(status_counts.items(), key=lambda x: x[1], reverse=True):
+        print(f"   • {status}: {count} figures")
+    
+    print(f"\n3. Example cultural memory data:")
+    # Show first figure with full details
+    if figures:
+        figure = figures[0]
+        print(f"   {figure.name} {figure.title}")
+        print(f"   • Memory Strength: {getattr(figure, 'memory_strength', 'N/A')}/10")
+        print(f"   • Legendary Status: {getattr(figure, 'legendary_status', 'N/A')}")
+        print(f"   • Remembered As: {getattr(figure, 'remembered_as', 'N/A')}")
+        
+        if hasattr(figure, 'cultural_influence'):
+            print(f"   • Cultural Influence:")
+            for race, influence in sorted(figure.cultural_influence.items(), key=lambda x: x[1], reverse=True):
+                print(f"      - {race.title()}: {influence}/10")
+    
+    # Verify all required attributes are present
+    all_have_memory = all(hasattr(f, 'memory_strength') for f in figures)
+    all_have_status = all(hasattr(f, 'legendary_status') for f in figures)
+    all_have_influence = all(hasattr(f, 'cultural_influence') for f in figures)
+    all_have_remembered = all(hasattr(f, 'remembered_as') for f in figures)
+    
+    if all_have_memory and all_have_status and all_have_influence and all_have_remembered:
+        print(f"\n   ✓ All figures have complete cultural memory data")
+        return True
+    else:
+        print(f"\n   ✗ Some figures missing cultural memory attributes")
+        return False
+
+
 def test_serialization():
     """Test saving and loading historical figures"""
     print("\n" + "="*70)
@@ -265,6 +324,7 @@ def run_all_tests():
         ("Figure Details", test_figure_details),
         ("Event Integration", test_event_integration),
         ("Genealogy", test_genealogy),
+        ("Cultural Memory (Task 2.2)", test_cultural_memory),
         ("Serialization", test_serialization),
         ("World Integration", test_integration_with_world),
     ]

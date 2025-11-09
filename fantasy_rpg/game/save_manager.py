@@ -428,13 +428,24 @@ class SaveManager:
                 else:
                     historical_figures.append(figure)
         
+        # Serialize civilizations
+        civilizations = []
+        if hasattr(self.game_engine.world_coordinator, 'civilizations'):
+            from world.civilizations import Civilization
+            for civ in self.game_engine.world_coordinator.civilizations:
+                if isinstance(civ, Civilization):
+                    civilizations.append(civ.to_dict())
+                else:
+                    civilizations.append(civ)
+        
         return {
             "hex_data": world_data,
             "persistent_locations": persistent_locations,
             "world_size": self.game_engine.world_size,
             "world_seed": self.game_engine.game_state.world_seed if self.game_engine.game_state else None,
             "mythic_events": mythic_events,
-            "historical_figures": historical_figures
+            "historical_figures": historical_figures,
+            "civilizations": civilizations
         }
     
     def _deserialize_world_data(self, data: dict):
@@ -475,3 +486,12 @@ class SaveManager:
             ]
         else:
             self.game_engine.world_coordinator.historical_figures = []
+        
+        # Restore civilizations
+        if "civilizations" in data:
+            from world.civilizations import Civilization
+            self.game_engine.world_coordinator.civilizations = [
+                Civilization.from_dict(civ_data) for civ_data in data["civilizations"]
+            ]
+        else:
+            self.game_engine.world_coordinator.civilizations = []

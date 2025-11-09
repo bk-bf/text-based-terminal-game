@@ -70,6 +70,51 @@ NAME_PATTERNS = {
                    "Pearl", "Marigold", "Peony", "Violet"],
         "surnames": ["Baggins", "Took", "Brandybuck", "Gamgee", "Boffin", "Proudfoot",
                      "Bolger", "Bracegirdle", "Goodbody", "Greenhand", "Burrows", "Sandheaver"]
+    },
+    "dragonborn": {
+        "male": ["Arjhan", "Balasar", "Bharash", "Donaar", "Ghesh", "Heskan", "Kriv",
+                 "Medrash", "Mehen", "Nadarr", "Pandjed", "Patrin", "Rhogar", "Shamash"],
+        "female": ["Akra", "Biri", "Daar", "Farideh", "Harann", "Havilar", "Jheri", "Kava",
+                   "Korinn", "Mishann", "Nala", "Perra", "Raiann", "Sora", "Surina", "Thava"],
+        "surnames": ["Clethtinthiallor", "Daardendrian", "Delmirev", "Drachedandion", "Fenkenkabradon",
+                     "Kepeshkmolik", "Kerrhylon", "Kimbatuul", "Linxakasendalor", "Myastan",
+                     "Nemmonis", "Norixius", "Ophinshtalajiir", "Prexijandilin", "Shestendeliath"]
+    },
+    "gnome": {
+        "male": ["Alston", "Alvyn", "Boddynock", "Brocc", "Burgell", "Dimble", "Eldon", "Erky",
+                 "Fonkin", "Frug", "Gerbo", "Gimble", "Glim", "Jebeddo", "Kellen", "Namfoodle",
+                 "Orryn", "Roondar", "Seebo", "Sindri", "Warryn", "Wrenn", "Zook"],
+        "female": ["Bimpnottin", "Breena", "Caramip", "Carlin", "Donella", "Duvamil", "Ella",
+                   "Ellyjobell", "Ellywick", "Lilli", "Loopmottin", "Lorilla", "Mardnab",
+                   "Nissa", "Nyx", "Oda", "Orla", "Roywyn", "Shamil", "Tana", "Waywocket", "Zanna"],
+        "surnames": ["Beren", "Daergel", "Folkor", "Garrick", "Nackle", "Murnig", "Ningel",
+                     "Raulnor", "Scheppen", "Timbers", "Turen", "Sparklegem", "Fizzlebang"]
+    },
+    "half-elf": {
+        "male": ["Aelar", "Arannis", "Berendil", "Caedric", "Elden", "Erandir", "Faelar", "Gaelin",
+                 "Hadarai", "Immeral", "Lander", "Mindartis", "Paelias", "Peren", "Quarion",
+                 "Riardon", "Soveliss", "Thamior", "Tharivol", "Varis"],
+        "female": ["Amara", "Ariel", "Celestia", "Elara", "Evelyn", "Isara", "Kaelyn", "Laira",
+                   "Meira", "Naevys", "Rosalie", "Sariel", "Sera", "Sylvia", "Talyn", "Thalia",
+                   "Valencia", "Vanya", "Xanara", "Ysara"],
+        "surnames": ["Amakiir", "Amastacia", "Brightwood", "Galanodel", "Holimion", "Liadon",
+                     "Meliamne", "Naïlo", "Siannodel", "Moonwhisper", "Ravenwood", "Silversong"]
+    },
+    "half-orc": {
+        "male": ["Dench", "Feng", "Gell", "Henk", "Holg", "Imsh", "Keth", "Krusk", "Mhurren",
+                 "Ront", "Shump", "Thokk", "Grug", "Drog", "Grommash", "Thrall"],
+        "female": ["Baggi", "Emen", "Engong", "Kansif", "Myev", "Neega", "Ovak", "Ownka",
+                   "Shautha", "Sutha", "Vola", "Volen", "Yevelda", "Draka", "Garona"],
+        "surnames": ["Bonegrinder", "Bloodaxe", "Gorehowl", "Ironjaw", "Skullsplitter", "Stonefist",
+                     "Blackhand", "Doomhammer", "Fireforge", "Grimtotem", "Wolfheart"]
+    },
+    "tiefling": {
+        "male": ["Akmenos", "Amnon", "Barakas", "Damakos", "Ekemon", "Iados", "Kairon", "Leucis",
+                 "Melech", "Mordai", "Morthos", "Pelaios", "Skamos", "Therai", "Valafar", "Xarxes"],
+        "female": ["Akta", "Anakis", "Bryseis", "Criella", "Damaia", "Ea", "Kallista", "Lerissa",
+                   "Makaria", "Nemeia", "Orianna", "Phelaia", "Rieta", "Soraya", "Therassa", "Zariel"],
+        "surnames": ["Ashborn", "Darkflame", "Emberwing", "Hellfury", "Infernus", "Nightshade",
+                     "Shadowhorn", "Soulfire", "Vexmoor", "Ashguard", "Flameheart", "Cinderscar"]
     }
 }
 
@@ -98,6 +143,12 @@ class HistoricalFigure:
     artifacts_owned: List[str] = field(default_factory=list)         # Artifact IDs
     cultural_significance: int = 5                                    # 1-10 scale
     
+    # Cultural Memory System (Task 2.2)
+    memory_strength: int = 5                   # How well remembered (1-10, decays over time)
+    cultural_influence: Dict[str, int] = field(default_factory=dict)  # race -> influence level
+    remembered_as: str = ""                    # How they're remembered (e.g., "savior", "tyrant")
+    legendary_status: str = "known"            # "known", "famous", "legendary", "mythic"
+    
     # Biographical Details
     backstory: str = ""                        # Brief biography
     personality_traits: List[str] = field(default_factory=list)  # Defining characteristics
@@ -111,6 +162,46 @@ class HistoricalFigure:
     def from_dict(cls, data: Dict[str, Any]) -> 'HistoricalFigure':
         """Create from dictionary"""
         return cls(**data)
+    
+    def get_memory_description(self) -> str:
+        """Get natural language description of how figure is remembered"""
+        if self.legendary_status == "mythic":
+            return f"spoken of in hushed reverence, their deeds the stuff of legend"
+        elif self.legendary_status == "legendary":
+            return f"celebrated in songs and stories across the land"
+        elif self.legendary_status == "famous":
+            return f"well-known among scholars and historians"
+        else:
+            return f"remembered by those who study the old histories"
+    
+    def calculate_cultural_influence(self, races_present: List[str]) -> Dict[str, int]:
+        """Calculate influence on different cultures based on achievements and significance.
+        
+        Args:
+            races_present: List of races in the world
+            
+        Returns:
+            Dictionary mapping race to influence level (0-10)
+        """
+        influence = {}
+        
+        # Base influence on cultural significance
+        base_influence = self.cultural_significance
+        
+        for race in races_present:
+            if race == self.race:
+                # Strongest influence on own race
+                influence[race] = min(10, base_influence + 2)
+            else:
+                # Weaker but still present influence on other races
+                # Heroes tend to have broader influence than villains
+                if self.alignment == "hero":
+                    influence[race] = max(1, base_influence - 2)
+                else:
+                    # Villains remembered more by those they affected
+                    influence[race] = max(0, base_influence - 4)
+        
+        return influence
 
 
 def _generate_name(race: str, gender: str, rng: random.Random) -> Tuple[str, str]:
@@ -337,12 +428,17 @@ def generate_historical_figures(mythic_events: List[Dict[str, Any]],
                 alignment = "villain"
                 role = "antagonist"
             
-            # Select race (weighted distribution)
+            # Select race (weighted distribution - core races more common)
             race_weights = [
-                ("human", 40),
-                ("elf", 25),
-                ("dwarf", 20),
-                ("halfling", 15),
+                ("human", 30),
+                ("elf", 20),
+                ("dwarf", 15),
+                ("halfling", 10),
+                ("dragonborn", 8),
+                ("gnome", 7),
+                ("half-elf", 5),
+                ("half-orc", 3),
+                ("tiefling", 2),
             ]
             race = rng.choices(
                 [r[0] for r in race_weights],
@@ -411,7 +507,73 @@ def generate_historical_figures(mythic_events: List[Dict[str, Any]],
     # Connect figures of same race who lived in overlapping times
     _generate_genealogy(figures, rng)
     
+    # Initialize cultural memory system (Task 2.2)
+    _initialize_cultural_memory(figures, rng)
+    
     return figures
+
+
+def _initialize_cultural_memory(figures: List[HistoricalFigure], rng: random.Random):
+    """Initialize cultural memory attributes for historical figures (Task 2.2).
+    
+    Sets memory strength, legendary status, cultural influence, and how they're remembered
+    based on their achievements, significance, and alignment.
+    """
+    # Get all races present
+    races_present = list(set(f.race for f in figures))
+    
+    for figure in figures:
+        # Memory strength starts equal to cultural significance
+        figure.memory_strength = figure.cultural_significance
+        
+        # Determine legendary status based on significance and achievements
+        if figure.cultural_significance >= 9:
+            figure.legendary_status = "mythic"
+        elif figure.cultural_significance >= 7:
+            figure.legendary_status = "legendary"
+        elif figure.cultural_significance >= 5:
+            figure.legendary_status = "famous"
+        else:
+            figure.legendary_status = "known"
+        
+        # Calculate cultural influence across races
+        figure.cultural_influence = figure.calculate_cultural_influence(races_present)
+        
+        # Determine how they're remembered based on archetype and alignment
+        figure.remembered_as = _generate_remembered_as(figure.archetype, figure.alignment, rng)
+
+
+def _generate_remembered_as(archetype: str, alignment: str, rng: random.Random) -> str:
+    """Generate how a figure is remembered by culture.
+    
+    Args:
+        archetype: Figure's archetype
+        alignment: "hero" or "villain"
+        rng: Random number generator
+        
+    Returns:
+        Description of how they're culturally remembered
+    """
+    memory_templates = {
+        # Hero archetypes
+        "warrior_hero": ["legendary warrior", "champion of the people", "defender of the realm"],
+        "wise_elder": ["sage advisor", "keeper of ancient wisdom", "teacher of generations"],
+        "cunning_strategist": ["brilliant tactician", "master diplomat", "architect of peace"],
+        "noble_ruler": ["just sovereign", "unifier of peoples", "builder of nations"],
+        "wandering_prophet": ["divine messenger", "voice of prophecy", "spiritual guide"],
+        "master_craftsman": ["legendary artisan", "creator of wonders", "innovator supreme"],
+        
+        # Villain archetypes
+        "tyrant_conqueror": ["cruel tyrant", "bringer of devastation", "destroyer of kingdoms"],
+        "dark_sorcerer": ["corruptor of magic", "wielder of forbidden arts", "harbinger of darkness"],
+        "treacherous_noble": ["infamous betrayer", "architect of ruin", "master of treachery"],
+        "cult_leader": ["dark prophet", "false messiah", "corruptor of faith"],
+        "plague_bringer": ["harbinger of death", "spreader of pestilence", "cursed one"],
+        "usurper_king": ["illegitimate ruler", "throne-stealer", "breaker of rightful order"],
+    }
+    
+    templates = memory_templates.get(archetype, [f"{'legendary' if alignment == 'hero' else 'infamous'} figure"])
+    return rng.choice(templates)
 
 
 def _generate_genealogy(figures: List[HistoricalFigure], rng: random.Random):

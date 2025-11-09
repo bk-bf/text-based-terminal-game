@@ -741,6 +741,16 @@ class FantasyRPGApp(App):
                     action_logger.log_system_message(f"Marked {mythic_hexes} hexes with mythic sites (ancient battlefields, lost cities, sacred sites)")
             else:
                 action_logger.log_system_message("No mythic events generated")
+            
+            # Report civilization placement
+            civilizations = getattr(world, 'civilizations', [])
+            if civilizations:
+                action_logger.log_system_message(f"Placed {len(civilizations)} civilizations across the world map")
+                
+                # Count total territory hexes
+                total_territory = sum(len(civ.territory.hex_coordinates) for civ in civilizations if civ.territory)
+                if total_territory > 0:
+                    action_logger.log_system_message(f"Civilizations control {total_territory} hexes total (use 'research civilizations' to explore)")
         else:
             action_logger.log_system_message("World coordinator not available")
     

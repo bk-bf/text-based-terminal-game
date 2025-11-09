@@ -17,6 +17,7 @@ try:
     from .enhanced_biomes import EnhancedBiomeSystem
     from .mythic_generation import generate_mythic_events
     from .historical_figures import generate_historical_figures, HistoricalFigure
+    from .civilizations import generate_civilizations, Civilization
 except ImportError:
     try:
         from climate import ClimateSystem, ClimateZone
@@ -24,6 +25,7 @@ except ImportError:
         from enhanced_biomes import EnhancedBiomeSystem
         from mythic_generation import generate_mythic_events
         from historical_figures import generate_historical_figures, HistoricalFigure
+        from civilizations import generate_civilizations, Civilization
     except ImportError:
         # Create minimal stubs if imports fail
         class ClimateSystem:
@@ -49,7 +51,11 @@ except ImportError:
             return []
         def generate_historical_figures(mythic_events, seed=None):
             return []
+        def generate_civilizations(world_size, historical_figures, target_count=None):
+            return []
         class HistoricalFigure:
+            pass
+        class Civilization:
             pass
 
 
@@ -81,6 +87,7 @@ class WorldCoordinator:
         # Historical data
         self.mythic_events = []
         self.historical_figures = []
+        self.civilizations = []
         
         # Generate world unless explicitly skipped
         if not skip_generation:
@@ -250,11 +257,52 @@ class WorldCoordinator:
             villains = len([f for f in self.historical_figures if f.alignment == "villain"])
             print(f"Generated {len(self.historical_figures)} historical figures ({heroes} heroes, {villains} villains)")
             
+            # Generate civilizations based on historical figures
+            self._generate_civilizations()
+            
         except Exception as e:
             print(f"Warning: historical figure generation failed: {e}")
             import traceback
             traceback.print_exc()
             self.historical_figures = []
+    
+    def _generate_civilizations(self):
+        """Generate distinct civilizations with unique cultures"""
+        try:
+            if not self.historical_figures:
+                print("No historical figures found - skipping civilization generation")
+                self.civilizations = []
+                return
+            
+            # Generate 5-8 civilizations
+            self.civilizations = generate_civilizations(
+                world_size=self.world_size,
+                historical_figures=self.historical_figures,
+                target_count=None  # Random 5-8
+            )
+            
+            # Update historical figures with civilization associations
+            for figure in self.historical_figures:
+                if hasattr(figure, 'civilization') and figure.civilization:
+                    # Already associated by generate_civilizations
+                    pass
+            
+            print(f"Generated {len(self.civilizations)} distinct civilizations")
+            
+            # Place civilizations on the map
+            from .civilizations import place_civilizations
+            place_civilizations(self.civilizations, self)
+            
+            # Log civilization details with territories
+            for civ in self.civilizations:
+                territory_info = f", {len(civ.territory.hex_coordinates)} hexes" if civ.territory else ""
+                print(f"  - {civ.name} ({civ.race}, {civ.government_type.value}{territory_info})")
+            
+        except Exception as e:
+            print(f"Warning: civilization generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.civilizations = []
     
     def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
         """Generate locations for a hex using LocationGenerator"""
