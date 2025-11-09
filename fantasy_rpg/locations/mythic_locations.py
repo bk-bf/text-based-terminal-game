@@ -74,13 +74,15 @@ def get_random_mythic_location_template(seed: Optional[int] = None) -> Optional[
 
 def instantiate_mythic_location(template: Dict[str, Any], 
                                 hex_coords: tuple,
-                                mythic_event_id: Optional[str] = None) -> Dict[str, Any]:
+                                mythic_event_id: Optional[str] = None,
+                                artifact_id: Optional[str] = None) -> Dict[str, Any]:
     """Convert a mythic location template into an instantiated location.
     
     Args:
         template: Mythic location template dictionary
         hex_coords: Hex coordinates (x, y) where location is placed
         mythic_event_id: Optional ID of associated mythic event
+        artifact_id: Optional ID of legendary artifact to place in this location
         
     Returns:
         Dictionary representing an instantiated location
@@ -95,6 +97,7 @@ def instantiate_mythic_location(template: Dict[str, Any],
         'exit_flag': template.get('exit_flag', True),
         'is_mythic': True,
         'mythic_event_id': mythic_event_id,
+        'artifact_id': artifact_id,  # Store artifact ID for location generation
         'areas': template.get('areas', {}),
         'provides_some_shelter': template.get('provides_some_shelter', False),
         'provides_good_shelter': template.get('provides_good_shelter', False),
@@ -145,11 +148,18 @@ def get_mythic_location_for_hex(hex_data: Dict[str, Any],
     if not template:
         return None
     
-    # Instantiate the location
+    # Get artifact ID if event creates one
+    artifact_id = None
+    creates_artifacts = matching_event.get('creates_artifacts', [])
+    if creates_artifacts:
+        artifact_id = creates_artifacts[0]  # Use first artifact
+    
+    # Instantiate the location with artifact
     return instantiate_mythic_location(
         template,
         hex_coords,
-        mythic_event_id=matching_event['id']
+        mythic_event_id=matching_event['id'],
+        artifact_id=artifact_id
     )
 
 

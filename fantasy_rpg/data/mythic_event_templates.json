@@ -3,43 +3,64 @@
         "name": "The First Flame",
         "type": "discovery",
         "base_description": "A small group learned to tame fire and passed that secret to their kin.",
-        "significance": 7
+        "significance": 7,
+        "creates_artifacts": [
+            "crown_of_the_first_flame"
+        ]
     },
     {
         "name": "The Broken Crown",
         "type": "war",
         "base_description": "A king betrayed his oath and plunged the realm into civil war.",
-        "significance": 9
+        "significance": 9,
+        "creates_artifacts": [
+            "ancestors_blade"
+        ]
     },
     {
         "name": "The Great Flood",
         "type": "disaster",
         "base_description": "A cataclysmic flood reshaped coastlines and forced migrations.",
-        "significance": 8
+        "significance": 8,
+        "creates_artifacts": [
+            "amulet_of_the_hidden_spring"
+        ]
     },
     {
         "name": "The Stone Pact",
         "type": "treaty",
         "base_description": "Rival tribes sealed a covenant at the Stone Circle and formed lasting alliances.",
-        "significance": 6
+        "significance": 6,
+        "creates_artifacts": [
+            "ring_of_the_stone_pact"
+        ]
     },
     {
         "name": "Sundered Gate",
         "type": "siege",
         "base_description": "A fortress gate was broken in a famous siege, changing military doctrine.",
-        "significance": 7
+        "significance": 7,
+        "creates_artifacts": [
+            "shield_of_the_sundered_gate"
+        ]
     },
     {
         "name": "The Lost City",
         "type": "loss",
         "base_description": "An entire city vanished under unknown circumstances, leaving myths and ruins.",
-        "significance": 8
+        "significance": 8,
+        "creates_artifacts": [
+            "horn_of_the_lost_city"
+        ]
     },
     {
         "name": "The Wanderer's Star",
         "type": "omen",
         "base_description": "A comet appeared and was taken as an omen that altered faiths.",
-        "significance": 5
+        "significance": 5,
+        "creates_artifacts": [
+            "staff_of_the_wandering_star"
+        ]
     },
     {
         "name": "Forging of the Ancestors' Blade",
@@ -54,24 +75,36 @@
         "name": "The Quiet Plague",
         "type": "disaster",
         "base_description": "A sickness passed through generations and reshaped population centers.",
-        "significance": 6
+        "significance": 6,
+        "creates_artifacts": [
+            "chalice_of_the_quiet_plague"
+        ]
     },
     {
         "name": "The Hidden Spring",
         "type": "discovery",
         "base_description": "A spring with strange properties was found and became sacred.",
-        "significance": 6
+        "significance": 6,
+        "creates_artifacts": [
+            "amulet_of_the_hidden_spring"
+        ]
     },
     {
         "name": "The Oath of Twelve",
         "type": "treaty",
         "base_description": "Twelve leaders swore an oath at the mountain pass, creating an order that endures in legend.",
-        "significance": 7
+        "significance": 7,
+        "creates_artifacts": [
+            "gauntlets_of_the_twelve_oaths"
+        ]
     },
     {
         "name": "The Sun-Eater",
         "type": "omen",
         "base_description": "An eclipse coincided with strange events and birthed fearsome tales.",
-        "significance": 6
+        "significance": 6,
+        "creates_artifacts": [
+            "cloak_of_the_sun_eater"
+        ]
     }
 ]

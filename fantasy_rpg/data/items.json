@@ -51,6 +51,9 @@
         "farming",
         "enchanted",
         "very_rare",
+        "legendary",
+        "artifact",
+        "mythic",
         "fighter_gear",
         "rogue_gear",
         "cleric_gear",
@@ -749,6 +752,226 @@
                 "utility"
             ],
             "drop_weight": 50
+        },
+        "ancestors_blade": {
+            "name": "The Ancestors' Blade",
+            "type": "weapon",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "weight": 3,
+            "value": 50000,
+            "equippable": true,
+            "slot": "hand",
+            "magical": true,
+            "enchantment_bonus": 3,
+            "special_properties": [
+                "versatile",
+                "finesse",
+                "legendary"
+            ],
+            "description": "Forged in the heart of a dying star by the First Smiths, this blade was tempered in the tears of ancient kings.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic",
+                "weapons"
+            ],
+            "drop_weight": 1
+        },
+        "crown_of_the_first_flame": {
+            "name": "Crown of the First Flame",
+            "type": "accessory",
+            "weight": 1,
+            "value": 45000,
+            "equippable": true,
+            "slot": "head",
+            "magical": true,
+            "enchantment_bonus": 2,
+            "ac_bonus": 1,
+            "special_properties": [
+                "legendary",
+                "fire_immunity"
+            ],
+            "description": "Crafted when humanity first learned to control fire, this crown holds the eternal spark of that first flame.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "staff_of_the_wandering_star": {
+            "name": "Staff of the Wandering Star",
+            "type": "weapon",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "weight": 4,
+            "value": 35000,
+            "equippable": true,
+            "slot": "hand",
+            "magical": true,
+            "enchantment_bonus": 2,
+            "special_properties": [
+                "versatile",
+                "legendary",
+                "divination"
+            ],
+            "description": "Carved from wood that fell from the sky during the great comet's passing.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic",
+                "weapons"
+            ],
+            "drop_weight": 1
+        },
+        "ring_of_the_stone_pact": {
+            "name": "Ring of the Stone Pact",
+            "type": "accessory",
+            "weight": 0.1,
+            "value": 40000,
+            "equippable": true,
+            "slot": "ring",
+            "magical": true,
+            "enchantment_bonus": 1,
+            "special_properties": [
+                "legendary",
+                "truth_binding"
+            ],
+            "description": "Forged from the melted weapons of twelve warring tribes who swore peace at the Stone Circle.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "shield_of_the_sundered_gate": {
+            "name": "Shield of the Sundered Gate",
+            "type": "shield",
+            "ac_bonus": 3,
+            "weight": 6,
+            "value": 42000,
+            "equippable": true,
+            "slot": "off_hand",
+            "magical": true,
+            "enchantment_bonus": 3,
+            "special_properties": [
+                "legendary",
+                "immovable_defense"
+            ],
+            "description": "Salvaged from the legendary gate that held back armies for three months.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic",
+                "defensive"
+            ],
+            "drop_weight": 1
+        },
+        "amulet_of_the_hidden_spring": {
+            "name": "Amulet of the Hidden Spring",
+            "type": "accessory",
+            "weight": 0.5,
+            "value": 38000,
+            "equippable": true,
+            "slot": "amulet",
+            "magical": true,
+            "enchantment_bonus": 2,
+            "special_properties": [
+                "legendary",
+                "regeneration"
+            ],
+            "description": "Carved from crystal found at the bottom of a mystical spring with waters that never run dry.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "gauntlets_of_the_twelve_oaths": {
+            "name": "Gauntlets of the Twelve Oaths",
+            "type": "accessory",
+            "weight": 2,
+            "value": 36000,
+            "equippable": true,
+            "slot": "hands",
+            "magical": true,
+            "enchantment_bonus": 2,
+            "special_properties": [
+                "legendary",
+                "oath_power"
+            ],
+            "description": "These gauntlets bear the handprints of twelve ancient heroes who swore an eternal oath.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "cloak_of_the_sun_eater": {
+            "name": "Cloak of the Sun-Eater",
+            "type": "accessory",
+            "weight": 1,
+            "value": 34000,
+            "equippable": true,
+            "slot": "back",
+            "magical": true,
+            "enchantment_bonus": 1,
+            "special_properties": [
+                "legendary",
+                "shadow_weaving",
+                "prophecy"
+            ],
+            "description": "Woven from threads that captured the darkness during the great eclipse.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "horn_of_the_lost_city": {
+            "name": "Horn of the Lost City",
+            "type": "tool",
+            "weight": 2,
+            "value": 30000,
+            "equippable": false,
+            "magical": true,
+            "special_properties": [
+                "legendary",
+                "revelation",
+                "ghostly_connection"
+            ],
+            "description": "The only remaining artifact from a city that vanished in a single night.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
+        },
+        "chalice_of_the_quiet_plague": {
+            "name": "Chalice of the Quiet Plague",
+            "type": "accessory",
+            "weight": 1,
+            "value": 32000,
+            "equippable": false,
+            "magical": true,
+            "special_properties": [
+                "legendary",
+                "disease_sense",
+                "healer_sacrifice"
+            ],
+            "description": "Fashioned by healers during the Quiet Plague in a desperate attempt to understand the sickness.",
+            "pools": [
+                "legendary",
+                "artifact",
+                "mythic"
+            ],
+            "drop_weight": 1
         }
     }
 }

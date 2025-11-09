@@ -1,0 +1,291 @@
+{
+    "_comment": "Legendary artifacts tied to mythic events and locations",
+    "_usage": "Each artifact has creation_story, cultural_significance, and associated_event_types",
+    "artifacts": {
+        "ancestors_blade": {
+            "name": "The Ancestors' Blade",
+            "item_base": "longsword",
+            "event_types": [
+                "artifact",
+                "war",
+                "discovery"
+            ],
+            "creation_story": "Forged in the heart of a dying star by the First Smiths, this blade was tempered in the tears of ancient kings. It was wielded by seven generations of heroes before being lost in the fall of the Last Kingdom.",
+            "cultural_significance": "Symbol of rightful leadership and martial prowess. Many noble houses claim descent from its original bearers.",
+            "legendary_properties": [
+                "+3 magical weapon",
+                "Deals an extra 2d6 radiant damage to creatures of darkness",
+                "Bearer has advantage on Charisma checks when dealing with nobles",
+                "Once per day, can rally allies within 30 feet (advantage on saving throws for 1 minute)"
+            ],
+            "current_location_hint": "Lost in the ruins of a fallen fortress during the Broken Crown civil war",
+            "item_overrides": {
+                "damage_dice": "1d8",
+                "damage_type": "slashing",
+                "magical": true,
+                "enchantment_bonus": 3,
+                "value": 50000,
+                "special_properties": [
+                    "versatile",
+                    "finesse",
+                    "legendary"
+                ]
+            }
+        },
+        "crown_of_the_first_flame": {
+            "name": "Crown of the First Flame",
+            "item_base": "accessory",
+            "event_types": [
+                "discovery",
+                "artifact"
+            ],
+            "creation_story": "Crafted when humanity first learned to control fire, this crown holds the eternal spark of that first flame. Its creators inscribed it with the secret names of heat and light.",
+            "cultural_significance": "Represents the dawn of civilization and mastery over nature. Worn by fire-priests and revolutionary leaders throughout history.",
+            "legendary_properties": [
+                "Grants immunity to fire damage",
+                "Wearer can cast Fireball (3rd level) once per day",
+                "Provides bright light in 20-foot radius, dim light 20 feet beyond",
+                "Bearer has advantage on Intimidation checks"
+            ],
+            "current_location_hint": "Hidden in a sacred shrine where the First Flame was discovered",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "head",
+                "magical": true,
+                "enchantment_bonus": 2,
+                "ac_bonus": 1,
+                "value": 45000,
+                "special_properties": [
+                    "legendary",
+                    "fire_immunity"
+                ]
+            }
+        },
+        "staff_of_the_wandering_star": {
+            "name": "Staff of the Wandering Star",
+            "item_base": "quarterstaff",
+            "event_types": [
+                "omen",
+                "discovery"
+            ],
+            "creation_story": "Carved from wood that fell from the sky during the great comet's passing, this staff is inscribed with celestial charts that shift to show future alignments.",
+            "cultural_significance": "Sacred to astronomers, prophets, and those who seek to read fate in the stars. Many faiths were reformed based on visions seen through this staff.",
+            "legendary_properties": [
+                "+2 magical weapon",
+                "Once per day, can cast Divination without material components",
+                "Grants advantage on Arcana and Nature checks related to celestial phenomena",
+                "In moonlight, reveals hidden paths and secret doors within 30 feet"
+            ],
+            "current_location_hint": "Last seen in the observatory of a lost city, abandoned centuries ago",
+            "item_overrides": {
+                "damage_dice": "1d6",
+                "damage_type": "bludgeoning",
+                "magical": true,
+                "enchantment_bonus": 2,
+                "value": 35000,
+                "special_properties": [
+                    "versatile",
+                    "legendary",
+                    "divination"
+                ]
+            }
+        },
+        "ring_of_the_stone_pact": {
+            "name": "Ring of the Stone Pact",
+            "item_base": "accessory",
+            "event_types": [
+                "treaty",
+                "artifact"
+            ],
+            "creation_story": "Forged from the melted weapons of twelve warring tribes who swore peace at the Stone Circle. Each band of the ring bears one tribe's sigil, eternally intertwined.",
+            "cultural_significance": "Symbol of diplomacy, alliance, and the power of keeping one's word. Many treaties are still sworn upon this ring's memory.",
+            "legendary_properties": [
+                "Wearer can cast Zone of Truth once per day",
+                "Advantage on Persuasion checks when negotiating peace or treaties",
+                "Can understand all spoken languages",
+                "When making a promise while wearing the ring, both parties know if the promise is sincere"
+            ],
+            "current_location_hint": "Kept in the vault of a neutral sanctuary where the original pact was signed",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "ring",
+                "magical": true,
+                "enchantment_bonus": 1,
+                "value": 40000,
+                "special_properties": [
+                    "legendary",
+                    "truth_binding"
+                ]
+            }
+        },
+        "shield_of_the_sundered_gate": {
+            "name": "Shield of the Sundered Gate",
+            "item_base": "shield",
+            "event_types": [
+                "siege",
+                "war"
+            ],
+            "creation_story": "Salvaged from the legendary gate that held back armies for three months. When the gate finally fell, this shield was recovered from the breach, still bearing the marks of a thousand weapons.",
+            "cultural_significance": "Represents unwavering defense and the ultimate sacrifice. Military academies teach tactics based on the Sundered Gate defense.",
+            "legendary_properties": [
+                "+3 magical shield",
+                "Grants +3 to AC instead of +2",
+                "Once per short rest, can use reaction to become immovable until next turn",
+                "Bearer has advantage on saving throws against being moved or knocked prone"
+            ],
+            "current_location_hint": "Mounted on display in the ruins of the fortress where the gate once stood",
+            "item_overrides": {
+                "ac_bonus": 3,
+                "magical": true,
+                "enchantment_bonus": 3,
+                "value": 42000,
+                "special_properties": [
+                    "legendary",
+                    "immovable_defense"
+                ]
+            }
+        },
+        "amulet_of_the_hidden_spring": {
+            "name": "Amulet of the Hidden Spring",
+            "item_base": "accessory",
+            "event_types": [
+                "discovery",
+                "omen"
+            ],
+            "creation_story": "Carved from crystal found at the bottom of a mystical spring with waters that never run dry. The amulet contains a single drop of the spring's water, eternally preserved.",
+            "cultural_significance": "Sacred relic representing healing, renewal, and the mysteries of nature. Pilgrims still seek the Hidden Spring's location.",
+            "legendary_properties": [
+                "Wearer regains 1 hit point at the start of each turn if below half HP",
+                "Once per day, can cast Lesser Restoration",
+                "Advantage on Constitution saving throws against poison and disease",
+                "Never suffers thirst-related damage or exhaustion"
+            ],
+            "current_location_hint": "Lost when the shrine to the Hidden Spring was flooded in the Great Deluge",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "amulet",
+                "magical": true,
+                "enchantment_bonus": 2,
+                "value": 38000,
+                "special_properties": [
+                    "legendary",
+                    "regeneration"
+                ]
+            }
+        },
+        "gauntlets_of_the_twelve_oaths": {
+            "name": "Gauntlets of the Twelve Oaths",
+            "item_base": "accessory",
+            "event_types": [
+                "treaty",
+                "artifact"
+            ],
+            "creation_story": "When the Twelve swore their legendary oath at the mountain pass, each pressed their hand into molten steel. These gauntlets bear the handprints of those ancient heroes.",
+            "cultural_significance": "Symbol of honor, duty, and brotherhood. Many knightly orders trace their traditions back to the Oath of Twelve.",
+            "legendary_properties": [
+                "+2 to Strength-based attack and damage rolls",
+                "Unarmed strikes deal 1d8 + Strength modifier damage",
+                "Once per day, can call upon oath to gain advantage on all attacks for 1 minute",
+                "Cannot be disarmed while wearing these gauntlets"
+            ],
+            "current_location_hint": "Buried with one of the Twelve in a hidden tomb at the mountain pass",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "hands",
+                "magical": true,
+                "enchantment_bonus": 2,
+                "value": 36000,
+                "special_properties": [
+                    "legendary",
+                    "oath_power"
+                ]
+            }
+        },
+        "cloak_of_the_sun_eater": {
+            "name": "Cloak of the Sun-Eater",
+            "item_base": "accessory",
+            "event_types": [
+                "omen",
+                "disaster"
+            ],
+            "creation_story": "Woven from threads that captured the darkness during the great eclipse. Those who wore it during that fateful day were said to see visions of things that had not yet come to pass.",
+            "cultural_significance": "Feared and revered as an artifact of prophecy and doom. Many disasters were predicted by those who wore this cloak.",
+            "legendary_properties": [
+                "Grants advantage on Stealth checks in dim light or darkness",
+                "Once per day, can cast Darkness",
+                "Wearer has darkvision to 120 feet",
+                "Once per week, can attempt to see a vision of the near future (DM discretion)"
+            ],
+            "current_location_hint": "Hidden away by fearful priests in a sealed chamber beneath an ancient temple",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "back",
+                "magical": true,
+                "enchantment_bonus": 1,
+                "value": 34000,
+                "special_properties": [
+                    "legendary",
+                    "shadow_weaving",
+                    "prophecy"
+                ]
+            }
+        },
+        "horn_of_the_lost_city": {
+            "name": "Horn of the Lost City",
+            "item_base": "tool",
+            "event_types": [
+                "loss",
+                "disaster"
+            ],
+            "creation_story": "The only remaining artifact from a city that vanished in a single night. When blown, some claim to hear echoes of the lost city's final moments.",
+            "cultural_significance": "A haunting reminder of hubris and the fragility of civilization. Scholars study it seeking clues to the city's fate.",
+            "legendary_properties": [
+                "When blown, creates a thunderous sound audible for miles",
+                "Once per day, can cast Sending to contact someone in the lost city (may reach the dead)",
+                "Reveals illusions and hidden passages within 60 feet when sounded",
+                "Bearer has advantage on History checks about lost civilizations"
+            ],
+            "current_location_hint": "Found in the ruins where the lost city once stood, guarded by restless spirits",
+            "item_overrides": {
+                "type": "tool",
+                "magical": true,
+                "value": 30000,
+                "weight": 2.0,
+                "special_properties": [
+                    "legendary",
+                    "revelation",
+                    "ghostly_connection"
+                ]
+            }
+        },
+        "chalice_of_the_quiet_plague": {
+            "name": "Chalice of the Quiet Plague",
+            "item_base": "accessory",
+            "event_types": [
+                "disaster",
+                "omen"
+            ],
+            "creation_story": "Fashioned by healers during the Quiet Plague in a desperate attempt to understand the sickness. Those who drank from it could sense disease, though many died in the attempt.",
+            "cultural_significance": "A grim reminder of past suffering, but also of the courage of healers. Medical traditions still reference the sacrifices made during the plague.",
+            "legendary_properties": [
+                "Wearer can cast Detect Poison and Disease at will",
+                "Advantage on Medicine checks",
+                "Once per day, can remove one disease from a touched creature",
+                "Immune to disease (but can still carry and transmit)"
+            ],
+            "current_location_hint": "Sealed in a quarantine vault in the ruins of a plague hospital",
+            "item_overrides": {
+                "type": "accessory",
+                "slot": "none",
+                "magical": true,
+                "value": 32000,
+                "weight": 1.0,
+                "special_properties": [
+                    "legendary",
+                    "disease_sense",
+                    "healer_sacrifice"
+                ]
+            }
+        }
+    }
+}
