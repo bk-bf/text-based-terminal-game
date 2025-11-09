@@ -295,36 +295,93 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
         # Add debug warning header
         debug_warning = "[cyan]⚠️  DEBUG MODE: Accessing omniscient world knowledge (not character knowledge!)[/cyan]\n"
         
-        # Research mythic events
+        # Research mythic AND historical events
         if research_type in ["events", "event", "history"]:
-            if not hasattr(world, 'mythic_events') or not world.mythic_events:
+            mythic_events = getattr(world, 'mythic_events', [])
+            historical_events = getattr(world, 'historical_events', [])
+            
+            if not mythic_events and not historical_events:
                 return ActionResult(False, "No historical events found in this world.")
             
-            info = [debug_warning, f"=== MYTHIC EVENTS ({len(world.mythic_events)}) ===\n"]
+            info = [debug_warning]
             
-            for event in sorted(world.mythic_events, key=lambda e: e.get('year', 0)):
-                year = event.get('year', 0)
-                name = event.get('name', 'Unknown Event')
-                event_type = event.get('event_type', 'myth')
-                significance = event.get('significance', 5)
-                description = event.get('description', '')
+            # Show mythic/foundational events first
+            if mythic_events:
+                info.append(f"=== MYTHIC/FOUNDATIONAL EVENTS ({len(mythic_events)}) ===\n")
                 
-                info.append(f"Year {year}: {name}")
-                info.append(f"  Type: {event_type.replace('_', ' ').title()}")
-                info.append(f"  Significance: {significance}/10")
-                info.append(f"  {description}")
+                for event in sorted(mythic_events, key=lambda e: e.get('year', 0)):
+                    year = event.get('year', 0)
+                    name = event.get('name', 'Unknown Event')
+                    event_type = event.get('event_type', 'myth')
+                    significance = event.get('significance', 5)
+                    description = event.get('description', '')
+                    
+                    info.append(f"Year {year}: {name}")
+                    info.append(f"  Type: {event_type.replace('_', ' ').title()}")
+                    info.append(f"  Significance: {significance}/10")
+                    info.append(f"  {description}")
+                    
+                    # Show participants if available
+                    if 'participants' in event and event['participants']:
+                        info.append(f"  Key Figures:")
+                        for participant in event['participants']:
+                            info.append(f"    • {participant['name']} ({participant['role']})")
+                    
+                    # Show artifacts if available
+                    if 'artifact_id' in event:
+                        info.append(f"  Legendary Artifact: {event['artifact_id']}")
+                    
+                    info.append("")  # Blank line between events
+            
+            # Show historical simulation events
+            if historical_events:
+                info.append(f"\n=== HISTORICAL EVENTS ({len(historical_events)}) ===\n")
                 
-                # Show participants if available
-                if 'participants' in event and event['participants']:
-                    info.append(f"  Key Figures:")
-                    for participant in event['participants']:
-                        info.append(f"    • {participant['name']} ({participant['role']})")
-                
-                # Show artifacts if available
-                if 'artifact_id' in event:
-                    info.append(f"  Legendary Artifact: {event['artifact_id']}")
-                
-                info.append("")  # Blank line between events
+                for event in historical_events:
+                    info.append(f"Year {event.year}: {event.name}")
+                    info.append(f"  Type: {event.event_type.value.replace('_', ' ').title()}")
+                    info.append(f"  Severity: {event.severity.value.title()}")
+                    info.append(f"  Significance: {event.significance}/10")
+                    
+                    # Show involved civilizations
+                    if event.primary_civilizations:
+                        civ_names = []
+                        for civ_id in event.primary_civilizations:
+                            civ = next((c for c in world.civilizations if c.id == civ_id), None)
+                            if civ:
+                                civ_names.append(civ.name)
+                        if civ_names:
+                            info.append(f"  Civilizations: {', '.join(civ_names)}")
+                    
+                    info.append(f"  {event.description}")
+                    
+                    # Show casualties if significant
+                    if event.casualties > 0:
+                        info.append(f"  Casualties: ~{event.casualties:,}")
+                    
+                    # Show relationship changes
+                    if event.relationship_changes:
+                        info.append(f"  Diplomatic Changes:")
+                        for change in event.relationship_changes:
+                            civ_a = next((c for c in world.civilizations if c.id == change.civilization_a), None)
+                            civ_b = next((c for c in world.civilizations if c.id == change.civilization_b), None)
+                            if civ_a and civ_b:
+                                info.append(f"    • {civ_a.name} & {civ_b.name}: {change.old_relationship} → {change.new_relationship}")
+                    
+                    # Show territorial changes
+                    if event.territorial_changes:
+                        info.append(f"  Territorial Changes:")
+                        for change in event.territorial_changes:
+                            civ = next((c for c in world.civilizations if c.id == change.civilization), None)
+                            if civ:
+                                gained = len(change.hexes_gained)
+                                lost = len(change.hexes_lost)
+                                if gained > 0:
+                                    info.append(f"    • {civ.name} gained {gained} regions")
+                                if lost > 0:
+                                    info.append(f"    • {civ.name} lost {lost} regions")
+                    
+                    info.append("")  # Blank line between events
             
             return ActionResult(
                 success=True,

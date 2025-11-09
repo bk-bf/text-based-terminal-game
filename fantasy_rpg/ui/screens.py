@@ -816,7 +816,7 @@ class MainGameScreen(Screen):
     def compose(self) -> ComposeResult:
         """Create the three-panel layout"""
         with Vertical():
-            # Title bar
+            # Title bar, Header
             self.title_bar = Static("Fantasy RPG | Type 'help' for commands", id="title-bar", markup=False)
             yield self.title_bar
             

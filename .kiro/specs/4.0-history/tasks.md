@@ -88,7 +88,7 @@ Create distinct civilizations with unique cultures, governments, and territorial
 ### 4. Historical Event Simulation Engine
 Generate interconnected historical events creating cause-and-effect chains over time.
 
-- [ ] 4.1 Implement RPG-focused event categories
+- [x] 4.1 Implement RPG-focused event categories
   - Create war, succession, disaster, cultural movement events
   - Add conflict simulation affecting faction relationships
   - Implement succession crisis generation

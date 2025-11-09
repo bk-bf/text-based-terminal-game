@@ -88,6 +88,7 @@ class WorldCoordinator:
         self.mythic_events = []
         self.historical_figures = []
         self.civilizations = []
+        self.historical_events = []  # RPG-focused events (wars, successions, etc.)
         
         # Generate world unless explicitly skipped
         if not skip_generation:
@@ -298,11 +299,51 @@ class WorldCoordinator:
                 territory_info = f", {len(civ.territory.hex_coordinates)} hexes" if civ.territory else ""
                 print(f"  - {civ.name} ({civ.race}, {civ.government_type.value}{territory_info})")
             
+            # Generate historical events to create cause-and-effect chains
+            self._generate_historical_events()
+            
         except Exception as e:
             print(f"Warning: civilization generation failed: {e}")
             import traceback
             traceback.print_exc()
             self.civilizations = []
+    
+    def _generate_historical_events(self):
+        """Generate historical events creating cause-and-effect chains"""
+        try:
+            if not self.civilizations:
+                print("No civilizations found - skipping historical event generation")
+                self.historical_events = []
+                return
+            
+            from .historical_events import HistoricalEventGenerator
+            
+            print("Generating historical timeline...")
+            
+            # Create event generator with same seed
+            event_generator = HistoricalEventGenerator(self, seed=self.seed)
+            
+            # Generate 100-200 years of history
+            years_of_history = 150  # Middle ground
+            self.historical_events = event_generator.generate_historical_timeline(years=years_of_history)
+            
+            print(f"Generated {len(self.historical_events)} historical events over {years_of_history} years")
+            
+            # Log event summary by type
+            event_types = {}
+            for event in self.historical_events:
+                event_type = event.event_type.value
+                event_types[event_type] = event_types.get(event_type, 0) + 1
+            
+            print("Event breakdown:")
+            for event_type, count in sorted(event_types.items(), key=lambda x: x[1], reverse=True):
+                print(f"  - {event_type.replace('_', ' ').title()}: {count}")
+            
+        except Exception as e:
+            print(f"Warning: historical event generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.historical_events = []
     
     def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
         """Generate locations for a hex using LocationGenerator"""
