@@ -111,6 +111,7 @@ class Civilization:
     current_leader: Optional[int] = None
     faction_relationships: Dict[str, RelationshipLevel] = field(default_factory=dict)
     notable_features: List[str] = field(default_factory=list)
+    territorial_history: List[Dict[str, any]] = field(default_factory=list)  # Year -> {hexes, event_id, reason}
     
     def to_dict(self) -> dict:
         """Serialize civilization to dictionary."""
@@ -136,7 +137,8 @@ class Civilization:
             'population': self.population,
             'current_leader': self.current_leader,
             'faction_relationships': {k: v.value for k, v in self.faction_relationships.items()},
-            'notable_features': self.notable_features
+            'notable_features': self.notable_features,
+            'territorial_history': self.territorial_history
         }
     
     @classmethod
@@ -168,7 +170,8 @@ class Civilization:
             population=data.get('population', 0),
             current_leader=data.get('current_leader'),
             faction_relationships={k: RelationshipLevel(v) for k, v in data.get('faction_relationships', {}).items()},
-            notable_features=data.get('notable_features', [])
+            notable_features=data.get('notable_features', []),
+            territorial_history=data.get('territorial_history', [])
         )
 
 
@@ -685,13 +688,21 @@ def generate_civilizations(
             race_percentages = {race: 100}
         
         # Create civilization
+        # Calendar system: Current year is 1452, history goes back 150 years
+        # Civilizations founded 50-500 years before start of simulation
+        # So founding years: 1452 - 150 - (50 to 500) = 852 to 1252
+        current_year = 1452
+        history_years = 150
+        simulation_start = current_year - history_years  # 1302
+        founding_year = random.randint(simulation_start - 500, simulation_start - 50)  # 802 to 1252
+        
         civilization = Civilization(
             id=f"civ_{i+1}",
             name=name,
             race=race,
             races=races_list,
             race_percentages=race_percentages,
-            founded_year=random.randint(-500, -50),  # Ancient founding
+            founded_year=founding_year,  # Calendar year (e.g., 1052)
             government_type=government,
             cultural_values=values,
             religious_beliefs=religion,

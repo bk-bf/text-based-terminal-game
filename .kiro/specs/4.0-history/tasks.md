@@ -94,13 +94,13 @@ Generate interconnected historical events creating cause-and-effect chains over 
   - Implement succession crisis generation
   - _Requirements: 2.2.1_
 
-- [ ] 4.2 Build historical timeline simulation
+- [x] 4.2 Build historical timeline simulation
   - Run 100-200 year simulation with cause-and-effect chains
   - Generate 500-1000 historical figures with life events
   - Track genealogical relationships and inheritance
   - _Requirements: 2.2.2_
 
-- [ ] 4.3 Implement territorial development
+- [x] 4.3 Implement territorial development
   - Create territorial changes over time
   - Add civilization expansion and contraction
   - Log significant events for research system
@@ -117,7 +117,7 @@ Generate NPCs with authentic motivations derived from historical context.
 
 - [ ] 5.1 Create NPC generation from genealogies
   - Implement NPC dataclass with historical lineage
-  - Generate 100-200 NPCs from historical families
+  - Generate 1000-2000 NPCs from historical families
   - Add personality based on cultural background
   - _Requirements: 2.3.1_
 

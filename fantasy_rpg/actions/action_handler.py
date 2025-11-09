@@ -109,6 +109,7 @@ class ActionHandler:
             "save": "handle_save_game",
             "load": "handle_load_game",
             "dump_log": "handle_save_log",
+            "dump_history": "handle_dump_history",
             "research": "handle_research",
         })
         

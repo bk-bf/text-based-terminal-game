@@ -191,7 +191,10 @@ class PlayerState:
     # Survival needs
     survival: SurvivalNeeds = field(default_factory=SurvivalNeeds)
     
-    # Time tracking
+    # Calendar and time tracking
+    calendar: any = None  # CalendarSystem instance (initialized in __post_init__)
+    
+    # Legacy time tracking (kept for compatibility, synced with calendar)
     game_hour: float = 12.0  # Hour of day (0-23, can be fractional)
     game_day: int = 1  # Day number
     game_season: str = "spring"  # Current season
@@ -217,6 +220,22 @@ class PlayerState:
     
     # Shelter now works automatically via location flags (like "Lit Fire" system)
     
+    def __post_init__(self):
+        """Initialize calendar system after dataclass initialization."""
+        if self.calendar is None:
+            try:
+                from .calendar_system import CalendarSystem
+                # Initialize calendar with current game state
+                starting_day = self.game_day if self.game_day > 0 else 1
+                self.calendar = CalendarSystem(
+                    starting_year=1452,  # Default fantasy year
+                    starting_day=starting_day,
+                    starting_hour=self.game_hour
+                )
+            except ImportError:
+                # Calendar system not available, use None
+                self.calendar = None
+    
     def advance_time(self, hours: float, activity: str = "normal") -> dict:
         """
         Advance game time and update survival needs.
@@ -233,11 +252,20 @@ class PlayerState:
         self.turn_counter += 1
         self.activity_level = activity
         
-        # Update time tracking
-        self.game_hour += hours
-        while self.game_hour >= 24:
-            self.game_hour -= 24
-            self.game_day += 1
+        # Update calendar system (if available)
+        if self.calendar:
+            day_changed, year_changed = self.calendar.advance_time(hours)
+            
+            # Sync legacy time tracking with calendar
+            self.game_hour = self.calendar.hour
+            self.game_day = self.calendar.day_of_year
+            self.game_season = self.calendar.get_season_name()
+        else:
+            # Fallback: Update legacy time tracking directly
+            self.game_hour += hours
+            while self.game_hour >= 24:
+                self.game_hour -= 24
+                self.game_day += 1
         
         # Update activity counters
         self.last_meal_hours += hours

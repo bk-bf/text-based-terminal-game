@@ -270,15 +270,10 @@ class WorldCoordinator:
     def _generate_civilizations(self):
         """Generate distinct civilizations with unique cultures"""
         try:
-            if not self.historical_figures:
-                print("No historical figures found - skipping civilization generation")
-                self.civilizations = []
-                return
-            
-            # Generate 5-8 civilizations
+            # Generate 5-8 civilizations (no longer depends on mythic figures)
             self.civilizations = generate_civilizations(
                 world_size=self.world_size,
-                historical_figures=self.historical_figures,
+                historical_figures=[],  # Empty - founders will be generated in simulation
                 target_count=None  # Random 5-8
             )
             
@@ -288,7 +283,7 @@ class WorldCoordinator:
                     # Already associated by generate_civilizations
                     pass
             
-            print(f"Generated {len(self.civilizations)} distinct civilizations")
+            print(f"DEBUG: Generated {len(self.civilizations)} civilizations")
             
             # Place civilizations on the map
             from .civilizations import place_civilizations
@@ -300,7 +295,9 @@ class WorldCoordinator:
                 print(f"  - {civ.name} ({civ.race}, {civ.government_type.value}{territory_info})")
             
             # Generate historical events to create cause-and-effect chains
+            print("DEBUG: About to call _generate_historical_events()")
             self._generate_historical_events()
+            print(f"DEBUG: After _generate_historical_events(), historical_figures count: {len(self.historical_figures)}")
             
         except Exception as e:
             print(f"Warning: civilization generation failed: {e}")
@@ -310,24 +307,109 @@ class WorldCoordinator:
     
     def _generate_historical_events(self):
         """Generate historical events creating cause-and-effect chains"""
+        print("DEBUG: Entered _generate_historical_events()")
         try:
             if not self.civilizations:
-                print("No civilizations found - skipping historical event generation")
+                print("DEBUG: No civilizations found - skipping historical event generation")
                 self.historical_events = []
+                self.historical_figures = []
                 return
             
-            from .historical_events import HistoricalEventGenerator
+            print(f"DEBUG: Found {len(self.civilizations)} civilizations, proceeding with generation")
             
+            from .historical_events import HistoricalEventGenerator
+            from .historical_figure_simulator import HistoricalFigureSimulator
+            
+            print("DEBUG: Imports successful")
             print("Generating historical timeline...")
             
             # Create event generator with same seed
             event_generator = HistoricalEventGenerator(self, seed=self.seed)
             
-            # Generate 100-200 years of history
-            years_of_history = 150  # Middle ground
-            self.historical_events = event_generator.generate_historical_timeline(years=years_of_history)
+            # Generate 150 years of history
+            years_of_history = 150
             
+            # Create figure simulator
+            figure_simulator = HistoricalFigureSimulator(self, seed=self.seed)
+            
+            # Calendar system: Current year is 1452, civilizations already have calendar years
+            current_calendar_year = 1452
+            
+            # Get oldest civilization founding (earliest calendar year)
+            oldest_founding = min(civ.founded_year for civ in self.civilizations)
+            
+            # Simulation runs from oldest founding for 150 years
+            start_year = oldest_founding
+            end_year = start_year + years_of_history
+            
+            print(f"Simulating {years_of_history} years of history ({start_year} to {end_year})")
+            print(f"Current calendar year: {current_calendar_year}")
+            print("Generating founding figures...")
+            
+            # Generate founding figures for each civilization (5-10 per civ)
+            founding_count_before = figure_simulator.get_total_count()
+            print(f"DEBUG: Starting founder generation with {founding_count_before} existing figures")
+            
+            for civ in self.civilizations:
+                founder_count = figure_simulator.rng.randint(5, 10)
+                print(f"DEBUG: Generating {founder_count} founders for {civ.name}...")
+                founders = figure_simulator.generate_founder_figures(civ, civ.founded_year, count=founder_count)
+                print(f"DEBUG: generate_founder_figures() returned {len(founders)} founders")
+                print(f"  - {civ.name}: Generated {len(founders)} founders (born ~{civ.founded_year - 30})")
+            
+            founding_count_after = figure_simulator.get_total_count()
+            print(f"DEBUG: After founder generation: {founding_count_after} total figures")
+            print(f"Created {founding_count_after} founding figures (added {founding_count_after - founding_count_before})")
+            print(f"Figure simulator has {len(figure_simulator.figures)} figures in list")
+            print(f"DEBUG: figure_simulator.figures is type: {type(figure_simulator.figures)}")
+            
+            # Year-by-year simulation
+            print("Running historical simulation...")
+            current_year = start_year
+            
+            while current_year <= end_year:
+                # Generate historical events for this year
+                if figure_simulator.rng.random() < 0.3:  # 30% chance of event per year
+                    event = event_generator._generate_event(current_year)
+                    if event:
+                        self.historical_events.append(event)
+                        event_generator._apply_event_effects(event)
+                        
+                        # Link figures to event
+                        figure_simulator.link_figures_to_event(event)
+                
+                # Simulate life events (births, deaths, marriages)
+                new_figures = figure_simulator.simulate_year(current_year)
+                
+                # Progress indicator every 10 years
+                if (current_year - start_year) % 10 == 0:
+                    living = figure_simulator.get_living_count()
+                    total = figure_simulator.get_total_count()
+                    events = len(self.historical_events)
+                    print(f"  Year {current_year}: {total} total figures ({living} living), {events} events")
+                
+                current_year += 1
+            
+            # Store figures
+            print(f"\nDEBUG: Storing figures from simulator...")
+            print(f"DEBUG: figure_simulator.figures type: {type(figure_simulator.figures)}")
+            print(f"DEBUG: figure_simulator.figures length: {len(figure_simulator.figures)}")
+            print(f"DEBUG: figure_simulator.get_total_count(): {figure_simulator.get_total_count()}")
+            
+            if len(figure_simulator.figures) > 0:
+                print(f"DEBUG: First figure: {figure_simulator.figures[0]}")
+            else:
+                print("DEBUG: No figures in simulator list!")
+            
+            self.historical_figures = figure_simulator.figures
+            print(f"DEBUG: Assigned to self.historical_figures")
+            print(f"DEBUG: self.historical_figures type: {type(self.historical_figures)}")
+            print(f"DEBUG: self.historical_figures length: {len(self.historical_figures)}")
+            
+            print(f"\n=== HISTORICAL SIMULATION COMPLETE ===")
             print(f"Generated {len(self.historical_events)} historical events over {years_of_history} years")
+            print(f"Generated {len(self.historical_figures)} historical figures")
+            print(f"Living figures at end of simulation: {figure_simulator.get_living_count()}")
             
             # Log event summary by type
             event_types = {}
@@ -335,15 +417,35 @@ class WorldCoordinator:
                 event_type = event.event_type.value
                 event_types[event_type] = event_types.get(event_type, 0) + 1
             
-            print("Event breakdown:")
+            print("\nEvent breakdown:")
             for event_type, count in sorted(event_types.items(), key=lambda x: x[1], reverse=True):
                 print(f"  - {event_type.replace('_', ' ').title()}: {count}")
             
+            # Log figure statistics
+            roles = {}
+            for figure in self.historical_figures:
+                role = figure.role.value if hasattr(figure, 'role') else 'unknown'
+                roles[role] = roles.get(role, 0) + 1
+            
+            print("\nFigure breakdown by role:")
+            for role, count in sorted(roles.items(), key=lambda x: x[1], reverse=True):
+                print(f"  - {role.replace('_', ' ').title()}: {count}")
+            
+            # Calculate genealogy stats
+            figures_with_parents = sum(1 for f in self.historical_figures if f.parents)
+            figures_with_children = sum(1 for f in self.historical_figures if f.children)
+            print(f"\nGenealogy statistics:")
+            print(f"  - Figures with known parents: {figures_with_parents}")
+            print(f"  - Figures with children: {figures_with_children}")
+            print(f"  - Average children per parent: {sum(len(f.children) for f in self.historical_figures) / max(1, figures_with_children):.1f}")
+            
         except Exception as e:
-            print(f"Warning: historical event generation failed: {e}")
+            print(f"DEBUG: EXCEPTION in _generate_historical_events(): {e}")
             import traceback
+            print("DEBUG: Full traceback:")
             traceback.print_exc()
             self.historical_events = []
+            self.historical_figures = []
     
     def _generate_hex_locations(self, coords: Tuple[int, int], biome: str, elevation: float) -> List[Dict[str, Any]]:
         """Generate locations for a hex using LocationGenerator"""

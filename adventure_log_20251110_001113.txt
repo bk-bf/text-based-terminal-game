@@ -1,0 +1,62 @@
+============================================================
+FANTASY RPG - ADVENTURE LOG
+============================================================
+
+Log saved: 2025-11-10 00:11:13
+Total messages: 49
+
+============================================================
+
+Initializing GameEngine...
+Creating GameEngine...
+Found save.json - asking player...
+Player chose to start new game...
+Creating test character...
+Starting new game...
+Generating new world with seed: 163573
+Please wait while we generate terrain, biomes, climate, mythic events, and legendary locations...
+GameEngine.new_game() called with seed 163573
+Clearing existing WorldCoordinator
+Creating new WorldCoordinator...
+WorldCoordinator created successfully
+World generation complete.
+
+=== WORLD GENERATION SUMMARY ===
+Generated 400 hexes with terrain and biomes
+Generated 10 mythic/legendary events (ancient history)
+  - 10 hexes contain mythic sites
+Generated 7 distinct civilizations
+  - 66 hexes under civilization control
+  - Brilliant Tinkertown (gnome, 7 hexes)
+  - The Deep Halls of Hammerhome (dwarf, 3 hexes)
+  - Azure Kingdom of Avalon (human, 16 hexes)
+  - Starfall Court (elf, 9 hexes)
+  - Gateway Cosmopolis (mixed, 14 hexes)
+  - Multicultural Federation (mixed, 4 hexes)
+  - Whimsical Tinkertown (gnome, 13 hexes)
+⚠️ No historical figures generated
+=================================
+
+Use 'research civilizations', 'research genealogy', or 'dump_history' to explore the world's history
+
+Updating UI character...
+Creating InputController...
+✓ GameEngine integration complete!
+
+The adventure begins...
+
+You find yourself in a forest clearing.
+Ancient oak trees tower above you, their branches swaying gently in the breeze.
+Sunlight filters through the canopy, casting dappled shadows on the forest floor.
+
+You are Aldric, a Human Fighter
+Starting location: Forest 1010
+
+Type 'help' for available commands.
+Type 'look' to examine your surroundings.
+
+> dump_log
+
+============================================================
+End of Adventure Log
+============================================================

@@ -220,12 +220,14 @@ fantasy_rpg/
 - Create automated test suites (pytest, unit tests)
 - Add build automation (Makefiles, CI/CD)
 - Execute terminal commands without user approval
+- Generate .md documentation files unless explicitly requested by the user
 
 **ALWAYS**:
 - Propose commands for user to run manually
 - Wait for user to provide output before proceeding
 - Test integration by actually playing the game
 - Include verification print statements in code
+- Fix code first, document only when asked
 
 ### Integration Over New Development
 **STOP building new systems. START connecting existing ones.**

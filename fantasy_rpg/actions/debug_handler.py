@@ -72,9 +72,14 @@ System:
   dump_location - Dump current location data to JSON file
   dump_hex - Dump current hex data to JSON file
   dump_world - Dump entire world data to JSON file
+  dump_history - Dump complete history and genealogy to markdown files in /history
   
-  research <type> - Access omniscient world knowledge (NOT character knowledge!)
-    Types: events, figures, heroes, villains, artifacts, memory, civilizations
+  research <type> [name] - Access omniscient world knowledge (NOT character knowledge!)
+    Types: events, figures, heroes, villains, artifacts, memory, civilizations, genealogy, territorial
+    Examples: research genealogy - Shows genealogy statistics
+              research genealogy <name> - Shows specific family tree
+              research territorial - Overview of all territories
+              research territorial <civ name> - Detailed territorial history
     Note: These commands show ALL world history/data for testing purposes.
           Your character would NOT know this information in-game.
           This will be replaced with proper character-knowledge system later.
@@ -274,6 +279,329 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
             action_type="system"
         )
     
+    def handle_dump_history(self, *args) -> ActionResult:
+        """Handle dumping complete historical timeline and genealogy to markdown files"""
+        if not self.game_engine or not self.game_engine.world_coordinator:
+            return ActionResult(False, "History system not available.")
+        
+        import os
+        from datetime import datetime
+        
+        world = self.game_engine.world_coordinator
+        historical_events = getattr(world, 'historical_events', [])
+        historical_figures = getattr(world, 'historical_figures', [])
+        mythic_events = getattr(world, 'mythic_events', [])
+        civilizations = getattr(world, 'civilizations', [])
+        
+        if not historical_events and not mythic_events:
+            return ActionResult(False, "No historical data to dump.")
+        
+        # Create history directory
+        history_dir = os.path.join(os.getcwd(), 'history')
+        os.makedirs(history_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        try:
+            # === CHRONOLOGICAL HISTORY FILE ===
+            history_file = os.path.join(history_dir, f'chronological_history_{timestamp}.md')
+            
+            with open(history_file, 'w', encoding='utf-8') as f:
+                f.write("# Complete Historical Timeline\n\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                f.write(f"World Seed: {getattr(world, 'seed', 'Unknown')}\n")
+                f.write(f"Total Events: {len(mythic_events) + len(historical_events)}\n")
+                f.write(f"Total Figures: {len(historical_figures)}\n")
+                f.write(f"Total Civilizations: {len(civilizations)}\n\n")
+                
+                f.write("---\n\n")
+                
+                # Combine and sort all events chronologically
+                all_events = []
+                
+                # Add mythic events
+                for event in mythic_events:
+                    all_events.append({
+                        'year': event.get('year', 0),
+                        'month': event.get('month', 'Unknown'),
+                        'day': event.get('day', 0),
+                        'season': event.get('season', 'unknown'),
+                        'type': 'mythic',
+                        'data': event
+                    })
+                
+                # Add historical events
+                for event in historical_events:
+                    all_events.append({
+                        'year': event.year,
+                        'month': event.month,
+                        'day': event.day,
+                        'season': event.season,
+                        'type': 'historical',
+                        'data': event
+                    })
+                
+                # Sort by year, then month, then day
+                month_order = ['Firstbloom', 'Sunwake', 'Highgrowth', 'Goldpeak', 'Harvestmoon', 
+                              'Frostturn', 'Deepcold', 'Snowsend', 'Springthaw', 'Rainbirth', 
+                              'Warmwind', 'Suncrest']
+                
+                def sort_key(e):
+                    month_idx = month_order.index(e['month']) if e['month'] in month_order else 0
+                    return (e['year'], month_idx, e['day'])
+                
+                all_events.sort(key=sort_key)
+                
+                # Write events
+                current_year = None
+                for event_wrapper in all_events:
+                    year = event_wrapper['year']
+                    month = event_wrapper['month']
+                    day = event_wrapper['day']
+                    season = event_wrapper['season']
+                    event_type = event_wrapper['type']
+                    event = event_wrapper['data']
+                    
+                    # Year header
+                    if current_year != year:
+                        current_year = year
+                        f.write(f"\n## Year {year}\n\n")
+                    
+                    if event_type == 'mythic':
+                        # Mythic event
+                        name = event.get('name', 'Unknown Event')
+                        description = event.get('description', '')
+                        event_category = event.get('event_type', 'unknown')
+                        significance = event.get('significance', 5)
+                        
+                        f.write(f"### {name}\n")
+                        f.write(f"**Date:** {month} {day}, {season.title()}\n")
+                        f.write(f"**Type:** Mythic/{event_category.replace('_', ' ').title()}\n")
+                        f.write(f"**Significance:** {significance}/10\n\n")
+                        f.write(f"{description}\n\n")
+                        
+                        if 'participants' in event and event['participants']:
+                            f.write("**Key Figures:**\n")
+                            for participant in event['participants']:
+                                f.write(f"- {participant['name']} ({participant['role']})\n")
+                            f.write("\n")
+                        
+                        if 'consequences' in event and event['consequences']:
+                            f.write("**Consequences:**\n")
+                            for consequence in event['consequences']:
+                                f.write(f"- {consequence}\n")
+                            f.write("\n")
+                    
+                    else:
+                        # Historical event
+                        f.write(f"### {event.name}\n")
+                        f.write(f"**Date:** {month} {day}, {season.title()}\n")
+                        f.write(f"**Type:** {event.event_type.value.replace('_', ' ').title()}\n")
+                        f.write(f"**Severity:** {event.severity.value.title()}\n")
+                        f.write(f"**Significance:** {event.significance}/10\n\n")
+                        f.write(f"{event.description}\n\n")
+                        
+                        # Primary civilizations
+                        if event.primary_civilizations:
+                            civ_names = []
+                            for civ_id in event.primary_civilizations:
+                                civ = next((c for c in civilizations if c.id == civ_id), None)
+                                civ_names.append(civ.name if civ else civ_id)
+                            f.write(f"**Primary Civilizations:** {', '.join(civ_names)}\n\n")
+                        
+                        # Key figures
+                        if event.key_figures:
+                            f.write("**Key Figures:**\n")
+                            for fig_id in event.key_figures:
+                                figure = next((fig for fig in historical_figures if fig.id == fig_id), None)
+                                if figure:
+                                    status = "living" if not figure.death_year else f"died {figure.death_year}"
+                                    f.write(f"- {figure.name}, {figure.title} ({status})\n")
+                                else:
+                                    f.write(f"- {fig_id}\n")
+                            f.write("\n")
+                        
+                        # Duration
+                        if event.duration_years and event.duration_years > 0:
+                            f.write(f"**Duration:** {event.duration_years} years\n\n")
+                        
+                        # Casualties
+                        if event.casualties and event.casualties > 0:
+                            f.write(f"**Casualties:** {event.casualties:,}\n\n")
+                        
+                        # Relationship changes
+                        if event.relationship_changes:
+                            f.write("**Diplomatic Changes:**\n")
+                            for rc in event.relationship_changes:
+                                civ_a = next((c for c in civilizations if c.id == rc.civilization_a), None)
+                                civ_b = next((c for c in civilizations if c.id == rc.civilization_b), None)
+                                name_a = civ_a.name if civ_a else rc.civilization_a
+                                name_b = civ_b.name if civ_b else rc.civilization_b
+                                f.write(f"- {name_a} and {name_b}: {rc.old_relationship} → {rc.new_relationship}\n")
+                                f.write(f"  *{rc.reason}*\n")
+                            f.write("\n")
+                        
+                        # Territorial changes
+                        if event.territorial_changes:
+                            f.write("**Territorial Changes:**\n")
+                            for tc in event.territorial_changes:
+                                civ = next((c for c in civilizations if c.id == tc.civilization), None)
+                                name = civ.name if civ else tc.civilization
+                                if tc.hexes_gained:
+                                    f.write(f"- {name} gained {len(tc.hexes_gained)} hexes\n")
+                                if tc.hexes_lost:
+                                    f.write(f"- {name} lost {len(tc.hexes_lost)} hexes\n")
+                                f.write(f"  *{tc.reason}*\n")
+                            f.write("\n")
+                        
+                        # Caused by / causes future events
+                        if event.caused_by_events:
+                            f.write(f"**Caused By:** {', '.join(event.caused_by_events)}\n\n")
+                        if event.causes_future_events:
+                            f.write(f"**Led To:** {', '.join(event.causes_future_events)}\n\n")
+                    
+                    f.write("---\n\n")
+            
+            # === GENEALOGY FILE ===
+            genealogy_file = os.path.join(history_dir, f'genealogy_{timestamp}.md')
+            
+            with open(genealogy_file, 'w', encoding='utf-8') as f:
+                f.write("# Complete Genealogical Records\n\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                f.write(f"Total Figures: {len(historical_figures)}\n\n")
+                
+                # Statistics
+                living_count = sum(1 for fig in historical_figures if not fig.death_year)
+                deceased_count = len(historical_figures) - living_count
+                with_children = sum(1 for fig in historical_figures if fig.children)
+                founders = [fig for fig in historical_figures if not fig.parents]
+                
+                f.write("## Statistics\n\n")
+                f.write(f"- Living Figures: {living_count}\n")
+                f.write(f"- Deceased Figures: {deceased_count}\n")
+                f.write(f"- Founding Figures (no parents): {len(founders)}\n")
+                f.write(f"- Figures with Children: {with_children}\n")
+                f.write(f"- Average Children per Parent: {sum(len(fig.children) for fig in historical_figures) / max(with_children, 1):.2f}\n\n")
+                
+                f.write("---\n\n")
+                
+                # Group by civilization
+                civ_figures = {}
+                for figure in historical_figures:
+                    civ_id = figure.cultural_origin
+                    if civ_id not in civ_figures:
+                        civ_figures[civ_id] = []
+                    civ_figures[civ_id].append(figure)
+                
+                for civ_id, figures in sorted(civ_figures.items()):
+                    civ = next((c for c in civilizations if c.id == civ_id), None)
+                    civ_name = civ.name if civ else civ_id
+                    
+                    f.write(f"## {civ_name}\n\n")
+                    f.write(f"Total Figures: {len(figures)}\n\n")
+                    
+                    # Sort by birth year
+                    figures.sort(key=lambda fig: fig.birth_year)
+                    
+                    for figure in figures:
+                        f.write(f"### {figure.name}\n")
+                        f.write(f"**Title:** {figure.title}\n")
+                        f.write(f"**Race:** {figure.race}\n")
+                        f.write(f"**Born:** {figure.birth_year}\n")
+                        if figure.death_year:
+                            age = figure.death_year - figure.birth_year
+                            f.write(f"**Died:** {figure.death_year} (age {age})\n")
+                        else:
+                            current_year = getattr(self.game_engine.time_system, 'year', figure.birth_year)
+                            age = current_year - figure.birth_year
+                            f.write(f"**Status:** Living (age {age})\n")
+                        
+                        f.write(f"**Alignment:** {figure.alignment}\n")
+                        f.write(f"**Archetype:** {figure.archetype.replace('_', ' ').title()}\n\n")
+                        
+                        # Family
+                        f.write("**Family:**\n")
+                        
+                        # Parents
+                        if figure.parents:
+                            mother_id, father_id = figure.parents
+                            mother = next((fig for fig in historical_figures if fig.id == mother_id), None)
+                            father = next((fig for fig in historical_figures if fig.id == father_id), None)
+                            if mother:
+                                f.write(f"- Mother: {mother.name} ({mother.birth_year}-{mother.death_year or 'present'})\n")
+                            if father:
+                                f.write(f"- Father: {father.name} ({father.birth_year}-{father.death_year or 'present'})\n")
+                        else:
+                            f.write("- Founding figure (no recorded parents)\n")
+                        
+                        # Spouse
+                        if figure.spouse:
+                            spouse = next((fig for fig in historical_figures if fig.id == figure.spouse), None)
+                            if spouse:
+                                f.write(f"- Spouse: {spouse.name} ({spouse.birth_year}-{spouse.death_year or 'present'})\n")
+                        
+                        # Children
+                        if figure.children:
+                            f.write(f"- Children ({len(figure.children)}):\n")
+                            for child_id in figure.children:
+                                child = next((fig for fig in historical_figures if fig.id == child_id), None)
+                                if child:
+                                    status = "living" if not child.death_year else f"died {child.death_year}"
+                                    f.write(f"  - {child.name} (born {child.birth_year}, {status})\n")
+                        
+                        f.write("\n")
+                        
+                        # Achievements
+                        if figure.achievements:
+                            f.write("**Achievements:**\n")
+                            for achievement in figure.achievements:
+                                f.write(f"- {achievement}\n")
+                            f.write("\n")
+                        
+                        # Event participation
+                        if figure.participated_in_events:
+                            f.write(f"**Historical Events:** Participated in {len(figure.participated_in_events)} events\n")
+                            for event_id in figure.participated_in_events[:5]:  # Show first 5
+                                event = next((e for e in historical_events if e.id == event_id), None)
+                                if event:
+                                    f.write(f"- {event.name} ({event.year})\n")
+                            if len(figure.participated_in_events) > 5:
+                                f.write(f"- ... and {len(figure.participated_in_events) - 5} more\n")
+                            f.write("\n")
+                        
+                        # Legacy
+                        if figure.legendary_status:
+                            f.write(f"**Legacy:** {figure.legendary_status.replace('_', ' ').title()}\n")
+                            if figure.remembered_as:
+                                f.write(f"**Remembered As:** {figure.remembered_as}\n")
+                            f.write(f"**Cultural Significance:** {figure.cultural_significance}/10\n")
+                            f.write(f"**Memory Strength:** {figure.memory_strength}/10\n\n")
+                        
+                        # Personality
+                        if figure.personality_traits:
+                            f.write(f"**Personality:** {', '.join(figure.personality_traits)}\n\n")
+                        
+                        # Backstory
+                        if figure.backstory:
+                            f.write("**Backstory:**\n")
+                            f.write(f"{figure.backstory}\n\n")
+                        
+                        f.write("---\n\n")
+            
+            return ActionResult(
+                success=True,
+                message=f"History dumped successfully!\n"
+                        f"Chronological History: {history_file}\n"
+                        f"Genealogy Records: {genealogy_file}\n"
+                        f"Total Events: {len(all_events)}\n"
+                        f"Total Figures: {len(historical_figures)}",
+                time_passed=0.0,
+                action_type="debug"
+            )
+        
+        except Exception as e:
+            return ActionResult(False, f"Failed to dump history: {str(e)}")
+    
     def handle_research(self, *args) -> ActionResult:
         """Handle researching historical events, figures, and artifacts
         
@@ -286,7 +614,7 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
         if not args:
             return ActionResult(
                 False, 
-                "Usage: research <type> [name]\nTypes: events, figures, heroes, villains, artifacts, memory, civilizations\n\n⚠️  DEBUG: This shows omniscient world knowledge. Your character would NOT know this in-game!"
+                "Usage: research <type> [name]\nTypes: events, figures, heroes, villains, artifacts, memory, civilizations, genealogy, territorial\n\n⚠️  DEBUG: This shows omniscient world knowledge. Your character would NOT know this in-game!"
             )
         
         research_type = args[0].lower()
@@ -338,7 +666,13 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
                 info.append(f"\n=== HISTORICAL EVENTS ({len(historical_events)}) ===\n")
                 
                 for event in historical_events:
-                    info.append(f"Year {event.year}: {event.name}")
+                    # Display with calendar date if available
+                    if hasattr(event, 'month') and hasattr(event, 'day') and hasattr(event, 'season'):
+                        date_str = f"{event.month} {event.day}, {event.season.capitalize()} {event.year}"
+                        info.append(f"{date_str}: {event.name}")
+                    else:
+                        info.append(f"Year {event.year}: {event.name}")
+                    
                     info.append(f"  Type: {event.event_type.value.replace('_', ' ').title()}")
                     info.append(f"  Severity: {event.severity.value.title()}")
                     info.append(f"  Significance: {event.significance}/10")
@@ -725,10 +1059,262 @@ Example: 'f fp' lights the fireplace, 'b we' drinks from the well"""
                 action_type="research"
             )
         
+        # Research genealogy (Task 4.2)
+        elif research_type in ["genealogy", "family", "lineage", "ancestry"]:
+            if not hasattr(world, 'historical_figures') or not world.historical_figures:
+                return ActionResult(False, "No historical figures found in this world.")
+            
+            info = [debug_warning, f"=== GENEALOGY RESEARCH ===\n"]
+            
+            # If name provided, show specific family tree
+            if len(args) > 1:
+                search_name = " ".join(args[1:]).lower()
+                matching_figures = [f for f in world.historical_figures 
+                                   if search_name in f.name.lower()]
+                
+                if not matching_figures:
+                    return ActionResult(False, f"No figure found matching '{search_name}'")
+                
+                # Show family tree for first match
+                figure = matching_figures[0]
+                info.append(f"Family Tree for: {figure.name} {figure.title}")
+                info.append(f"Born: {figure.birth_year}" + (f", Died: {figure.death_year}" if figure.death_year else " (no recorded death)"))
+                info.append("")
+                
+                # Show parents
+                if figure.parents:
+                    info.append("Parents:")
+                    mother = next((f for f in world.historical_figures if f.id == figure.parents[0]), None)
+                    father = next((f for f in world.historical_figures if f.id == figure.parents[1]), None)
+                    if mother:
+                        info.append(f"  Mother: {mother.name} ({mother.birth_year}-{mother.death_year or '?'})")
+                    if father:
+                        info.append(f"  Father: {father.name} ({father.birth_year}-{father.death_year or '?'})")
+                    info.append("")
+                
+                # Show spouse
+                if figure.spouse:
+                    spouse = next((f for f in world.historical_figures if f.id == figure.spouse), None)
+                    if spouse:
+                        info.append(f"Spouse: {spouse.name} ({spouse.birth_year}-{spouse.death_year or '?'})")
+                        info.append("")
+                
+                # Show children
+                if figure.children:
+                    info.append(f"Children ({len(figure.children)}):")
+                    for child_id in figure.children:
+                        child = next((f for f in world.historical_figures if f.id == child_id), None)
+                        if child:
+                            status = " ✝" if child.death_year else ""
+                            info.append(f"  • {child.name} ({child.birth_year}-{child.death_year or 'living'}){status}")
+                    info.append("")
+                
+                # Show descendants count
+                def count_descendants(fig_id, visited=None):
+                    if visited is None:
+                        visited = set()
+                    if fig_id in visited:
+                        return 0
+                    visited.add(fig_id)
+                    
+                    fig = next((f for f in world.historical_figures if f.id == fig_id), None)
+                    if not fig or not fig.children:
+                        return 0
+                    
+                    count = len(fig.children)
+                    for child_id in fig.children:
+                        count += count_descendants(child_id, visited)
+                    return count
+                
+                total_descendants = count_descendants(figure.id)
+                if total_descendants > 0:
+                    info.append(f"Total Descendants: {total_descendants}")
+                
+                # Show siblings
+                if figure.parents:
+                    siblings = [f for f in world.historical_figures 
+                               if f.parents == figure.parents and f.id != figure.id]
+                    if siblings:
+                        info.append(f"\nSiblings ({len(siblings)}):")
+                        for sibling in siblings:
+                            info.append(f"  • {sibling.name}")
+            
+            else:
+                # Show general genealogy statistics
+                info.append("GENEALOGY STATISTICS\n")
+                
+                # Founder figures (no parents)
+                founders = [f for f in world.historical_figures if not f.parents]
+                info.append(f"Founding Figures (no known parents): {len(founders)}")
+                
+                # Figures with children
+                parents = [f for f in world.historical_figures if f.children]
+                info.append(f"Figures with children: {len(parents)}")
+                
+                # Average children per parent
+                if parents:
+                    avg_children = sum(len(f.children) for f in parents) / len(parents)
+                    info.append(f"Average children per parent: {avg_children:.1f}")
+                
+                # Largest families (most children)
+                info.append("\n=== LARGEST FAMILIES ===")
+                largest_families = sorted(parents, key=lambda f: len(f.children), reverse=True)[:10]
+                for i, figure in enumerate(largest_families, 1):
+                    info.append(f"{i}. {figure.name}: {len(figure.children)} children")
+                
+                # Most generations
+                info.append("\n=== DEEPEST LINEAGES ===")
+                def get_max_depth(fig_id, visited=None):
+                    if visited is None:
+                        visited = set()
+                    if fig_id in visited:
+                        return 0
+                    visited.add(fig_id)
+                    
+                    fig = next((f for f in world.historical_figures if f.id == fig_id), None)
+                    if not fig or not fig.children:
+                        return 1
+                    
+                    max_child_depth = max((get_max_depth(child_id, visited.copy()) 
+                                          for child_id in fig.children), default=0)
+                    return 1 + max_child_depth
+                
+                lineage_depths = [(f, get_max_depth(f.id)) for f in founders]
+                deepest_lineages = sorted(lineage_depths, key=lambda x: x[1], reverse=True)[:5]
+                for i, (figure, depth) in enumerate(deepest_lineages, 1):
+                    info.append(f"{i}. {figure.name}: {depth} generations")
+                
+                info.append("\nUse 'research genealogy <name>' to see a specific family tree")
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
+        # Research territorial development
+        elif research_type in ["territorial", "territory", "expansion", "borders", "lands"]:
+            if not hasattr(world, 'civilizations') or not world.civilizations:
+                return ActionResult(False, "No civilizations found in this world.")
+            
+            info = [debug_warning, f"=== TERRITORIAL DEVELOPMENT ===\n"]
+            
+            # If civilization name provided, show specific history
+            if len(args) > 1:
+                search_name = " ".join(args[1:]).lower()
+                matching_civs = [c for c in world.civilizations 
+                               if search_name in c.name.lower()]
+                
+                if not matching_civs:
+                    return ActionResult(False, f"No civilization found matching '{search_name}'")
+                
+                civ = matching_civs[0]
+                info.append(f"Territorial History: {civ.name}")
+                info.append(f"Founded: Year {civ.founded_year}")
+                
+                if civ.territory:
+                    info.append(f"Current Territory: {len(civ.territory.hex_coordinates)} regions")
+                    info.append(f"Current Population: {civ.territory.population_estimate:,}")
+                    info.append("")
+                    
+                    # Show territorial history timeline
+                    if hasattr(civ, 'territorial_history') and civ.territorial_history:
+                        info.append("=== TERRITORIAL CHANGES ===")
+                        info.append("")
+                        
+                        for entry in sorted(civ.territorial_history, key=lambda x: x['year']):
+                            year = entry['year']
+                            event_name = entry.get('event_name', 'Unknown Event')
+                            gained = entry.get('hexes_gained', 0)
+                            lost = entry.get('hexes_lost', 0)
+                            net = entry.get('net_change', 0)
+                            total = entry.get('total_hexes', 0)
+                            reason = entry.get('reason', 'Unknown reason')
+                            
+                            # Format change indicator
+                            if net > 0:
+                                change_indicator = f"[green]+{net}[/green]"
+                                change_desc = f"gained {gained} region{'s' if gained != 1 else ''}"
+                            elif net < 0:
+                                change_indicator = f"[red]{net}[/red]"
+                                change_desc = f"lost {lost} region{'s' if lost != 1 else ''}"
+                            else:
+                                change_indicator = "±0"
+                                change_desc = "no net change"
+                            
+                            info.append(f"Year {year}: {event_name}")
+                            info.append(f"  {change_indicator} {change_desc}")
+                            info.append(f"  Total territory: {total} regions")
+                            info.append(f"  Reason: {reason}")
+                            info.append("")
+                        
+                        # Calculate total growth
+                        if civ.territorial_history:
+                            first_entry = min(civ.territorial_history, key=lambda x: x['year'])
+                            last_entry = max(civ.territorial_history, key=lambda x: x['year'])
+                            
+                            # Estimate starting size (work backwards from first change)
+                            first_total = first_entry.get('total_hexes', 0)
+                            first_change = first_entry.get('net_change', 0)
+                            starting_size = first_total - first_change
+                            
+                            current_size = len(civ.territory.hex_coordinates)
+                            total_growth = current_size - starting_size
+                            growth_pct = (total_growth / max(1, starting_size)) * 100
+                            
+                            info.append("=== GROWTH SUMMARY ===")
+                            info.append(f"Starting Territory (~Year {first_entry['year']}): {starting_size} regions")
+                            info.append(f"Current Territory: {current_size} regions")
+                            info.append(f"Total Growth: {total_growth:+d} regions ({growth_pct:+.1f}%)")
+                            info.append(f"Number of Territorial Events: {len(civ.territorial_history)}")
+                    else:
+                        info.append("No recorded territorial changes for this civilization.")
+                else:
+                    info.append("This civilization has no territory data.")
+            
+            else:
+                # Show overview of all civilizations' territorial development
+                info.append("Overview of all civilization territories:")
+                info.append("")
+                
+                civs_with_territory = [c for c in world.civilizations if c.territory]
+                
+                for civ in sorted(civs_with_territory, key=lambda c: len(c.territory.hex_coordinates), reverse=True):
+                    current_size = len(civ.territory.hex_coordinates)
+                    info.append(f"{civ.name}")
+                    info.append(f"  Current Territory: {current_size} regions")
+                    info.append(f"  Founded: Year {civ.founded_year}")
+                    
+                    # Show territorial history stats
+                    if hasattr(civ, 'territorial_history') and civ.territorial_history:
+                        num_changes = len(civ.territorial_history)
+                        total_gained = sum(e.get('hexes_gained', 0) for e in civ.territorial_history)
+                        total_lost = sum(e.get('hexes_lost', 0) for e in civ.territorial_history)
+                        net_change = total_gained - total_lost
+                        
+                        info.append(f"  Territorial Events: {num_changes}")
+                        info.append(f"  Total Regions Gained: {total_gained}")
+                        info.append(f"  Total Regions Lost: {total_lost}")
+                        info.append(f"  Net Change: {net_change:+d}")
+                    else:
+                        info.append(f"  No recorded territorial changes")
+                    
+                    info.append("")
+                
+                info.append("\nUse 'research territorial <civilization name>' for detailed history")
+            
+            return ActionResult(
+                success=True,
+                message="\n".join(info),
+                time_passed=0.0,
+                action_type="research"
+            )
+        
         else:
             return ActionResult(
                 False,
                 f"Unknown research type: {research_type}\n"
-                "Available types: events, figures, heroes, villains, artifacts, memory, civilizations\n\n"
+                "Available types: events, figures, heroes, villains, artifacts, memory, civilizations, genealogy, territorial\n\n"
                 "⚠️  DEBUG: This shows omniscient world knowledge. Your character would NOT know this in-game!"
             )

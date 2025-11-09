@@ -76,6 +76,9 @@ class HistoricalEvent:
     Attributes:
         id: Unique identifier
         year: Year the event occurred
+        month: Month name (e.g., "Firstbloom", "Deepwinter")
+        day: Day of month (1-30)
+        season: Season name (spring, summer, autumn, winter)
         event_type: Category of event
         severity: Impact level
         name: Event name
@@ -95,11 +98,14 @@ class HistoricalEvent:
     """
     id: str
     year: int
-    event_type: EventType
-    severity: EventSeverity
-    name: str
-    description: str
-    primary_civilizations: List[str]
+    month: str = "Firstbloom"  # Default to spring
+    day: int = 1  # Default to first day
+    season: str = "spring"  # Default season
+    event_type: EventType = EventType.WAR
+    severity: EventSeverity = EventSeverity.MODERATE
+    name: str = ""
+    description: str = ""
+    primary_civilizations: List[str] = field(default_factory=list)
     affected_civilizations: List[str] = field(default_factory=list)
     key_figures: List[int] = field(default_factory=list)
     location: Optional[Tuple[int, int]] = None
@@ -112,11 +118,26 @@ class HistoricalEvent:
     creates_artifacts: List[str] = field(default_factory=list)
     significance: int = 5
     
+    def get_date_string(self) -> str:
+        """Get formatted date string (e.g., 'Firstbloom 15, Spring 1302')"""
+        return f"{self.month} {self.day}, {self.season.capitalize()} {self.year}"
+    
+    def get_full_date_string(self) -> str:
+        """Get full date with ordinal (e.g., '15th of Firstbloom, Spring 1302')"""
+        day_suffix = "th"
+        if self.day in [1, 21]: day_suffix = "st"
+        elif self.day in [2, 22]: day_suffix = "nd"
+        elif self.day in [3, 23]: day_suffix = "rd"
+        return f"{self.day}{day_suffix} of {self.month}, {self.season.capitalize()} {self.year}"
+    
     def to_dict(self) -> dict:
         """Serialize event to dictionary."""
         return {
             'id': self.id,
             'year': self.year,
+            'month': self.month,
+            'day': self.day,
+            'season': self.season,
             'event_type': self.event_type.value,
             'severity': self.severity.value,
             'name': self.name,
@@ -151,6 +172,58 @@ class HistoricalEvent:
             'creates_artifacts': self.creates_artifacts,
             'significance': self.significance
         }
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'HistoricalEvent':
+        """Deserialize event from dictionary."""
+        # Reconstruct relationship changes
+        relationship_changes = []
+        for rc_data in data.get('relationship_changes', []):
+            relationship_changes.append(RelationshipChange(
+                civilization_a=rc_data['civilization_a'],
+                civilization_b=rc_data['civilization_b'],
+                old_relationship=rc_data['old_relationship'],
+                new_relationship=rc_data['new_relationship'],
+                reason=rc_data['reason']
+            ))
+        
+        # Reconstruct territorial changes
+        territorial_changes = []
+        for tc_data in data.get('territorial_changes', []):
+            territorial_changes.append(TerritorialChange(
+                civilization=tc_data['civilization'],
+                hexes_gained=tc_data['hexes_gained'],
+                hexes_lost=tc_data['hexes_lost'],
+                reason=tc_data['reason']
+            ))
+        
+        # Reconstruct event type and severity enums
+        event_type = EventType(data['event_type'])
+        severity = EventSeverity(data['severity'])
+        
+        return cls(
+            id=data['id'],
+            year=data['year'],
+            month=data.get('month', 'Firstbloom'),
+            day=data.get('day', 1),
+            season=data.get('season', 'spring'),
+            event_type=event_type,
+            severity=severity,
+            name=data['name'],
+            description=data['description'],
+            primary_civilizations=data['primary_civilizations'],
+            affected_civilizations=data.get('affected_civilizations', []),
+            key_figures=data.get('key_figures', []),
+            location=tuple(data['location']) if data.get('location') else None,
+            duration_years=data.get('duration_years', 0),
+            casualties=data.get('casualties', 0),
+            relationship_changes=relationship_changes,
+            territorial_changes=territorial_changes,
+            causes_future_events=data.get('causes_future_events', []),
+            caused_by_events=data.get('caused_by_events', []),
+            creates_artifacts=data.get('creates_artifacts', []),
+            significance=data.get('significance', 5)
+        )
 
 
 class HistoricalEventGenerator:
@@ -167,6 +240,56 @@ class HistoricalEventGenerator:
         self.rng = random.Random(seed)
         self.events: List[HistoricalEvent] = []
         self.event_counter = 0
+        
+        # Calendar month definitions
+        self.months = [
+            ("Firstbloom", "spring"), ("Greentide", "spring"), ("Rainwatch", "spring"),
+            ("Sunpeak", "summer"), ("Highsun", "summer"), ("Harvestmoon", "summer"),
+            ("Leaffall", "autumn"), ("Goldwind", "autumn"), ("Dimlight", "autumn"),
+            ("Frostfall", "winter"), ("Deepwinter", "winter"), ("Thawbreak", "winter")
+        ]
+    
+    def _generate_event_date(self, year: int, event_type: EventType) -> Tuple[str, int, str]:
+        """Generate appropriate month, day, and season for an event type.
+        
+        Different event types favor different seasons:
+        - Wars: Spring/Summer (campaign season)
+        - Disasters: Varies by type
+        - Succession: Any time
+        - Cultural: Spring/Autumn
+        
+        Returns:
+            Tuple of (month_name, day, season_name)
+        """
+        # Season preferences by event type
+        if event_type in [EventType.WAR, EventType.TERRITORIAL_EXPANSION]:
+            # Wars typically happen in spring/summer (campaign season)
+            season_weights = [3, 3, 1, 0]  # Spring, Summer, Autumn, Winter
+        elif event_type in [EventType.PLAGUE, EventType.FAMINE]:
+            # Plagues spread more in summer, famines in winter
+            if event_type == EventType.PLAGUE:
+                season_weights = [1, 3, 2, 1]
+            else:
+                season_weights = [1, 1, 2, 3]
+        elif event_type in [EventType.CULTURAL_MOVEMENT, EventType.RELIGIOUS_SCHISM]:
+            # Cultural events favor spring and autumn
+            season_weights = [2, 1, 2, 1]
+        else:
+            # Even distribution for other events
+            season_weights = [1, 1, 1, 1]
+        
+        # Select season based on weights
+        seasons = ["spring", "summer", "autumn", "winter"]
+        season = self.rng.choices(seasons, weights=season_weights)[0]
+        
+        # Get months for this season
+        season_months = [(m, s) for m, s in self.months if s == season]
+        month_name, _ = self.rng.choice(season_months)
+        
+        # Random day (1-30)
+        day = self.rng.randint(1, 30)
+        
+        return month_name, day, season
         
     def generate_historical_timeline(self, years: int = 200) -> List[HistoricalEvent]:
         """Generate a timeline of interconnected historical events.
@@ -298,6 +421,8 @@ class HistoricalEventGenerator:
             return self._generate_alliance_event(year)
         elif event_type == EventType.BETRAYAL:
             return self._generate_betrayal_event(year)
+        elif event_type == EventType.TERRITORIAL_EXPANSION:
+            return self._generate_expansion_event(year)
         
         return None
     
@@ -310,9 +435,10 @@ class HistoricalEventGenerator:
             EventType.CULTURAL_MOVEMENT,
             EventType.ALLIANCE,
             EventType.BETRAYAL,
+            EventType.TERRITORIAL_EXPANSION,
         ]
         
-        weights = [0.25, 0.20, 0.15, 0.20, 0.15, 0.05]
+        weights = [0.23, 0.18, 0.15, 0.18, 0.13, 0.05, 0.08]
         
         return self.rng.choices(event_types, weights=weights)[0]
     
@@ -434,9 +560,15 @@ class HistoricalEventGenerator:
         # Location is battlefield (border between territories or random location)
         location = self._find_battlefield_location(civ_a, civ_b)
         
+        # Generate appropriate date for war event
+        month, day, season = self._generate_event_date(year, EventType.WAR)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
+            month=month,
+            day=day,
+            season=season,
             event_type=EventType.WAR,
             severity=severity,
             name=name,
@@ -496,13 +628,30 @@ class HistoricalEventGenerator:
         elif succession_type == 'civil_war':
             severity = EventSeverity.MAJOR
             name = f"The {civ.name} Civil War"
-            description = (
-                f"A devastating civil war erupted in {civ.name} as rival factions "
-                f"fought for control. The conflict tore the civilization apart, "
-                f"leaving lasting scars on its people and institutions."
-            )
+            
+            # Determine civil war outcome
+            outcome = self.rng.choice(['loyalist_victory', 'rebel_victory', 'fragmentation'])
             duration = self.rng.randint(2, 8)
             casualties = int(civ.population * self.rng.uniform(0.05, 0.20))
+            
+            if outcome == 'loyalist_victory':
+                description = (
+                    f"A devastating civil war erupted in {civ.name} as rebel factions "
+                    f"challenged the established order. After {duration} years of bloodshed, "
+                    f"loyalist forces emerged victorious, though the civilization was deeply scarred."
+                )
+            elif outcome == 'rebel_victory':
+                description = (
+                    f"A devastating civil war erupted in {civ.name} as revolutionary forces "
+                    f"rose against the old regime. After {duration} years of conflict, "
+                    f"the rebels triumphed, establishing a new order."
+                )
+            else:  # fragmentation
+                description = (
+                    f"A devastating civil war erupted in {civ.name} as rival factions "
+                    f"fought for control. The conflict tore the civilization apart, "
+                    f"with no clear victor emerging. Territories fragmented under competing rulers."
+                )
             
         elif succession_type == 'coup':
             severity = EventSeverity.MODERATE
@@ -526,9 +675,32 @@ class HistoricalEventGenerator:
         
         location = civ.territory.capital_hex if civ.territory else None
         
+        # Handle territorial changes for civil wars
+        territorial_changes = []
+        if succession_type == 'civil_war' and civ.territory and outcome == 'fragmentation':
+            # Civil war causes territory loss (fragmentation)
+            if len(civ.territory.hex_coordinates) > 3:
+                # Lose 10-30% of territory to breakaway factions
+                num_to_lose = int(len(civ.territory.hex_coordinates) * self.rng.uniform(0.10, 0.30))
+                # Prefer losing border/outlying hexes
+                hexes_to_lose = self.rng.sample(civ.territory.hex_coordinates, num_to_lose)
+                
+                territorial_changes.append(TerritorialChange(
+                    civilization=civ.id,
+                    hexes_gained=[],
+                    hexes_lost=hexes_to_lose,
+                    reason=f"Lost to breakaway factions in {name}"
+                ))
+        
+        # Generate appropriate date for succession event (any season)
+        month, day, season = self._generate_event_date(year, EventType.SUCCESSION)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
+            month=month,
+            day=day,
+            season=season,
             event_type=EventType.SUCCESSION if succession_type != 'civil_war' else EventType.CIVIL_WAR,
             severity=severity,
             name=name,
@@ -538,6 +710,7 @@ class HistoricalEventGenerator:
             location=location,
             duration_years=duration,
             casualties=casualties,
+            territorial_changes=territorial_changes,
             significance=4 + (2 if severity == EventSeverity.MAJOR else 1 if severity == EventSeverity.MODERATE else 0)
         )
     
@@ -607,10 +780,17 @@ class HistoricalEventGenerator:
         
         name = f"The {year} {disaster_type.replace('_', ' ').title()}"
         
+        # Generate appropriate date for disaster (varies by type)
+        disaster_event_type = EventType.PLAGUE if disaster_type == 'plague' else EventType.FAMINE if disaster_type == 'famine' else EventType.DISASTER
+        month, day, season = self._generate_event_date(year, disaster_event_type)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
-            event_type=EventType.PLAGUE if disaster_type == 'plague' else EventType.FAMINE if disaster_type == 'famine' else EventType.DISASTER,
+            month=month,
+            day=day,
+            season=season,
+            event_type=disaster_event_type,
             severity=severity,
             name=name,
             description=description,
@@ -700,9 +880,15 @@ class HistoricalEventGenerator:
         
         location = civ.territory.capital_hex if civ.territory else None
         
+        # Generate appropriate date for cultural event
+        month, day, season = self._generate_event_date(year, EventType.CULTURAL_MOVEMENT)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
+            month=month,
+            day=day,
+            season=season,
             event_type=EventType.TECHNOLOGICAL_ADVANCE if cultural_type == 'technological_advance' else EventType.RELIGIOUS_SCHISM if cultural_type == 'religious_movement' else EventType.CULTURAL_MOVEMENT,
             severity=severity,
             name=name,
@@ -761,9 +947,15 @@ class HistoricalEventGenerator:
             reason=f"Alliance of {year}"
         )]
         
+        # Generate appropriate date for alliance event
+        month, day, season = self._generate_event_date(year, EventType.ALLIANCE)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
+            month=month,
+            day=day,
+            season=season,
             event_type=EventType.ALLIANCE,
             severity=EventSeverity.MODERATE,
             name=name,
@@ -822,9 +1014,15 @@ class HistoricalEventGenerator:
             reason=f"Betrayal of {year}"
         )]
         
+        # Generate appropriate date for betrayal event
+        month, day, season = self._generate_event_date(year, EventType.BETRAYAL)
+        
         return HistoricalEvent(
             id=event_id,
             year=year,
+            month=month,
+            day=day,
+            season=season,
             event_type=EventType.BETRAYAL,
             severity=EventSeverity.MAJOR,
             name=name,
@@ -833,6 +1031,126 @@ class HistoricalEventGenerator:
             affected_civilizations=[civ_a.id, civ_b.id],
             relationship_changes=relationship_changes,
             significance=7
+        )
+    
+    def _generate_expansion_event(self, year: int) -> Optional[HistoricalEvent]:
+        """Generate a territorial expansion event (peaceful colonization/settlement)."""
+        if not self.world.civilizations:
+            return None
+        
+        # Choose a civilization to expand (prefer those with smaller territories)
+        civs_with_territory = [civ for civ in self.world.civilizations if civ.territory]
+        if not civs_with_territory:
+            return None
+        
+        # Weight towards smaller civilizations expanding
+        territory_sizes = [len(civ.territory.hex_coordinates) for civ in civs_with_territory]
+        max_size = max(territory_sizes) if territory_sizes else 1
+        # Inverse weights - smaller civs more likely to expand
+        weights = [max_size - size + 1 for size in territory_sizes]
+        
+        civ = self.rng.choices(civs_with_territory, weights=weights)[0]
+        
+        event_id = f"expansion-{self.event_counter}"
+        self.event_counter += 1
+        
+        # Determine expansion type and size
+        expansion_types = [
+            ('colonization', 'peaceful colonization', EventSeverity.MINOR),
+            ('settlement', 'organized settlement', EventSeverity.MODERATE),
+            ('migration', 'mass migration', EventSeverity.MODERATE),
+            ('conquest_minor', 'conquest of unclaimed lands', EventSeverity.MINOR)
+        ]
+        
+        expansion_type, type_desc, severity = self.rng.choice(expansion_types)
+        
+        # Calculate hexes to gain (2-10% expansion based on current size)
+        current_size = len(civ.territory.hex_coordinates)
+        expansion_percent = self.rng.uniform(0.02, 0.10)
+        num_hexes_gained = max(1, int(current_size * expansion_percent))
+        
+        # Find potential expansion hexes (adjacent to current territory)
+        potential_hexes = []
+        for hex_coord in civ.territory.hex_coordinates:
+            for neighbor in self._get_adjacent_hexes(hex_coord):
+                # Check if hex is unoccupied by any civilization
+                occupied = False
+                for other_civ in self.world.civilizations:
+                    if other_civ.territory and neighbor in other_civ.territory.hex_coordinates:
+                        occupied = True
+                        break
+                
+                if not occupied and neighbor not in potential_hexes:
+                    # Check if hex is within world bounds
+                    x, y = neighbor
+                    if 0 <= x < self.world.world_size and 0 <= y < self.world.world_size:
+                        potential_hexes.append(neighbor)
+        
+        if not potential_hexes:
+            # No room to expand
+            return None
+        
+        # Select hexes to gain
+        hexes_gained = self.rng.sample(potential_hexes, min(num_hexes_gained, len(potential_hexes)))
+        
+        # Generate name and description
+        expansion_direction = self.rng.choice([
+            'northern', 'southern', 'eastern', 'western', 
+            'frontier', 'coastal', 'highland', 'lowland'
+        ])
+        
+        name = f"The {expansion_direction.title()} Expansion"
+        
+        expansion_reasons = [
+            "population growth",
+            "resource scarcity",
+            "economic opportunity",
+            "defensive strategic positioning",
+            "cultural mandate",
+            "agricultural needs"
+        ]
+        
+        reason = self.rng.choice(expansion_reasons)
+        
+        description = (
+            f"{civ.name} underwent {type_desc} into {expansion_direction} territories, "
+            f"driven by {reason}. "
+        )
+        
+        if severity == EventSeverity.MODERATE:
+            description += f"The expansion claimed {len(hexes_gained)} new regions, significantly increasing the civilization's domain."
+        else:
+            description += f"The expansion added {len(hexes_gained)} new regions to the civilization's territory."
+        
+        # Create territorial changes
+        territorial_changes = [TerritorialChange(
+            civilization=civ.id,
+            hexes_gained=hexes_gained,
+            hexes_lost=[],
+            reason=f"Expansion through {type_desc}"
+        )]
+        
+        # Location is one of the newly claimed hexes
+        location = self.rng.choice(hexes_gained)
+        
+        # Generate appropriate date for expansion event (prefer spring/summer for settlement)
+        month, day, season = self._generate_event_date(year, EventType.TERRITORIAL_EXPANSION)
+        
+        return HistoricalEvent(
+            id=event_id,
+            year=year,
+            month=month,
+            day=day,
+            season=season,
+            event_type=EventType.TERRITORIAL_EXPANSION,
+            severity=severity,
+            name=name,
+            description=description,
+            primary_civilizations=[civ.id],
+            affected_civilizations=[civ.id],
+            location=location,
+            territorial_changes=territorial_changes,
+            significance=4 if severity == EventSeverity.MODERATE else 3
         )
     
     def _apply_event_effects(self, event: HistoricalEvent):
@@ -853,6 +1171,9 @@ class HistoricalEventGenerator:
         for change in event.territorial_changes:
             civ = next((c for c in self.world.civilizations if c.id == change.civilization), None)
             if civ and civ.territory:
+                # Record previous size for history log
+                previous_size = len(civ.territory.hex_coordinates)
+                
                 # Add gained hexes
                 for hex_coord in change.hexes_gained:
                     if hex_coord not in civ.territory.hex_coordinates:
@@ -865,6 +1186,20 @@ class HistoricalEventGenerator:
                 
                 # Update population estimate
                 civ.territory.population_estimate = len(civ.territory.hex_coordinates) * (civ.population // max(1, len(civ.territory.hex_coordinates)))
+                
+                # Log territorial change in civilization history
+                new_size = len(civ.territory.hex_coordinates)
+                if new_size != previous_size:
+                    civ.territorial_history.append({
+                        'year': event.year,
+                        'event_id': event.id,
+                        'event_name': event.name,
+                        'hexes_gained': len(change.hexes_gained),
+                        'hexes_lost': len(change.hexes_lost),
+                        'net_change': new_size - previous_size,
+                        'total_hexes': new_size,
+                        'reason': change.reason
+                    })
         
         # Add event to civilization's major events
         for civ_id in event.primary_civilizations:

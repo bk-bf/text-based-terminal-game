@@ -61,11 +61,15 @@ def generate_mythic_events(world, num_events: int = 10, seed: Optional[int] = No
     templates = _load_templates()
 
     events: List[Dict[str, Any]] = []
-    base_year = -rng.randint(200, 1200)  # ancient era (negative for 'years before present')
+    
+    # Calendar system: Current year is 1452, mythic events are ancient (200-1200 years ago)
+    current_year = 1452
+    base_year = current_year - rng.randint(200, 1200)  # Ancient era: 252 to 1252
 
     for i in range(num_events):
         tpl = rng.choice(templates)
-        year = base_year - rng.randint(0, 50 * i + 50)
+        # Spread events backward from base_year
+        year = base_year - rng.randint(0, 50 * i + 50)  # Goes further back in time
         significance = tpl.get('significance', 5)
         # small random variation
         significance = max(1, min(10, significance + rng.randint(-2, 2)))

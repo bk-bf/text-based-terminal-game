@@ -836,7 +836,7 @@ class MainGameScreen(Screen):
     
     def update_title_bar(self, player_state=None):
         """Update the title bar with current game state"""
-        if player_state and hasattr(player_state, 'get_time_string'):
+        if player_state:
             time_desc = self._get_natural_time_description(player_state)
             title_text = f"Fantasy RPG - {time_desc} | Type 'help' for commands"
         else:
@@ -846,8 +846,12 @@ class MainGameScreen(Screen):
             self.title_bar.update(title_text)
     
     def _get_natural_time_description(self, player_state) -> str:
-        """Get natural language time description for title bar"""
-        # Get approximate time of day based on game hour
+        """Get natural language time description for title bar using calendar system"""
+        # Use calendar system if available
+        if hasattr(player_state, 'calendar') and player_state.calendar:
+            return player_state.calendar.get_title_bar_string()
+        
+        # Fallback to legacy system
         hour = int(player_state.game_hour)  # Convert to int to avoid float precision issues
         day = player_state.game_day
         

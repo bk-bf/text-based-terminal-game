@@ -142,10 +142,36 @@ class SaveManager:
             
             self.game_engine.is_initialized = True
             
-            return True, f"Game loaded from {filename}"
+            # Build detailed success message
+            world = self.game_engine.world_coordinator
+            message_parts = [f"Game loaded from {filename}"]
+            
+            # Character info
+            message_parts.append(f"Character: {character.name} (Level {character.level} {character.race} {character.character_class})")
+            
+            # World info
+            hex_count = len(world.hex_data) if world and hasattr(world, 'hex_data') else 0
+            message_parts.append(f"World: {hex_count} hexes (seed: {world_seed})")
+            
+            # Historical data
+            if world:
+                mythic_count = len(getattr(world, 'mythic_events', []))
+                figure_count = len(getattr(world, 'historical_figures', []))
+                event_count = len(getattr(world, 'historical_events', []))
+                civ_count = len(getattr(world, 'civilizations', []))
+                
+                if mythic_count > 0 or figure_count > 0 or event_count > 0 or civ_count > 0:
+                    message_parts.append(f"History: {mythic_count} mythic events, {figure_count} figures, {event_count} historical events, {civ_count} civilizations")
+            
+            # Time info
+            message_parts.append(f"Time: Year {game_time.year}, Day {game_time.day}, {game_time.hour:02d}:{game_time.minute:02d}")
+            
+            return True, "\n".join(message_parts)
             
         except Exception as e:
-            return False, f"Failed to load game: {str(e)}"
+            import traceback
+            error_details = traceback.format_exc()
+            return False, f"Failed to load game: {str(e)}\n{error_details}"
     
     # Serialization helper methods
     
@@ -246,6 +272,11 @@ class SaveManager:
             "wind_chill": getattr(survival, "wind_chill", 0)
         }
         
+        # Serialize calendar if available
+        calendar_data = None
+        if hasattr(player_state, 'calendar') and player_state.calendar:
+            calendar_data = player_state.calendar.to_dict()
+        
         return {
             "survival": survival_data,
             "game_time": {
@@ -253,6 +284,7 @@ class SaveManager:
                 "game_day": getattr(player_state, "game_day", 1),
                 "game_season": getattr(player_state, "game_season", "spring")
             },
+            "calendar": calendar_data,
             "location": {
                 "current_hex": player_state.current_hex,
                 "current_location": player_state.current_location
@@ -289,6 +321,11 @@ class SaveManager:
             player_state.game_hour = time_data["game_hour"]
             player_state.game_day = time_data["game_day"]
             player_state.game_season = time_data["game_season"]
+        
+        # Restore calendar (will sync with game_time in __post_init__)
+        if "calendar" in data and data["calendar"]:
+            from game.calendar_system import CalendarSystem
+            player_state.calendar = CalendarSystem.from_dict(data["calendar"])
         
         # Restore location
         if "location" in data:
@@ -418,6 +455,15 @@ class SaveManager:
         if hasattr(self.game_engine.world_coordinator, 'mythic_events'):
             mythic_events = self.game_engine.world_coordinator.mythic_events
         
+        # Serialize historical events
+        historical_events = []
+        if hasattr(self.game_engine.world_coordinator, 'historical_events'):
+            for event in self.game_engine.world_coordinator.historical_events:
+                if hasattr(event, 'to_dict'):
+                    historical_events.append(event.to_dict())
+                else:
+                    historical_events.append(event)
+        
         # Serialize historical figures
         historical_figures = []
         if hasattr(self.game_engine.world_coordinator, 'historical_figures'):
@@ -444,6 +490,7 @@ class SaveManager:
             "world_size": self.game_engine.world_size,
             "world_seed": self.game_engine.game_state.world_seed if self.game_engine.game_state else None,
             "mythic_events": mythic_events,
+            "historical_events": historical_events,
             "historical_figures": historical_figures,
             "civilizations": civilizations
         }
@@ -477,6 +524,15 @@ class SaveManager:
             self.game_engine.world_coordinator.mythic_events = data["mythic_events"]
         else:
             self.game_engine.world_coordinator.mythic_events = []
+        
+        # Restore historical events
+        if "historical_events" in data:
+            from world.historical_events import HistoricalEvent
+            self.game_engine.world_coordinator.historical_events = [
+                HistoricalEvent.from_dict(event_data) for event_data in data["historical_events"]
+            ]
+        else:
+            self.game_engine.world_coordinator.historical_events = []
         
         # Restore historical figures
         if "historical_figures" in data:

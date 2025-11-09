@@ -591,15 +591,39 @@ class FantasyRPGApp(App):
                 def handle_load_response(load_confirmed):
                     if load_confirmed:
                         action_logger.log_system_message("Player chose to load saved game...")
+                        action_logger.log_system_message("Loading game state...")
                         success, message = self.game_engine.load_game("save")
                         
                         if success:
-                            action_logger.log_system_message(f"✓ {message}")
+                            action_logger.log_system_message("✓ Game loaded successfully!")
+                            action_logger.log_separator()
+                            # Display detailed load info (message has multiple lines)
+                            for line in message.split('\n'):
+                                if line.strip():
+                                    action_logger.log_system_message(f"  {line}")
+                            action_logger.log_separator()
+                            
                             game_state = self.game_engine.game_state
                             test_character = game_state.character
+                            
+                            # Report historical data if available
+                            if self.game_engine.world_coordinator:
+                                world = self.game_engine.world_coordinator
+                                figure_count = len(getattr(world, 'historical_figures', []))
+                                if figure_count > 0:
+                                    action_logger.log_system_message(f"Loaded {figure_count} historical figures from save")
+                                else:
+                                    action_logger.log_system_message("⚠️ No historical figures in save file")
+                            
                             self._continue_initialization(test_character, game_state, action_logger, True)
                         else:
-                            action_logger.log_system_message(f"✗ Failed to load save: {message}")
+                            action_logger.log_system_message("✗ Failed to load save!")
+                            action_logger.log_separator()
+                            # Display error details (message may have multiple lines)
+                            for line in message.split('\n'):
+                                if line.strip():
+                                    action_logger.log_system_message(f"  {line}")
+                            action_logger.log_separator()
                             action_logger.log_system_message("Creating new game instead...")
                             self._continue_initialization(None, None, action_logger, False)
                     else:
@@ -721,38 +745,99 @@ class FantasyRPGApp(App):
         game_state = self.game_engine.new_game(test_character, world_seed=fresh_seed)
         action_logger.log_system_message("World generation complete.")
         
-        # Report mythic content generation
-        self._report_mythic_generation(action_logger)
+        # Report world generation results
+        self._report_world_generation(action_logger)
         
         return test_character, game_state
     
-    def _report_mythic_generation(self, action_logger):
-        """Report mythic event and location generation"""
-        if hasattr(self.game_engine, 'world_coordinator') and self.game_engine.world_coordinator:
-            world = self.game_engine.world_coordinator
-            mythic_events = getattr(world, 'mythic_events', [])
-            if mythic_events:
-                action_logger.log_system_message(f"Generated {len(mythic_events)} mythic/legendary events")
-                
-                # Count hexes with mythic sites
-                mythic_hexes = sum(1 for hex_data in world.hex_data.values() 
-                                 if 'mythic_sites' in hex_data and hex_data['mythic_sites'])
-                if mythic_hexes > 0:
-                    action_logger.log_system_message(f"Marked {mythic_hexes} hexes with mythic sites (ancient battlefields, lost cities, sacred sites)")
-            else:
-                action_logger.log_system_message("No mythic events generated")
-            
-            # Report civilization placement
-            civilizations = getattr(world, 'civilizations', [])
-            if civilizations:
-                action_logger.log_system_message(f"Placed {len(civilizations)} civilizations across the world map")
-                
-                # Count total territory hexes
-                total_territory = sum(len(civ.territory.hex_coordinates) for civ in civilizations if civ.territory)
-                if total_territory > 0:
-                    action_logger.log_system_message(f"Civilizations control {total_territory} hexes total (use 'research civilizations' to explore)")
-        else:
+    def _report_world_generation(self, action_logger):
+        """Report complete world generation results"""
+        if not hasattr(self.game_engine, 'world_coordinator') or not self.game_engine.world_coordinator:
             action_logger.log_system_message("World coordinator not available")
+            return
+        
+        world = self.game_engine.world_coordinator
+        action_logger.log_separator()
+        action_logger.log_system_message("=== WORLD GENERATION SUMMARY ===")
+        
+        # Terrain and biomes
+        hex_count = len(world.hex_data)
+        action_logger.log_system_message(f"Generated {hex_count} hexes with terrain and biomes")
+        
+        # Mythic events
+        mythic_events = getattr(world, 'mythic_events', [])
+        if mythic_events:
+            action_logger.log_system_message(f"Generated {len(mythic_events)} mythic/legendary events (ancient history)")
+            
+            # Count hexes with mythic sites
+            mythic_hexes = sum(1 for hex_data in world.hex_data.values() 
+                             if 'mythic_sites' in hex_data and hex_data['mythic_sites'])
+            if mythic_hexes > 0:
+                action_logger.log_system_message(f"  - {mythic_hexes} hexes contain mythic sites")
+        
+        # Civilizations
+        civilizations = getattr(world, 'civilizations', [])
+        if civilizations:
+            action_logger.log_system_message(f"Generated {len(civilizations)} distinct civilizations")
+            
+            # Territory info
+            total_territory = sum(len(civ.territory.hex_coordinates) for civ in civilizations if civ.territory)
+            if total_territory > 0:
+                action_logger.log_system_message(f"  - {total_territory} hexes under civilization control")
+            
+            # List civilizations
+            for civ in civilizations:
+                territory_count = len(civ.territory.hex_coordinates) if civ.territory else 0
+                action_logger.log_system_message(f"  - {civ.name} ({civ.race}, {territory_count} hexes)")
+        
+        # Historical figures
+        historical_figures = getattr(world, 'historical_figures', [])
+        if historical_figures:
+            action_logger.log_system_message(f"Generated {len(historical_figures)} historical figures")
+            
+            # Living vs deceased
+            living = sum(1 for f in historical_figures if not f.death_year)
+            deceased = len(historical_figures) - living
+            action_logger.log_system_message(f"  - {living} living, {deceased} deceased")
+            
+            # Role breakdown (top 3)
+            roles = {}
+            for figure in historical_figures:
+                role = figure.role.value if hasattr(figure, 'role') else 'unknown'
+                roles[role] = roles.get(role, 0) + 1
+            
+            if roles:
+                top_roles = sorted(roles.items(), key=lambda x: x[1], reverse=True)[:3]
+                role_summary = ", ".join(f"{count} {role}s" for role, count in top_roles)
+                action_logger.log_system_message(f"  - Roles: {role_summary}")
+            
+            # Genealogy
+            with_parents = sum(1 for f in historical_figures if f.parents)
+            with_children = sum(1 for f in historical_figures if f.children)
+            action_logger.log_system_message(f"  - {with_parents} with known parents, {with_children} with children")
+        else:
+            action_logger.log_system_message("⚠️ No historical figures generated")
+        
+        # Historical events
+        historical_events = getattr(world, 'historical_events', [])
+        if historical_events:
+            action_logger.log_system_message(f"Generated {len(historical_events)} historical events")
+            
+            # Event type breakdown (top 3)
+            event_types = {}
+            for event in historical_events:
+                event_type = event.event_type.value
+                event_types[event_type] = event_types.get(event_type, 0) + 1
+            
+            if event_types:
+                top_events = sorted(event_types.items(), key=lambda x: x[1], reverse=True)[:3]
+                event_summary = ", ".join(f"{count} {etype.replace('_', ' ')}" for etype, count in top_events)
+                action_logger.log_system_message(f"  - Events: {event_summary}")
+        
+        action_logger.log_system_message("=================================")
+        action_logger.log_separator()
+        action_logger.log_message("Use 'research civilizations', 'research genealogy', or 'dump_history' to explore the world's history")
+        action_logger.log_separator()
     
     def _finalize_game_initialization(self, test_character, game_state, action_logger, loaded_from_save):
         """Finalize game initialization with character setup and welcome messages"""
